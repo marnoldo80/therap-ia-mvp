@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Page() {
   const router = useRouter();
@@ -34,7 +38,7 @@ export default function Page() {
 
   return (
     <main style={{ maxWidth: 520, margin: "40px auto", padding: 20 }}>
-      <h1>Iscrizione Terapeuta (v3)</h1>
+      <h1>Iscrizione Terapeuta (FINAL)</h1>
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
         <label>Email
           <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required
