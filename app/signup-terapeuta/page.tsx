@@ -24,11 +24,20 @@ export default function Page() {
     try {
       const { data: sign, error: signErr } = await supabase.auth.signUp({ email, password });
       if (signErr) throw signErr;
-      const user = sign.user; if (!user) throw new Error("Utente non disponibile dopo signup.");
+      const user = sign.user; 
+      if (!user) throw new Error("Utente non disponibile dopo signup.");
 
+      // Registra il consenso GDPR
       const { error: cErr } = await supabase.from("consents")
         .insert({ user_id: user.id, kind: "privacy-gdpr", version: "v1" });
       if (cErr) throw cErr;
+
+      // Crea la scheda terapeuta
+      const { error: tErr } = await supabase.from("therapists").insert({
+        user_id: user.id,
+        email: email
+      });
+      if (tErr) throw tErr;
 
       router.push("/app/therapist/onboarding");
     } catch (e: any) {
@@ -38,7 +47,7 @@ export default function Page() {
 
   return (
     <main style={{ maxWidth: 520, margin: "40px auto", padding: 20 }}>
-      <h1>Iscrizione Terapeuta (FINAL)</h1>
+      <h1>Iscrizione Terapeuta (con scheda DB)</h1>
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
         <label>Email
           <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required
