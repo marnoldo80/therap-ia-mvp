@@ -15,47 +15,38 @@ export default function Page() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    if (!accepted) {
-      setErr("Devi accettare l'informativa privacy.");
-      return;
-    }
+    if (!accepted) { setErr("Devi accettare l'informativa privacy."); return; }
     setLoading(true);
     try {
       const { data: sign, error: signErr } = await supabase.auth.signUp({ email, password });
       if (signErr) throw signErr;
-      const user = sign.user;
-      if (!user) throw new Error("Impossibile ottenere l'utente dopo il signup.");
+      const user = sign.user; if (!user) throw new Error("Utente non disponibile dopo signup.");
 
-      const { error: cErr } = await supabase
-        .from("consents")
+      const { error: cErr } = await supabase.from("consents")
         .insert({ user_id: user.id, kind: "privacy-gdpr", version: "v1" });
       if (cErr) throw cErr;
 
       router.push("/app/therapist/onboarding");
     } catch (e: any) {
       setErr(e?.message ?? "Errore sconosciuto");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   return (
     <main style={{ maxWidth: 520, margin: "40px auto", padding: 20 }}>
-      <h1>Iscrizione Terapeuta</h1>
+      <h1>Iscrizione Terapeuta (v3)</h1>
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        <label>
-          Email
+        <label>Email
           <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required
             style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6 }} />
         </label>
-        <label>
-          Password
+        <label>Password
           <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required
             style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6 }} />
         </label>
         <label style={{ display:"flex", gap:8, alignItems:"center" }}>
           <input type="checkbox" checked={accepted} onChange={(e)=>setAccepted(e.target.checked)} />
-          Dichiaro di aver letto e accettato l'informativa privacy (GDPR).
+          Accetto l'informativa privacy (GDPR)
         </label>
         {err && <p style={{ color:"crimson" }}>{err}</p>}
         <button type="submit" disabled={loading}
@@ -63,9 +54,6 @@ export default function Page() {
           {loading ? "Creazione in corso..." : "Crea account"}
         </button>
       </form>
-      <p style={{ marginTop:16, fontSize:12, color:"#666" }}>
-        Dopo la creazione verrai portato all’onboarding.
-      </p>
     </main>
   );
 }
