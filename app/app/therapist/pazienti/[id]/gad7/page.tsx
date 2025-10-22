@@ -37,6 +37,7 @@ export default function Page({ params}:{params:{id:string}}){
   const [sending,setSending]=useState(false);
   const [results,setResults]=useState<Result[]>([]);
   const [patientEmail,setPatientEmail]=useState<string>("");
+  const [therapistId,setTherapistId]=useState<string>("");
 
   const total = useMemo(()=>answers.reduce((a,b)=>a+(Number.isFinite(b)?b:0),0),[answers]);
   const severity = useMemo(()=>toSeverity(total),[total]);
@@ -44,32 +45,32 @@ export default function Page({ params}:{params:{id:string}}){
   useEffect(()=>{ (async()=>{
     const {data:u}=await supabase.auth.getUser();
     if(!u?.user){ router.replace("/login"); return; }
+    setTherapistId(u.user.id);
 
-    // carica email paziente per eventuale invio
-    const { data: p, error: pe } = await supabase
+    const { data: p } = await supabase
       .from("patients").select("email").eq("id",pid).single();
-    if (!pe && p?.email) setPatientEmail(p.email);
+    if (p?.email) setPatientEmail(p.email);
 
-    // carica ultimi risultati
     await loadResults();
   })(); },[router, pid]);
 
   async function loadResults(){
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("gad7_results")
       .select("created_at,total,severity")
       .eq("patient_id", pid)
       .order("created_at", { ascending: false })
       .limit(10);
-    if (!error) setResults(data || []);
+    setResults(data || []);
   }
 
   async function save(){
     setMsg(null); setErr(null); setSaved(false);
     try{
+      if (!therapistId) throw new Error("Sessione non valida (therapist).");
       const { error } = await supabase
         .from("gad7_results")
-        .insert({ patient_id: pid, total, severity });
+        .insert({ patient_id: pid, total, severity, therapist_user_id: therapistId });
       if(error) throw error;
       setSaved(true);
       setMsg("Risultato salvato.");
