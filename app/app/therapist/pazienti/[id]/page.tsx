@@ -2,15 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
-function interpret(total:number){
-  if (total <= 4) return "Minimal";
-  if (total <= 9) return "Mild";
-  if (total <= 14) return "Moderate";
-  return "Severe";
-}
 
 export default function Page(){
   const { id } = useParams() as { id: string };
@@ -42,7 +34,7 @@ export default function Page(){
       <p style={{color:"#666"}}>Creato: {new Date(p.created_at||"").toLocaleString()}</p>
 
       <div style={{marginTop:12}}>
-        <a href={`./gad7`} style={{textDecoration:"none",border:"1px solid #222",padding:"8px 12px",borderRadius:8}}>
+        <a href={`/app/therapist/pazienti/${id}/gad7`} style={{textDecoration:"none",border:"1px solid #222",padding:"8px 12px",borderRadius:8}}>
           🧪 Somministra GAD-7
         </a>
       </div>

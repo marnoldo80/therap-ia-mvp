@@ -14,15 +14,11 @@ const Q = [
   "Paura che possa succedere qualcosa di terribile",
 ];
 
-function interpret(total:number){
-  if (total <= 4) return "Minimal";
-  if (total <= 9) return "Mild";
-  if (total <= 14) return "Moderate";
-  return "Severe";
-}
+function interpret(total:number){ if(total<=4) return "Minimal"; if(total<=9) return "Mild"; if(total<=14) return "Moderate"; return "Severe"; }
 
 export default function Page(){
-  const { id } = useParams() as { id: string };
+  const params = useParams() as { id?: string };
+  const id = params.id || "";
   const router = useRouter();
   const [ans, setAns] = useState<number[]>(Array(7).fill(0));
   const [err, setErr] = useState<string|null>(null);
@@ -31,7 +27,8 @@ export default function Page(){
   useEffect(()=>{(async()=>{
     const { data:u } = await supabase.auth.getUser();
     if(!u?.user){ router.replace("/login"); return; }
-  })()},[router]);
+    if(!id || id.length < 10){ setErr("ID paziente non valido."); }
+  })()},[router,id]);
 
   const total = ans.reduce((a,b)=>a+b,0);
   const severity = interpret(total);
@@ -39,6 +36,7 @@ export default function Page(){
   async function submit(e:React.FormEvent){
     e.preventDefault(); setErr(null); setLoading(true);
     try{
+      if(!id || id.length<10) throw new Error("ID paziente non valido.");
       const { data:u } = await supabase.auth.getUser();
       const user = u?.user; if(!user) throw new Error("Sessione scaduta");
       const { error } = await supabase.from("gad7_results").insert({
@@ -54,6 +52,7 @@ export default function Page(){
     <main style={{maxWidth:720,margin:"40px auto",padding:20}}>
       <a href={`/app/therapist/pazienti/${id}`} style={{textDecoration:"none"}}>← Torna alla scheda</a>
       <h1 style={{marginTop:8}}>GAD-7</h1>
+      {err && <p style={{color:"crimson"}}>{err}</p>}
       <form onSubmit={submit} style={{display:"grid",gap:16,marginTop:16}}>
         {Q.map((q,i)=>(
           <div key={i} style={{border:"1px solid #ddd",borderRadius:8,padding:12}}>
@@ -68,10 +67,7 @@ export default function Page(){
             </div>
           </div>
         ))}
-        <div style={{marginTop:8}}>
-          Totale: <b>{total}</b> — Gravità: <b>{severity}</b>
-        </div>
-        {err && <p style={{color:"crimson"}}>{err}</p>}
+        <div>Totale: <b>{total}</b> — Gravità: <b>{severity}</b></div>
         <button type="submit" disabled={loading}
           style={{padding:"10px 14px",borderRadius:8,border:"1px solid #333"}}>
           {loading? "Salvataggio…" : "Salva risultato"}
