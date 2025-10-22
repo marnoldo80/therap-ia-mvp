@@ -4,8 +4,8 @@ import { Resend } from "resend";
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const to = body.to || body.toEmail;             // accetta to o toEmail
-    const toName = body.toName || "Paziente";
+    const to: string | undefined = body.to || body.toEmail;
+    const toName: string = body.toName || "Paziente";
     const url: string | undefined = body.url;
 
     if (!to || !url) {
@@ -22,9 +22,10 @@ export async function POST(req: Request) {
       <p>Grazie.</p>
     `;
 
-    const r = await resend.emails.send({ from, to, subject, html });
-    if (!r?.id) throw new Error("Send failed");
-    return NextResponse.json({ ok: true });
+    const { data, error } = await resend.emails.send({ from, to, subject, html });
+    if (error) return NextResponse.json({ error: error.message || "Send failed" }, { status: 500 });
+
+    return NextResponse.json({ ok: true, id: data?.id ?? null });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Error" }, { status: 500 });
   }
