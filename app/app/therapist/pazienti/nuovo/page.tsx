@@ -11,6 +11,8 @@ const supabase = createClient(
 export default function Page(){
   const router = useRouter();
   const [displayName,setDisplayName]=useState("");
+  const [email,setEmail]=useState("");
+  const [phone,setPhone]=useState("");
   const [issues,setIssues]=useState("");
   const [goals,setGoals]=useState("");
   const [err,setErr]=useState<string|null>(null);
@@ -22,21 +24,19 @@ export default function Page(){
   })()},[router]);
 
   async function handleSubmit(e:React.FormEvent){
-    e.preventDefault();
-    setErr(null); setLoading(true);
+    e.preventDefault(); setErr(null); setLoading(true);
     try{
       const { data: u } = await supabase.auth.getUser();
       const user = u?.user; if(!user) throw new Error("Sessione scaduta");
       const { error } = await supabase.from("patients").insert({
         therapist_user_id: user.id,
         display_name: displayName,
-        issues, goals
+        email, phone, issues, goals
       });
       if(error) throw error;
       router.replace("/app/therapist/pazienti");
-    }catch(e:any){
-      setErr(e?.message ?? "Errore");
-    }finally{ setLoading(false); }
+    }catch(e:any){ setErr(e?.message ?? "Errore"); }
+    finally{ setLoading(false); }
   }
 
   return (
@@ -46,6 +46,14 @@ export default function Page(){
       <form onSubmit={handleSubmit} style={{display:"grid",gap:12,marginTop:16}}>
         <label>Nome / Pseudonimo
           <input value={displayName} onChange={e=>setDisplayName(e.target.value)} required
+                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
+        </label>
+        <label>Email
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
+        </label>
+        <label>Telefono
+          <input value={phone} onChange={e=>setPhone(e.target.value)}
                  style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
         </label>
         <label>Problemi principali
