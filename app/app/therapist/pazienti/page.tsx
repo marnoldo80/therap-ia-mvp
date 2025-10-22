@@ -16,11 +16,11 @@ export default function Page(){
   useEffect(()=>{(async()=>{
     const { data: u } = await supabase.auth.getUser();
     const user = u?.user; if(!user){ location.href="/login"; return; }
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("patients")
       .select("id,display_name,created_at")
       .order("created_at",{ascending:false});
-    if(!error && data) setRows(data as any);
+    if(data) setRows(data as any);
     setLoading(false);
   })()},[]);
 
@@ -38,8 +38,12 @@ export default function Page(){
       <ul style={{marginTop:16,display:"grid",gap:8}}>
         {rows.map(p=>(
           <li key={p.id} style={{border:"1px solid #ddd",borderRadius:8,padding:12}}>
-            <a href="/app/therapist/pazienti/{p.id}" style="text-decoration:none"><b>{p.display_name}</b></a>
-            <div style={{fontSize:12,color:"#666"}}>{new Date(p.created_at||"").toLocaleString()}</div>
+            <a href={`/app/therapist/pazienti/${p.id}`} style={{ textDecoration: "none" }}>
+              <b>{p.display_name}</b>
+            </a>
+            <div style={{fontSize:12,color:"#666"}}>
+              {new Date(p.created_at||"").toLocaleString()}
+            </div>
           </li>
         ))}
       </ul>}
