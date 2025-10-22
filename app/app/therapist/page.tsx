@@ -9,11 +9,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Therapist = {
-  customer_code: string | null;
-  email: string | null;
-  full_name?: string | null;
-};
+type Therapist = { customer_code: string | null; email: string | null; full_name?: string | null; };
 
 export default function Page() {
   const router = useRouter();
@@ -66,6 +62,13 @@ export default function Page() {
       ) : (
         <p style={{marginTop:8}}>Codice cliente: <b>{t?.customer_code}</b></p>
       )}
+
+      {/* Link SEMPRE visibile */}
+      <div style={{marginTop:12}}>
+        <a href="/app/therapist/onboarding" style={{textDecoration:"none"}}>
+          ⚙️ Modifica dati / Onboarding
+        </a>
+      </div>
 
       <div style={{marginTop:24,display:"flex",gap:16,flexWrap:"wrap"}}>
         <a href="/app/therapist/schemi" style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,textDecoration:"none"}}>
