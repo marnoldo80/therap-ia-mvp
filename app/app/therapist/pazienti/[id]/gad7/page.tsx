@@ -25,6 +25,8 @@ function toSeverity(total:number){
   return "Grave";
 }
 
+type Result = { created_at: string; total: number; severity: string };
+
 export default function Page({ params}:{params:{id:string}}){
   const pid = params.id;
   const router = useRouter();
@@ -33,17 +35,37 @@ export default function Page({ params}:{params:{id:string}}){
   const [err,setErr]=useState<string|null>(null);
   const [saved,setSaved]=useState<boolean>(false);
   const [sending,setSending]=useState(false);
+  const [results,setResults]=useState<Result[]>([]);
+  const [patientEmail,setPatientEmail]=useState<string>("");
 
   const total = useMemo(()=>answers.reduce((a,b)=>a+(Number.isFinite(b)?b:0),0),[answers]);
   const severity = useMemo(()=>toSeverity(total),[total]);
 
   useEffect(()=>{ (async()=>{
     const {data:u}=await supabase.auth.getUser();
-    if(!u?.user){ router.replace("/login"); }
-  })(); },[router]);
+    if(!u?.user){ router.replace("/login"); return; }
+
+    // carica email paziente per eventuale invio
+    const { data: p, error: pe } = await supabase
+      .from("patients").select("email").eq("id",pid).single();
+    if (!pe && p?.email) setPatientEmail(p.email);
+
+    // carica ultimi risultati
+    await loadResults();
+  })(); },[router, pid]);
+
+  async function loadResults(){
+    const { data, error } = await supabase
+      .from("gad7_results")
+      .select("created_at,total,severity")
+      .eq("patient_id", pid)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (!error) setResults(data || []);
+  }
 
   async function save(){
-    setMsg(null); setErr(null);
+    setMsg(null); setErr(null); setSaved(false);
     try{
       const { error } = await supabase
         .from("gad7_results")
@@ -51,27 +73,25 @@ export default function Page({ params}:{params:{id:string}}){
       if(error) throw error;
       setSaved(true);
       setMsg("Risultato salvato.");
+      await loadResults();
     }catch(e:any){
       setErr(e?.message || "Errore salvataggio");
+      console.error("gad7 save error:", e);
     }
   }
 
   async function sendToPatient(){
     setErr(null); setMsg(null); setSending(true);
     try{
-      // recupera email paziente
-      const { data, error } = await supabase
-        .from("patients").select("display_name,email").eq("id",pid).single();
-      if(error) throw error;
-      const email = data?.email as string|undefined;
-      if(!email){ throw new Error("Email paziente non presente."); }
+      if (!saved) throw new Error("Salva prima il risultato.");
+      if (!patientEmail) throw new Error("Email paziente non presente.");
       const res = await fetch("/api/send-gad7-result",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
-          toEmail: email,
-          toName: data?.display_name || "Paziente",
-          patientName: data?.display_name || "",
+          toEmail: patientEmail,
+          toName: "Paziente",
+          patientName: "",
           total, severity, date: new Date().toLocaleString(),
         })
       });
@@ -122,13 +142,28 @@ export default function Page({ params}:{params:{id:string}}){
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <button onClick={save} className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">💾 Salva risultato</button>
+        <button onClick={save}
+          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">💾 Salva risultato</button>
         <button onClick={sendToPatient} disabled={!saved || sending}
           title={!saved ? "Salva prima il risultato" : ""}
           className="rounded border border-emerald-600 px-4 py-2 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
           ✉️ Invia risultati al paziente
         </button>
       </div>
+
+      <section className="mt-8">
+        <h2 className="text-lg font-medium mb-2">Ultimi esiti per questo paziente</h2>
+        {!results.length && <p className="text-gray-600">Nessun esito ancora.</p>}
+        {!!results.length && (
+          <ul className="space-y-2">
+            {results.map((r,i)=>(
+              <li key={i} className="rounded border px-3 py-2">
+                <b>{new Date(r.created_at).toLocaleString()}</b> — Totale: <b>{r.total}</b> — {r.severity}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
