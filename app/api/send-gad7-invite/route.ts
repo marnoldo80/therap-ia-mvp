@@ -1,6 +1,6 @@
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: Request) {
@@ -16,13 +16,14 @@ ${url}
 
 Grazie!`;
 
-    await resend.emails.send({
-      from: "Therap-IA <no-reply@resend.dev>",
+    const res = await resend.emails.send({
+      from: "Therap-IA <onboarding@resend.dev>",
       to: [to],
       subject,
       text,
     });
 
+    if (res.error) return NextResponse.json({ error: res.error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Send failed" }, { status: 500 });
