@@ -38,7 +38,7 @@ export default function Page(){
       <ul style={{marginTop:16,display:"grid",gap:8}}>
         {rows.map(p=>(
           <li key={p.id} style={{border:"1px solid #ddd",borderRadius:8,padding:12}}>
-            <b>{p.display_name}</b>
+            <a href="/app/therapist/pazienti/{p.id}" style="text-decoration:none"><b>{p.display_name}</b></a>
             <div style={{fontSize:12,color:"#666"}}>{new Date(p.created_at||"").toLocaleString()}</div>
           </li>
         ))}
