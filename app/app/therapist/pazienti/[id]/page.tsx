@@ -1,195 +1,203 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { useRouter, useParams } from "next/navigation";
+import { supabase } from "../../../../lib/supabaseClient";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+type Patient = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  phone: string | null;
+  issues: string | null;
+  goals: string | null;
+  created_at?: string | null;
+};
 
 export default function Page() {
-  const { id } = useParams() as { id: string };
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const patientId = params?.id as string;
 
+  const [data, setData] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<string>("");
+  const [msg, setMsg] = useState<string>("");
 
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [issues, setIssues] = useState("");
-  const [goals, setGoals] = useState("");
-
-  const [inviteUrl, setInviteUrl] = useState<string>("");
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
+      setErr(""); setMsg(""); setLoading(true);
       const { data: u } = await supabase.auth.getUser();
-      if (!u?.user) { router.replace("/login"); return; }
-      const { data, error } = await supabase
+      if (!u?.user) { router.push("/login"); return; }
+
+      const { data: p, error } = await supabase
         .from("patients")
-        .select("display_name,email,phone,issues,goals")
-        .eq("id", id)
+        .select("id,display_name,email,phone,issues,goals,created_at")
+        .eq("id", patientId)
         .single();
-      if (error) setErr(error.message);
-      else if (data) {
-        setDisplayName(data.display_name || "");
-        setEmail(data.email || "");
-        setPhone(data.phone || "");
-        setIssues(data.issues || "");
-        setGoals(data.goals || "");
-      }
+
+      if (error) setErr(error.message); else setData(p as Patient);
       setLoading(false);
     })();
-  }, [id, router]);
+  }, [patientId, router]);
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(null); setMsg(null);
+  async function save() {
+    if (!data) return;
+    setErr(""); setMsg("");
     const { error } = await supabase
       .from("patients")
-      .update({ display_name: displayName, email, phone, issues, goals })
-      .eq("id", id);
-    if (error) setErr(error.message); else setMsg("Dati paziente salvati.");
+      .update({
+        display_name: data.display_name,
+        email: data.email,
+        phone: data.phone,
+        issues: data.issues,
+        goals: data.goals,
+      })
+      .eq("id", data.id);
+    if (error) setErr(error.message); else setMsg("Salvato.");
   }
 
-  async function generateInvite() {
-    setErr(null); setMsg(null);
+  // Crea token e link tramite funzione SQL (RPC) già creata su Supabase
+  async function generateGad7Invite() {
     try {
-      const { data, error } = await supabase.rpc("gad7_create_invite", { p_patient_id: id });
+      setErr(""); setMsg("Generazione link…");
+      const { data: rpc, error } = await supabase
+        .rpc("gad7_create_invite", { p_patient_id: patientId }); // ritorna {token}
       if (error) throw error;
-      const base = typeof window !== "undefined" ? window.location.origin : "https://therap-ia-mvp.vercel.app";
-      const url = `${base}/q/gad7/${data}`;
+      const token = (rpc as any)?.token || rpc;
+      if (!token) throw new Error("Token non ricevuto.");
+      const url = `${window.location.origin}/q/gad7/${token}`;
       setInviteUrl(url);
       setMsg("Link generato.");
-    } catch (e:any) { setErr(e?.message || "Errore generazione link."); }
+    } catch (e: any) {
+      setErr(e?.message || "Errore generazione link");
+      setInviteUrl(null);
+    }
   }
 
-  async function sendInviteEmail() {
-    setErr(null); setMsg(null);
+  async function sendEmailViaAPI() {
     try {
-      if (!inviteUrl) throw new Error("Genera prima il link di invito.");
-      if (!email) throw new Error("Inserisci e salva l’email del paziente.");
+      setErr(""); setMsg("Invio email…");
+      if (!inviteUrl) throw new Error("Genera prima il link.");
+      if (!data?.email) throw new Error("Email paziente mancante.");
       const res = await fetch("/api/send-gad7-invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: email, name: displayName, url: inviteUrl }),
+        body: JSON.stringify({
+          to: data.email,
+          name: data.display_name || "",
+          url: inviteUrl,
+        }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error || "Invio fallito");
-      setMsg("Email inviata correttamente.");
-    } catch (e:any) { setErr(e?.message || "Errore invio email."); }
+      if (!res.ok) throw new Error(await res.text());
+      setMsg("Email inviata.");
+    } catch (e: any) {
+      setErr(e?.message || "Errore invio email");
+    }
   }
 
-  function whatsappHref(url: string) {
-    const text = encodeURIComponent(`Ciao ${displayName || ""}, compila il GAD-7 qui: ${url}`);
-    return `https://wa.me/${(phone || "").replace(/[^0-9]/g, "")}?text=${text}`;
+  function openWhatsApp() {
+    if (!inviteUrl) { setErr("Genera prima il link."); return; }
+    const displayName = data?.display_name || "";
+    const text = encodeURIComponent(
+      `Ciao ${displayName}, questo è il link per compilare il test GAD-7:\n\n${inviteUrl}\n\nGrazie!`
+    );
+    const phoneSan = (data?.phone || "").replace(/[^0-9]/g, "");
+    window.open(`https://wa.me/${phoneSan}?text=${text}`, "_blank");
   }
 
-  if (loading) return <main style={{maxWidth:720,margin:"40px auto",padding:20}}>Caricamento…</main>;
+  if (loading) return <div>Caricamento…</div>;
+  if (!data) return <div>Paziente non trovato.</div>;
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", padding: 20 }}>
-      <a href="/app/therapist/pazienti" style={{ textDecoration: "none" }}>← Torna ai pazienti</a>
-      <h1 style={{ marginTop: 8 }}>Scheda paziente</h1>
+    <div style={{maxWidth: 760, margin: "24px auto", padding: 16}}>
+      <button onClick={() => router.back()} style={{marginBottom: 16}}>← Indietro</button>
+      <h1>Scheda paziente</h1>
 
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
-      {msg && <p style={{ color: "green" }}>{msg}</p>}
+      {err && <div style={{color:"crimson",margin:"8px 0"}}>{err}</div>}
+      {msg && <div style={{color:"green",margin:"8px 0"}}>{msg}</div>}
 
-      <form onSubmit={handleSave} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        <label>Nome / Pseudonimo
-          <input value={displayName} onChange={e=>setDisplayName(e.target.value)} required
-                 style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6 }}/>
-        </label>
-        <label>Email
-          <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-                 style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6 }}/>
-        </label>
-        <label>Telefono
-          <input value={phone} onChange={e=>setPhone(e.target.value)}
-                 style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6 }}/>
-        </label>
-        <label>Problemi principali
-          <textarea value={issues} onChange={e=>setIssues(e.target.value)}
-                    style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6, minHeight:90 }}/>
-        </label>
-        <label>Obiettivi
-          <textarea value={goals} onChange={e=>setGoals(e.target.value)}
-                    style={{ width:"100%", padding:8, border:"1px solid #ccc", borderRadius:6, minHeight:90 }}/>
-        </label>
+      <label>Nome</label>
+      <input
+        value={data.display_name || ""}
+        onChange={e => setData(d => ({...(d as Patient), display_name: e.target.value}))}
+        required
+        style={{width:"100%",padding:10,margin:"6px 0 12px"}}
+      />
 
-        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginTop:6 }}>
-          <button type="submit" style={{ padding:"10px 14px", borderRadius:8, border:"1px solid #333" }}>
-            💾 Salva
-          </button>
+      <label>Email</label>
+      <input
+        value={data.email || ""}
+        onChange={e => setData(d => ({...(d as Patient), email: e.target.value}))}
+        style={{width:"100%",padding:10,margin:"6px 0 12px"}}
+      />
 
-          <a href={`/app/therapist/pazienti/${id}/gad7`}
-             style={{ padding:"10px 14px", border:"1px solid #222", borderRadius:8, textDecoration:"none" }}>
-            🧪 Esegui test GAD-7 con paziente
-          </a>
+      <label>Telefono</label>
+      <input
+        value={data.phone || ""}
+        onChange={e => setData(d => ({...(d as Patient), phone: e.target.value}))}
+        style={{width:"100%",padding:10,margin:"6px 0 12px"}}
+      />
 
-          <button type="button" onClick={generateInvite}
-                  style={{ padding:"10px 14px", borderRadius:8, border:"1px solid #222", background:"#fafafa", cursor:"pointer" }}>
-            🔗 Genera link per compilazione a casa
-          </button>
+      <label>Problemi</label>
+      <textarea
+        value={data.issues || ""}
+        onChange={e => setData(d => ({...(d as Patient), issues: e.target.value}))}
+        style={{width:"100%",padding:10,margin:"6px 0 12px", minHeight: 90}}
+      />
 
-          <button type="button" onClick={sendInviteEmail}
-                  style={{ padding:"10px 14px", borderRadius:8, border:"1px solid #222", background:"#fafafa", cursor:"pointer" }}>
-            📧 Invia test al paziente (email automatica)
-          </button>
-        </div>
-      </form>
+      <label>Obiettivi</label>
+      <textarea
+        value={data.goals || ""}
+        onChange={e => setData(d => ({...(d as Patient), goals: e.target.value}))}
+        style={{width:"100%",padding:10,margin:"6px 0 12px", minHeight: 90}}
+      />
+
+      <div style={{display:"flex", gap:12, flexWrap:"wrap", marginTop:8}}>
+        <button onClick={save} style={{padding:"10px 14px"}}>💾 Salva</button>
+        <a href={`/app/therapist/pazienti/${data.id}/gad7`} style={{textDecoration:"none"}}>
+          <button style={{padding:"10px 14px"}}>🧪 Esegui GAD-7 in seduta</button>
+        </a>
+        <button onClick={generateGad7Invite} style={{padding:"10px 14px"}}>🔗 Genera link GAD-7</button>
+      </div>
 
       {inviteUrl && (
-        <div style={{ marginTop:12, border:"1px solid #ddd", borderRadius:8, padding:12 }}>
-          <div style={{ marginBottom:8 }}>
-            <b>Link paziente:</b> <a href={inviteUrl}>{inviteUrl}</a>
-          </div>
-          <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-            <a href={whatsappHref(inviteUrl)} target="_blank"
-               style={{ textDecoration:"none", border:"1px solid #25D366", padding:"6px 10px", borderRadius:8 }}>
-              🟢 Invia via WhatsApp (manuale)
-            </a>
+        <div style={{marginTop:16, padding:12, border:"1px solid #ddd", borderRadius:8}}>
+          <div><b>Link paziente:</b> {inviteUrl}</div>
+          <div style={{display:"flex", gap:12, marginTop:10}}>
+            <button onClick={sendEmailViaAPI} style={{padding:"8px 12px"}}>📧 Invia email (Resend)</button>
+            <button onClick={openWhatsApp} style={{padding:"8px 12px"}}>🟢 Invia via WhatsApp (manuale)</button>
           </div>
         </div>
       )}
 
-      <section style={{ marginTop: 24 }}>
-        <h2>GAD-7 (ultimi esiti)</h2>
-        <Gad7List id={id} />
-      </section>
-    </main>
+      <h3 style={{marginTop:28}}>Risultati GAD-7 (ultimi)</h3>
+      <Results patientId={data.id}/>
+    </div>
   );
 }
 
-function Gad7List({ id }: { id: string }) {
+function Results({ patientId }: { patientId: string }) {
   const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("gad7_results")
         .select("created_at,total,severity")
-        .eq("patient_id", id)
+        .eq("patient_id", patientId)
         .order("created_at", { ascending: false })
         .limit(10);
       setRows(data || []);
-      setLoading(false);
     })();
-  }, [id]);
+  }, [patientId]);
 
-  if (loading) return <p>Caricamento…</p>;
-  if (rows.length === 0) return <p>Nessun esito ancora.</p>;
-
+  if (!rows.length) return <div>Nessun risultato.</div>;
   return (
-    <ul style={{ marginTop: 8, display: "grid", gap: 8 }}>
+    <ul style={{padding:0, listStyle:"none"}}>
       {rows.map((r, i) => (
-        <li key={i} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-          <b>{new Date(r.created_at).toLocaleString()}</b> — Totale: <b>{r.total}</b> — {r.severity}
+        <li key={i} style={{padding:8, borderBottom:"1px solid #eee"}}>
+          {new Date(r.created_at).toLocaleString()} — <b>{r.total}</b> ({r.severity})
         </li>
       ))}
     </ul>
