@@ -30,6 +30,7 @@ export default function Page(){
     <main style={{maxWidth:720,margin:"40px auto",padding:20}}>
       <a href="/app/therapist/pazienti" style={{textDecoration:"none"}}>← Torna ai pazienti</a>
       <h1 style={{marginTop:8}}>{p.display_name}</h1>
+      <div style="margin-top:12px"><a href="../{id}/gad7" style="text-decoration:none;border:1px solid #222;padding:8px 12px;border-radius:8">🧪 Somministra GAD-7</a></div>
       <p style={{color:"#666"}}>Creato: {new Date(p.created_at||"").toLocaleString()}</p>
       <section style={{marginTop:16}}>
         <h2>Problemi principali</h2>
@@ -38,6 +39,10 @@ export default function Page(){
       <section style={{marginTop:16}}>
         <h2>Obiettivi</h2>
         <p style={{whiteSpace:"pre-wrap"}}>{p.goals || "—"}</p>
+      </section>
+      <section style="margin-top:16px">
+        <h2>GAD-7 (ultimi esiti)</h2>
+        <div id="gad7-list"></div>
       </section>
     </main>
   );
