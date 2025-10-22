@@ -25,19 +25,15 @@ export default function Page() {
     (async () => {
       const { data: userRes } = await supabase.auth.getUser();
       const user = userRes?.user;
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+      if (!user) { router.replace("/login"); return; }
       setMe({ email: user.email ?? null });
 
-      const { data: rows, error } = await supabase
+      const { data: rows } = await supabase
         .from("therapists")
         .select("customer_code,email,full_name")
         .eq("user_id", user.id)
         .limit(1);
 
-      if (error) console.error(error);
       setT(rows?.[0] ?? null);
       setLoading(false);
     })();
@@ -50,22 +46,34 @@ export default function Page() {
 
   if (loading) return <main style={{maxWidth:720,margin:"40px auto",padding:20}}>Caricamento…</main>;
 
+  const needsOnboarding = !t?.customer_code;
+
   return (
     <main style={{maxWidth:720,margin:"40px auto",padding:20}}>
       <h1>Dashboard Terapeuta</h1>
       <p style={{marginTop:8}}>Email: <b>{me?.email ?? "—"}</b></p>
 
-      {t?.customer_code ? (
-        <p style={{marginTop:8}}>Codice cliente: <b>{t.customer_code}</b></p>
+      {needsOnboarding ? (
+        <div style={{marginTop:12,padding:12,border:"1px solid #b45309",borderRadius:8,background:"#fff7ed"}}>
+          <p style={{color:"#b45309",marginBottom:12}}>
+            Non hai ancora completato l’onboarding. Completa i tuoi dati per ottenere il Codice Cliente.
+          </p>
+          <a href="/app/therapist/onboarding"
+             style={{padding:"10px 14px",border:"1px solid #222",borderRadius:8,textDecoration:"none",display:"inline-block"}}>
+            ✍️ Completa onboarding
+          </a>
+        </div>
       ) : (
-        <p style={{marginTop:8,color:"#b45309"}}>
-          Non hai ancora completato l’onboarding. <a href="/app/therapist/onboarding">Vai all’onboarding →</a>
-        </p>
+        <p style={{marginTop:8}}>Codice cliente: <b>{t?.customer_code}</b></p>
       )}
 
-      <div style={{marginTop:24,display:"flex",gap:16}}>
-        <a href="/app/therapist/schemi" style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,textDecoration:"none"}}>📄 Schemi</a>
-        <button onClick={logout} style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,cursor:"pointer"}}>Logout</button>
+      <div style={{marginTop:24,display:"flex",gap:16,flexWrap:"wrap"}}>
+        <a href="/app/therapist/schemi" style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,textDecoration:"none"}}>
+          📄 Schemi
+        </a>
+        <button onClick={logout} style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,cursor:"pointer"}}>
+          Logout
+        </button>
       </div>
     </main>
   );
