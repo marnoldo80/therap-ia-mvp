@@ -1,21 +1,29 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-
 export async function POST(req: Request) {
   try {
-    const { to, name, url } = await req.json();
-    if (!to || !url) return NextResponse.json({ error: "Missing to/url" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const to = body.to || body.toEmail;             // accetta to o toEmail
+    const toName = body.toName || "Paziente";
+    const url: string | undefined = body.url;
 
-    const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM || "noreply@yourdomain.com",
-      to,
-      subject: "Compila il test GAD-7",
-      text: `Ciao ${name || ""},\n\nper favore compila il test GAD-7 a questo link:\n${url}\n\nGrazie.`,
-    });
+    if (!to || !url) {
+      return NextResponse.json({ error: "Missing to/url" }, { status: 400 });
+    }
+    const resend = new Resend(process.env.RESEND_API_KEY!);
+    const from = process.env.RESEND_FROM || "onboarding@resend.dev";
 
-    if (error) return NextResponse.json({ error }, { status: 500 });
+    const subject = "Questionario GAD-7";
+    const html = `
+      <p>Ciao ${toName},</p>
+      <p>per favore compila il GAD-7 cliccando qui:</p>
+      <p><a href="${url}">${url}</a></p>
+      <p>Grazie.</p>
+    `;
+
+    const r = await resend.emails.send({ from, to, subject, html });
+    if (!r?.id) throw new Error("Send failed");
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Error" }, { status: 500 });
