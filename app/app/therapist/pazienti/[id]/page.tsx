@@ -9,21 +9,20 @@ export default function Page(){
   const router = useRouter();
   const [loading,setLoading]=useState(true);
   const [err,setErr]=useState<string|null>(null);
-
   const [displayName,setDisplayName]=useState("");
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
   const [issues,setIssues]=useState("");
   const [goals,setGoals]=useState("");
+  const [inviteUrl,setInviteUrl]=useState<string>("");
 
   useEffect(()=>{(async()=>{
     const { data:u } = await supabase.auth.getUser();
     if(!u?.user){ router.replace("/login"); return; }
     const { data, error } = await supabase
       .from("patients")
-      .select("display_name,email,phone,issues,goals,created_at")
-      .eq("id", id)
-      .single();
+      .select("display_name,email,phone,issues,goals")
+      .eq("id", id).single();
     if(error){ setErr(error.message); setLoading(false); return; }
     setDisplayName(data?.display_name||"");
     setEmail(data?.email||"");
@@ -34,15 +33,30 @@ export default function Page(){
   })()},[id,router]);
 
   async function handleSave(e:React.FormEvent){
-    e.preventDefault(); setErr(null); setLoading(true);
+    e.preventDefault(); setErr(null);
+    const { error } = await supabase.from("patients")
+      .update({ display_name:displayName, email, phone, issues, goals }).eq("id", id);
+    if(error) setErr(error.message);
+  }
+
+  async function generateInvite(){
+    setErr(null);
     try{
-      const { error } = await supabase
-        .from("patients")
-        .update({ display_name:displayName, email, phone, issues, goals })
-        .eq("id", id);
+      const { data, error } = await supabase.rpc("gad7_create_invite", { p_patient_id: id });
       if(error) throw error;
-    }catch(e:any){ setErr(e?.message ?? "Errore salvataggio"); }
-    finally{ setLoading(false); }
+      const base = typeof window !== "undefined" ? window.location.origin : "https://therap-ia-mvp.vercel.app";
+      setInviteUrl(`${base}/q/gad7/${data}`);
+    }catch(e:any){ setErr(e?.message ?? "Errore creazione link"); }
+  }
+
+  function mailtoHref(url:string){
+    const subject = encodeURIComponent("Compilazione questionario GAD-7");
+    const body = encodeURIComponent(`Ciao ${displayName||""},\n\nper favore compila il GAD-7 qui:\n${url}\n\nGrazie!`);
+    return `mailto:${email||""}?subject=${subject}&body=${body}`;
+  }
+  function whatsappHref(url:string){
+    const text = encodeURIComponent(`Ciao ${displayName||""}, compila il GAD-7 qui: ${url}`);
+    return `https://wa.me/${(phone||"").replace(/[^0-9]/g,"")}?text=${text}`;
   }
 
   if(loading) return <main style={{maxWidth:720,margin:"40px auto",padding:20}}>Caricamento…</main>;
@@ -74,13 +88,32 @@ export default function Page(){
           <textarea value={goals} onChange={e=>setGoals(e.target.value)}
                     style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6,minHeight:90}} />
         </label>
-        <div style={{display:"flex",gap:12}}>
-          <button type="submit" style={{padding:"10px 14px",borderRadius:8,border:"1px solid #333"}}>Salva</button>
+
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:6}}>
+          <button type="submit" style={{padding:"10px 14px",borderRadius:8,border:"1px solid #333"}}>💾 Salva</button>
+
+          {/* 1) Esegui in seduta */}
           <a href={`/app/therapist/pazienti/${id}/gad7`} style={{padding:"10px 14px",border:"1px solid #222",borderRadius:8,textDecoration:"none"}}>
-            🧪 Somministra GAD-7
+            �� Esegui test GAD-7 con paziente
           </a>
+
+          {/* 2) Invia per casa */}
+          <button type="button" onClick={generateInvite}
+                  style={{padding:"10px 14px",borderRadius:8,border:"1px solid #222",background:"#fafafa",cursor:"pointer"}}>
+            📬 Invia test al paziente per compilazione a casa
+          </button>
         </div>
       </form>
+
+      {inviteUrl && (
+        <div style={{marginTop:12, border:"1px solid #ddd", borderRadius:8, padding:12}}>
+          <div style={{marginBottom:8}}><b>Link paziente:</b> <a href={inviteUrl}>{inviteUrl}</a></div>
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            <a href={mailtoHref(inviteUrl)} style={{textDecoration:"none",border:"1px solid #222",padding:"6px 10px",borderRadius:8}}>✉️ Email</a>
+            <a href={whatsappHref(inviteUrl)} target="_blank" style={{textDecoration:"none",border:"1px solid #25D366",padding:"6px 10px",borderRadius:8}}>🟢 WhatsApp</a>
+          </div>
+        </div>
+      )}
 
       <section style={{marginTop:24}}>
         <h2>GAD-7 (ultimi esiti)</h2>
@@ -102,7 +135,6 @@ function Gad7List({id}:{id:string}){
       .limit(10);
     setRows(data||[]); setLoading(false);
   })()},[id]);
-
   if(loading) return <p>Caricamento…</p>;
   if(rows.length===0) return <p>Nessun esito ancora.</p>;
   return (
