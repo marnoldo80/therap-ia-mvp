@@ -65,10 +65,18 @@ export default function Page({ params}:{params:{id:string}}){
   }
 
   async function save(){
-    setMsg(null); setErr(null); setSaved=false;
+    setMsg(null);
+    setErr(null);
+    setSaved(false); // ✅ fix
     try{
       if (!therapistId) throw new Error("Sessione non valida (therapist).");
-      const payload:any = { patient_id: pid, total, severity, therapist_user_id: therapistId, answers: answers };
+      const payload:any = {
+        patient_id: pid,
+        total,
+        severity,
+        therapist_user_id: therapistId,
+        answers: answers
+      };
       const { error } = await supabase.from("gad7_results").insert(payload);
       if(error) throw error;
       setSaved(true);
