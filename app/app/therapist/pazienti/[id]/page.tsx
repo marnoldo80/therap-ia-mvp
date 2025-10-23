@@ -1,16 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient"; // esporta 'supabase' (non createClient)
 
-type Row = Record<string, any>;
+type Gad7Result = {
+  id: string;
+  patient_id: string;
+  therapist_user_id: string;
+  score: number;
+  created_at: string;
+};
 
 export default function SchedaPaziente() {
   const router = useRouter();
   const params = useParams();
   const pid = params?.id as string;
 
-  const [rows, setRows] = useState<Row[]>([]);
+  const [gad7Results, setGad7Results] = useState<Gad7Result[]>([]);
   const [therapistId, setTherapistId] = useState<string>("");
 
   useEffect(() => {
@@ -23,20 +29,17 @@ export default function SchedaPaziente() {
 
   useEffect(() => {
     if (!therapistId || !pid) return;
-    const load = async () => {
+    const loadResults = async () => {
       const { data, error } = await supabase
         .from("gad7_results")
         .select("*")
         .eq("patient_id", pid)
         .eq("therapist_user_id", therapistId)
         .order("created_at", { ascending: false });
-      if (!error && data) setRows(data as Row[]);
+      if (!error && data) setGad7Results(data as Gad7Result[]);
     };
-    load();
+    loadResults();
   }, [therapistId, pid]);
-
-  const displayScore = (r: Row) =>
-    r.score ?? r.total ?? r.total_score ?? r.gad7_score ?? r.value ?? r.result ?? null;
 
   return (
     <div style={{ padding: 24 }}>
@@ -63,20 +66,15 @@ export default function SchedaPaziente() {
 
         <div style={{ marginTop: 16 }}>
           <h3 className="text-lg font-medium">Storico GAD-7</h3>
-          {!rows.length && <p className="text-gray-600">Nessun esito registrato.</p>}
-          {!!rows.length && (
+          {!gad7Results.length && <p className="text-gray-600">Nessun esito registrato.</p>}
+          {!!gad7Results.length && (
             <ul style={{ marginTop: 8, display: "grid", gap: 8 }}>
-              {rows.map((r: Row) => (
+              {gad7Results.map((r) => (
                 <li key={r.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Score: <strong>{displayScore(r) ?? "—"}</strong></span>
-                    <span>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</span>
+                    <span>Score: <strong>{r.score}</strong></span>
+                    <span>{new Date(r.created_at).toLocaleString()}</span>
                   </div>
-                  {!displayScore(r) && (
-                    <pre style={{ marginTop: 8, fontSize: 12, color: "#666", whiteSpace: "pre-wrap" }}>
-                      {JSON.stringify(r, null, 2)}
-                    </pre>
-                  )}
                 </li>
               ))}
             </ul>
