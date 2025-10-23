@@ -1,116 +1,245 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+'use client'
 
-type Row = Record<string, any>;
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 
-export default function SchedaPaziente() {
-  const router = useRouter();
-  const params = useParams();
-  const pid = (params?.id as string) || "";
+type Patient = {
+  id: string
+  display_name: string | null
+  email: string | null
+  phone: string | null
+  issues: string | null
+  goals: string | null
+}
 
-  const [patient, setPatient] = useState<Row | null>(null);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [therapistId, setTherapistId] = useState<string>("");
+type GadRow = {
+  created_at: string | null
+  total: number | null
+  severity: string | null
+}
 
-  // sessione
+export default function PatientPage() {
+  const params = useParams<{ id: string }>()
+  const router = useRouter()
+  const pid = params?.id
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [history, setHistory] = useState<GadRow[]>([])
+
+  async function load() {
+    if (!pid) return
+    setLoading(true)
+    setErr(null)
+    try {
+      // patient
+      const { data: p, error: e1 } = await supabase
+        .from('patients')
+        .select('id,display_name,email,phone,issues,goals')
+        .eq('id', pid)
+        .single()
+      if (e1) throw e1
+      setPatient(p as Patient)
+
+      // GAD-7 history
+      const { data: h, error: e2 } = await supabase
+        .from('gad7_results')
+        .select('created_at,total,severity')
+        .eq('patient_id', pid)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (e2) throw e2
+      setHistory((h || []) as GadRow[])
+    } catch (e: any) {
+      setErr(e?.message || 'Errore nel caricamento')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user?.id) setTherapistId(data.user.id);
-    })();
-  }, []);
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pid])
 
-  // anagrafica paziente
-  useEffect(() => {
-    if (!pid) return;
-    (async () => {
-      const { data } = await supabase.from("patients").select("*").eq("id", pid).single();
-      if (data) setPatient(data as Row);
-    })();
-  }, [pid]);
+  async function save() {
+    if (!patient) return
+    setSaving(true)
+    setErr(null)
+    setMsg(null)
+    try {
+      const { error } = await supabase
+        .from('patients')
+        .update({
+          display_name: patient.display_name,
+          email: patient.email,
+          phone: patient.phone,
+          issues: patient.issues,
+          goals: patient.goals,
+        })
+        .eq('id', patient.id)
+      if (error) throw error
+      setMsg('Dati salvati.')
+    } catch (e: any) {
+      setErr(e?.message || 'Salvataggio fallito')
+    } finally {
+      setSaving(false)
+    }
+  }
 
-  // storico GAD7
-  useEffect(() => {
-    if (!therapistId || !pid) return;
-    (async () => {
-      const { data, error } = await supabase
-        .from("gad7_results")
-        .select("*")
-        .eq("patient_id", pid)
-        .eq("therapist_user_id", therapistId)
-        .order("created_at", { ascending: false });
-      if (!error && data) setRows(data as Row[]);
-    })();
-  }, [therapistId, pid]);
+  if (loading) {
+    return (
+      <div className="p-6 text-sm text-gray-600">Caricamento…</div>
+    )
+  }
 
-  const scoreOf = (r: Row) =>
-    r.score ?? r.total ?? r.total_score ?? r.gad7_score ?? r.value ?? r.result ?? null;
-
-  // helper campi nome
-  const fullName =
-    (patient?.full_name as string) ||
-    ([patient?.first_name, patient?.last_name].filter(Boolean).join(" ").trim() || "") ||
-    (patient?.name as string) ||
-    "";
-
-  return (
-    <div style={{ padding: 24, maxWidth: 960, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-        <button onClick={() => router.push("/app/therapist/pazienti")}
-          style={{ border: "1px solid #222", padding: "10px 14px", borderRadius: 8 }}>
+  if (err) {
+    return (
+      <div className="p-6">
+        <button
+          onClick={() => router.push('/app/therapist/pazienti')}
+          className="mb-4 inline-flex items-center rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
+        >
           ← Lista pazienti
         </button>
-        <a href={`/app/therapist/pazienti/${pid}/gad7`}
-           style={{ border: "1px solid #222", padding: "10px 14px", borderRadius: 8, textDecoration: "none" }}>
+        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {err}
+        </div>
+      </div>
+    )
+  }
+
+  if (!patient) {
+    return (
+      <div className="p-6 text-sm text-gray-600">Paziente non trovato.</div>
+    )
+  }
+
+  return (
+    <div className="p-6 max-w-3xl">
+      <div className="mb-6 flex items-center gap-2">
+        <button
+          onClick={() => router.push('/app/therapist/pazienti')}
+          className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
+        >
+          ← Lista pazienti
+        </button>
+
+        <button
+          onClick={() => router.push(`/app/therapist/pazienti/${patient.id}/gad7`)}
+          className="ml-auto inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+        >
           ➕ Esegui GAD-7 in seduta
-        </a>
+        </button>
       </div>
 
-      {/* ANAGRAFICA */}
-      <h1 className="text-2xl font-semibold">Scheda paziente {pid}</h1>
-      <section style={{ marginTop: 16, border: "1px solid #ddd", borderRadius: 10, padding: 16 }}>
-        <h2 className="text-xl font-semibold" style={{ marginBottom: 8 }}>Anagrafica</h2>
-        {!patient && <p className="text-gray-600">Dati paziente non disponibili.</p>}
-        {patient && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><strong>Nome</strong><div>{fullName || "—"}</div></div>
-            <div><strong>Email</strong><div>{(patient.email as string) || "—"}</div></div>
-            <div><strong>Telefono</strong><div>{(patient.phone as string) || "—"}</div></div>
-            <div><strong>Data nascita</strong><div>{(patient.birth_date as string) || "—"}</div></div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <strong>Note</strong>
-              <div>{(patient.notes as string) || (patient.note as string) || "—"}</div>
-            </div>
-            {/* Debug minimale: mostra altri campi non standard se servono */}
-            <details style={{ gridColumn: "1 / -1", marginTop: 8 }}>
-              <summary style={{ cursor: "pointer" }}>Altri campi</summary>
-              <pre style={{ fontSize: 12, color: "#666", whiteSpace: "pre-wrap" }}>
-                {JSON.stringify(patient, null, 2)}
-              </pre>
-            </details>
-          </div>
-        )}
-      </section>
+      <h1 className="mb-4 text-xl font-semibold">Scheda paziente</h1>
 
-      {/* STORICO GAD-7 */}
-      <section style={{ marginTop: 24 }}>
-        <h2 className="text-xl font-semibold">Storico GAD-7</h2>
-        {!rows.length && <p className="text-gray-600">Nessun esito registrato.</p>}
-        {!!rows.length && (
-          <ul style={{ marginTop: 12, display: "grid", gap: 8 }}>
-            {rows.map((r) => (
-              <li key={r.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-                  <div>Score: <strong>{scoreOf(r) ?? "—"}</strong></div>
-                  <div>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
+      {msg && (
+        <div className="mb-4 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
+          {msg}
+        </div>
+      )}
+
+      <div className="mb-6 space-y-4 rounded-lg border bg-white p-4">
+        <div>
+          <label className="block text-sm text-gray-600">Nome</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            value={patient.display_name ?? ''}
+            onChange={(e) =>
+              setPatient({ ...patient, display_name: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm text-gray-600">Email</label>
+            <input
+              type="email"
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              value={patient.email ?? ''}
+              onChange={(e) =>
+                setPatient({ ...patient, email: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600">Telefono</label>
+            <input
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              value={patient.phone ?? ''}
+              onChange={(e) =>
+                setPatient({ ...patient, phone: e.target.value })
+              }
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-600">Problemi</label>
+          <textarea
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            rows={3}
+            value={patient.issues ?? ''}
+            onChange={(e) =>
+              setPatient({ ...patient, issues: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-600">Obiettivi</label>
+          <textarea
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            rows={3}
+            value={patient.goals ?? ''}
+            onChange={(e) =>
+              setPatient({ ...patient, goals: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="pt-2">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+          >
+            💾 Salva
+          </button>
+        </div>
+      </div>
+
+      <h2 className="mb-2 text-lg font-semibold">Storico GAD-7</h2>
+      <div className="divide-y rounded-lg border bg-white">
+        {history.length === 0 && (
+          <div className="p-4 text-sm text-gray-600">Nessun risultato.</div>
         )}
-      </section>
+        {history.map((r, i) => (
+          <div key={i} className="flex items-center justify-between p-4">
+            <div className="text-sm">
+              <span className="font-medium">Score: {r.total ?? '-'}</span>
+              {r.severity ? (
+                <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs">
+                  {r.severity}
+                </span>
+              ) : null}
+            </div>
+            <div className="text-xs text-gray-500">
+              {r.created_at
+                ? new Date(r.created_at).toLocaleString()
+                : ''}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  );
+  )
 }
