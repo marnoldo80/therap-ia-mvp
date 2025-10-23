@@ -13,6 +13,18 @@ type GadRow = {
   patients?: { display_name: string | null } | null;
 };
 
+type TherapistRow = {
+  display_name?: string | null;
+  full_name?: string | null;
+  business_name?: string | null;
+  company_name?: string | null;
+  address?: string | null;
+  city?: string | null;
+  vat_number?: string | null;   // partita IVA
+  phone?: string | null;
+  email?: string | null;
+};
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -20,6 +32,7 @@ const supabase = createClient(
 
 export default function TherapistDashboard() {
   const [name, setName] = useState<string>("Terapeuta");
+  const [tData, setTData] = useState<TherapistRow | null>(null);
   const [recentResults, setRecentResults] = useState<GadRow[]>([]);
   const [recentPatients, setRecentPatients] = useState<Patient[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -36,21 +49,27 @@ export default function TherapistDashboard() {
         const user = auth?.user;
         if (!user) throw new Error("Sessione non valida.");
 
-        // therapist name (colonne flessibili)
+        // therapist row
         const { data: tRow, error: te } = await supabase
           .from("therapists")
           .select("*")
           .eq("user_id", user.id)
           .single();
-        if (te && te.code !== "PGRST116") throw te; // ignora "no rows" come errore bloccante
-        const friendly =
-          tRow?.display_name ??
-          tRow?.business_name ??
-          tRow?.company_name ??
-          tRow?.full_name ??
-          user.email ??
-          "Terapeuta";
-        setName(friendly);
+        if (te && te.code !== "PGRST116") throw te;
+
+        if (tRow) {
+          setTData(tRow as TherapistRow);
+          const friendly =
+            tRow.display_name ??
+            tRow.business_name ??
+            tRow.company_name ??
+            tRow.full_name ??
+            user.email ??
+            "Terapeuta";
+          setName(friendly);
+        } else {
+          setName(user.email || "Terapeuta");
+        }
 
         // ultimi GAD-7
         const { data: g, error: ge } = await supabase
@@ -88,7 +107,7 @@ export default function TherapistDashboard() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Ciao, {name}</h1>
         <div className="flex gap-3">
@@ -104,10 +123,35 @@ export default function TherapistDashboard() {
         </div>
       )}
 
+      {/* Riquadro dati terapeuta */}
+      <section className="rounded border p-4">
+        <h2 className="font-medium mb-3">I tuoi dati</h2>
+        {tData ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <div><b>Nome/Studio:</b> {tData.display_name || tData.business_name || tData.company_name || "—"}</div>
+            <div><b>Email:</b> {tData.email || "—"}</div>
+            <div><b>Telefono:</b> {tData.phone || "—"}</div>
+            <div><b>Indirizzo:</b> {tData.address || "—"}</div>
+            <div><b>Città:</b> {tData.city || "—"}</div>
+            <div><b>P.IVA:</b> {tData.vat_number || "—"}</div>
+            <div className="md:col-span-2 mt-2">
+              <Link href="/app/therapist/onboarding" className="text-sm underline">
+                Aggiorna dati
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-600">
+            Completa l’<Link href="/app/therapist/onboarding" className="underline">onboarding</Link> per impostare i tuoi dati.
+          </div>
+        )}
+      </section>
+
       {loading ? (
         <div className="rounded border px-4 py-6">Caricamento…</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Ultimi GAD-7 */}
           <section className="rounded border p-4">
             <h2 className="font-medium mb-3">Ultimi GAD-7</h2>
             <ul className="space-y-2">
@@ -141,6 +185,7 @@ export default function TherapistDashboard() {
             </div>
           </section>
 
+          {/* Ultimi pazienti */}
           <section className="rounded border p-4">
             <h2 className="font-medium mb-3">Ultimi pazienti</h2>
             <ul className="space-y-2">

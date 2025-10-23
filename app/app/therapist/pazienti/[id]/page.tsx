@@ -162,25 +162,39 @@ export default function PatientPage() {
       : "";
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      {/* Barra azioni */}
+      <div className="rounded border p-4 flex flex-wrap items-center gap-3">
         <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">
           ← Lista pazienti
         </Link>
         <button
           onClick={() => router.push(`/app/therapist/pazienti/${id}/gad7`)}
-          className="rounded bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700"
+          className="rounded bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700"
         >
-          + Esegui GAD-7 in seduta
+          �� Esegui GAD-7 in seduta
+        </button>
+        <button
+          onClick={async () => { await generateInvite(); await sendInviteEmail(); }}
+          className="rounded bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700"
+        >
+          ✉️ Invia GAD-7 al paziente
+        </button>
+        <button onClick={openWhatsApp} className="rounded border px-3 py-2 hover:bg-gray-50">
+          💬 Invia via WhatsApp
+        </button>
+        <button onClick={sendAccountInvite} className="rounded bg-slate-800 text-white px-3 py-2 hover:bg-slate-900">
+          🔐 Invita paziente (crea credenziali)
         </button>
       </div>
 
-      {msg && <div className="mb-4 rounded bg-green-50 text-green-700 px-4 py-3">{msg}</div>}
-      {err && <div className="mb-4 rounded bg-red-50 text-red-700 px-4 py-3">{err}</div>}
+      {msg && <div className="rounded bg-green-50 text-green-700 px-4 py-3">{msg}</div>}
+      {err && <div className="rounded bg-red-50 text-red-700 px-4 py-3">{err}</div>}
 
-      <h1 className="text-2xl font-semibold mb-4">Scheda paziente</h1>
+      {/* Scheda paziente */}
+      <div className="rounded border p-4 space-y-4">
+        <h1 className="text-xl font-semibold">Scheda paziente</h1>
 
-      <div className="rounded border p-4 space-y-4 mb-4">
         <div>
           <label className="block text-sm mb-1">Nome</label>
           <input className="w-full rounded border px-3 py-2" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
@@ -207,21 +221,15 @@ export default function PatientPage() {
           <textarea className="w-full min-h-[110px] rounded border px-3 py-2" value={goals} onChange={(e) => setGoals(e.target.value)} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-1">
           <button onClick={savePatient} disabled={loading} className="rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60">💾 Salva</button>
-          <button onClick={async () => { await generateInvite(); await sendInviteEmail(); }} className="rounded bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700">✉️ Invia GAD-7 al paziente</button>
-          <button onClick={openWhatsApp} className="rounded border px-3 py-2 hover:bg-gray-50">💬 Invia via WhatsApp</button>
-          <button onClick={sendAccountInvite} className="rounded bg-slate-800 text-white px-3 py-2 hover:bg-slate-900">
-            🔐 Invita paziente (crea credenziali)
-          </button>
+          {inviteToken && (
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Link paziente:</span>{" "}
+              <span className="select-all">{inviteLink}</span>
+            </div>
+          )}
         </div>
-
-        {inviteToken && (
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">Link paziente:</span>{" "}
-            <span className="select-all">{inviteLink}</span>
-          </div>
-        )}
       </div>
 
       <ResultsList patientId={id} />
@@ -247,7 +255,7 @@ function ResultsList({ patientId }: { patientId: string }) {
   if (!rows.length) return null;
 
   return (
-    <div className="mt-8">
+    <div>
       <h2 className="text-lg font-semibold mb-3">Storico GAD-7</h2>
       <div className="space-y-2">
         {rows.map((r, i) => (
