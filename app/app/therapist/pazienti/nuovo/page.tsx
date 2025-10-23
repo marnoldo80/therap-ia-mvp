@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -8,72 +10,88 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function Page(){
+export default function NewPatientPage() {
   const router = useRouter();
-  const [displayName,setDisplayName]=useState("");
-  const [email,setEmail]=useState("");
-  const [phone,setPhone]=useState("");
-  const [issues,setIssues]=useState("");
-  const [goals,setGoals]=useState("");
-  const [err,setErr]=useState<string|null>(null);
-  const [loading,setLoading]=useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [issues, setIssues] = useState("");
+  const [goals, setGoals] = useState("");
+  const [msg, setMsg] = useState<string|null>(null);
+  const [err, setErr] = useState<string|null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(()=>{(async()=>{
-    const { data: u } = await supabase.auth.getUser();
-    if(!u?.user){ router.replace("/login"); return; }
-  })()},[router]);
-
-  async function handleSubmit(e:React.FormEvent){
-    e.preventDefault(); setErr(null); setLoading(true);
-    try{
+  useEffect(() => {
+    (async () => {
       const { data: u } = await supabase.auth.getUser();
-      const user = u?.user; if(!user) throw new Error("Sessione scaduta");
-      const { error } = await supabase.from("patients").insert({
-        therapist_user_id: user.id,
-        display_name: displayName,
-        email, phone, issues, goals
-      });
-      if(error) throw error;
-      router.replace("/app/therapist/pazienti");
-    }catch(e:any){ setErr(e?.message ?? "Errore"); }
-    finally{ setLoading(false); }
+      if (!u?.user) router.replace("/login");
+    })();
+  }, [router]);
+
+  async function createPatient() {
+    setMsg(null); setErr(null); setLoading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u?.user) throw new Error("Sessione non valida.");
+      const { data, error } = await supabase
+        .from("patients")
+        .insert({
+          display_name: displayName || null,
+          email: email || null,
+          phone: phone || null,
+          issues: issues || null,
+          goals: goals || null,
+          therapist_user_id: u.user.id,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      setMsg("Paziente creato.");
+      router.replace(`/app/therapist/pazienti/${data.id}`);
+    } catch (e:any) {
+      setErr(e?.message || "Errore creazione paziente");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <main style={{maxWidth:680,margin:"40px auto",padding:20}}>
-      <h1>Nuovo paziente</h1>
-      {err && <p style={{color:"crimson"}}>{err}</p>}
-      <form onSubmit={handleSubmit} style={{display:"grid",gap:12,marginTop:16}}>
-        <label>Nome / Pseudonimo
-          <input value={displayName} onChange={e=>setDisplayName(e.target.value)} required
-                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
-        </label>
-        <label>Email
-          <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
-        </label>
-        <label>Telefono
-          <input value={phone} onChange={e=>setPhone(e.target.value)}
-                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
-        </label>
-        <label>Problemi principali
-          <textarea value={issues} onChange={e=>setIssues(e.target.value)}
-                    style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6,minHeight:90}} />
-        </label>
-        <label>Obiettivi
-          <textarea value={goals} onChange={e=>setGoals(e.target.value)}
-                    style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6,minHeight:90}} />
-        </label>
-        <div style={{display:"flex",gap:12}}>
-          <button type="submit" disabled={loading}
-                  style={{padding:"10px 14px",borderRadius:8,border:"1px solid #333"}}>
-            {loading? "Salvataggio…" : "Salva"}
-          </button>
-          <a href="/app/therapist/pazienti" style={{padding:"10px 14px",border:"1px solid #999",borderRadius:8,textDecoration:"none"}}>
-            Annulla
-          </a>
+    <div className="max-w-3xl mx-auto p-6">
+      <div className="mb-4">
+        <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">← Lista pazienti</Link>
+      </div>
+      <h1 className="text-2xl font-semibold mb-4">Nuovo paziente</h1>
+
+      {msg && <div className="mb-4 rounded bg-green-50 text-green-700 px-4 py-3">{msg}</div>}
+      {err && <div className="mb-4 rounded bg-red-50 text-red-700 px-4 py-3">{err}</div>}
+
+      <div className="rounded border p-4 space-y-4">
+        <div>
+          <label className="block text-sm mb-1">Nome</label>
+          <input className="w-full rounded border px-3 py-2" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
         </div>
-      </form>
-    </main>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1">Email</label>
+            <input className="w-full rounded border px-3 py-2" value={email} onChange={e=>setEmail(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Telefono</label>
+            <input className="w-full rounded border px-3 py-2" value={phone} onChange={e=>setPhone(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Problemi</label>
+          <textarea className="w-full min-h-[110px] rounded border px-3 py-2" value={issues} onChange={e=>setIssues(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Obiettivi</label>
+          <textarea className="w-full min-h-[110px] rounded border px-3 py-2" value={goals} onChange={e=>setGoals(e.target.value)} />
+        </div>
+        <button onClick={createPatient} disabled={loading} className="rounded bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700 disabled:opacity-60">
+          Crea paziente
+        </button>
+      </div>
+    </div>
   );
 }
