@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE!, // Service Role (solo server)
+  process.env.SUPABASE_SERVICE_ROLE!, // Service Role (server only)
   { auth: { persistSession: false } }
 );
 
@@ -17,21 +17,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing email/patientId" }, { status: 400 });
     }
 
+    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/app/paziente/onboarding`;
+
     let link: string | null = null;
     let subject = "Il tuo accesso a Therap-IA (invito)";
-    let htmlPrefix = "<p>Il tuo terapeuta ti invita a registrarti e accedere alla tua area paziente.</p>";
+    let htmlPrefix = "<p>Il tuo terapeuta ti invita ad attivare la tua area paziente.</p>";
 
-    // 1) Prova INVITE
+    // 1) Prova INVITE (nuovo utente)
     const { data: invData, error: invErr } = await supabaseAdmin.auth.admin.generateLink({
       type: "invite",
       email,
+      options: { redirectTo }
     });
 
     if (invErr) {
-      // 2) Utente già esistente? Fallback MAGIC LINK (login)
+      // 2) Se l'utente esiste già → MAGIC LINK (login)
       const { data: magData, error: magErr } = await supabaseAdmin.auth.admin.generateLink({
         type: "magiclink",
         email,
+        options: { redirectTo }
       });
       if (magErr) throw magErr;
 
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
 
     if (!link) throw new Error("Nessun link generato.");
 
-    // (facoltativo) aggiorna email nel record paziente
+    // aggiorna email sul record paziente (utile se non c’era)
     await supabaseAdmin.from("patients").update({ email }).eq("id", patientId);
 
     const from = process.env.RESEND_FROM!;
