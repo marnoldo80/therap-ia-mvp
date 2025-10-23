@@ -53,7 +53,17 @@ export default function TherapistDashboard() {
           .order("created_at", { ascending: false })
           .limit(5);
         if (ge) throw ge;
-        setRecentResults(g || []);
+
+        // Normalizza: se patients è un array, prendi il primo elemento
+        const normalized: GadRow[] = (g || []).map((r: any) => ({
+          id: r.id,
+          total: r.total,
+          severity: r.severity,
+          created_at: r.created_at,
+          patient_id: r.patient_id,
+          patients: Array.isArray(r.patients) ? (r.patients[0] || null) : r.patients ?? null,
+        }));
+        setRecentResults(normalized);
 
         // 4) Ultimi 5 pazienti creati
         const { data: p, error: pe } = await supabase
@@ -63,7 +73,7 @@ export default function TherapistDashboard() {
           .order("created_at", { ascending: false })
           .limit(5);
         if (pe) throw pe;
-        setRecentPatients(p || []);
+        setRecentPatients((p || []) as Patient[]);
       } catch (e: any) {
         setErr(e?.message || "Errore");
       } finally {
