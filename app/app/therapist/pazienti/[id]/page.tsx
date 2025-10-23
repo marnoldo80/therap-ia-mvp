@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type Patient = {
   id: string;
@@ -14,283 +19,310 @@ type Patient = {
   goals: string | null;
 };
 
-type GadRow = { id: string; total: number; severity: string | null; created_at: string };
+type GadRow = { created_at: string; total: number; severity: string };
 
-export default function PatientPage({ params }: { params: { id: string } }) {
+export default function PatientPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const pid = params.id;
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  // form
+  const [p, setP] = useState<Patient | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [issues, setIssues] = useState("");
+  const [goals, setGoals] = useState("");
+
+  // UI
   const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const [history, setHistory] = useState<GadRow[]>([]);
-  const [sending, setSending] = useState(false);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  // invite
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
 
-  // load patient + last results
   useEffect(() => {
     (async () => {
       setErr(null);
-      setMsg(null);
-      try {
-        // session guard
-        const { data: auth } = await supabase.auth.getUser();
-        if (!auth?.user) {
-          router.push("/login");
-          return;
-        }
-
-        // patient
-        const { data: p, error: e1 } = await supabase
-          .from("patients")
-          .select("id,display_name,email,phone,issues,goals")
-          .eq("id", pid)
-          .single();
-
-        if (e1) throw e1;
-        setPatient(p as Patient);
-
-        // history (latest 12)
-        const { data: rows, error: e2 } = await supabase
-          .from("gad7_results")
-          .select("id,total,severity,created_at")
-          .eq("patient_id", pid)
-          .order("created_at", { ascending: false })
-          .limit(12);
-
-        if (e2) throw e2;
-        setHistory((rows || []) as GadRow[]);
-      } catch (e: any) {
-        setErr(e?.message || "Errore di caricamento.");
-      } finally {
-        setLoading(false);
+      const { data: u } = await supabase.auth.getUser();
+      if (!u?.user) {
+        router.replace("/login");
+        return;
       }
+
+      // patient
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id,display_name,email,phone,issues,goals")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        setErr(error.message);
+        return;
+      }
+      setP(data);
+      setDisplayName(data.display_name || "");
+      setEmail(data.email || "");
+      setPhone(data.phone || "");
+      setIssues(data.issues || "");
+      setGoals(data.goals || "");
+
+      // existing latest invite (optional)
+      const { data: inv } = await supabase
+        .from("gad7_invites")
+        .select("token")
+        .eq("patient_id", id)
+        .is("consumed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (inv?.token) setInviteToken(inv.token);
     })();
-  }, [pid, router]);
+  }, [id, router]);
 
   async function savePatient() {
-    if (!patient) return;
-    setSaving(true);
-    setErr(null);
     setMsg(null);
+    setErr(null);
+    setLoading(true);
     try {
       const { error } = await supabase
         .from("patients")
         .update({
-          display_name: patient.display_name,
-          email: patient.email,
-          phone: patient.phone,
-          issues: patient.issues,
-          goals: patient.goals,
+          display_name: displayName,
+          email,
+          phone,
+          issues,
+          goals,
         })
-        .eq("id", patient.id);
-
+        .eq("id", id);
       if (error) throw error;
-      setMsg("Dati paziente salvati.");
+      setMsg("Salvato.");
     } catch (e: any) {
-      setErr(e?.message || "Salvataggio fallito.");
+      setErr(e?.message || "Errore salvataggio");
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   }
 
-  // 1) genera link univoco via funzione SQL e 2) invia email con Resend (API route)
-  async function sendGadInviteByEmail() {
-    setSending(true);
-    setErr(null);
+  async function generateInvite() {
     setMsg(null);
+    setErr(null);
+    setLoading(true);
     try {
-      if (!patient?.email) throw new Error("Email del paziente assente.");
-      // genera link (usa la RPC creata prima)
-      const { data: rpc, error: rpcErr } = await supabase.rpc("gad7_create_invite", {
-        p_patient_id: pid,
-      });
-      if (rpcErr) throw rpcErr;
-      const url = rpc as string;
-      setInviteUrl(url);
+      const { data, error } = await supabase
+        .rpc("gad7_create_invite", { p_patient_id: id });
+      if (error) throw error;
+      setInviteToken(data as string);
+      setMsg("Link generato.");
+    } catch (e: any) {
+      setErr(e?.message || "Errore generazione link");
+    } finally {
+      setLoading(false);
+    }
+  }
 
+  async function sendInviteEmail() {
+    setMsg(null);
+    setErr(null);
+    if (!inviteToken) return setErr("Nessun link generato.");
+    if (!email) return setErr("Email paziente mancante.");
+
+    const url = `${window.location.origin}/q/gad7/${inviteToken}`;
+    try {
       const res = await fetch("/api/send-gad7-invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: patient.email,
-          name: patient.display_name || "",
+          to: email,
+          name: displayName || "Paziente",
           url,
         }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || "Invio email fallito.");
+      if (!res.ok) throw new Error(j?.error || "Invio fallito");
       setMsg("Invito GAD-7 inviato al paziente via email.");
     } catch (e: any) {
-      setErr(e?.message || "Errore nell'invio dell'email.");
-    } finally {
-      setSending(false);
+      setErr(e?.message || "Errore invio email");
     }
   }
 
-  function openWhatsAppManual() {
-    if (!patient) return;
+  function openWhatsApp() {
+    if (!inviteToken) return setErr("Nessun link generato.");
+    const url = `${window.location.origin}/q/gad7/${inviteToken}`;
     const text = encodeURIComponent(
-      `${patient.display_name || "Ciao"}, compila il GAD-7 a questo link:\n${inviteUrl || ""}`
+      `${displayName || ""}, compila il GAD-7 qui: ${url}`
     );
-    const phoneDigits = (patient.phone || "").replace(/[^0-9]/g, "");
-    const href = `https://wa.me/${phoneDigits}?text=${text}`;
-    window.open(href, "_blank");
+    const phoneDigits = (phone || "").replace(/[^0-9]/g, "");
+    window.open(`https://wa.me/${phoneDigits}?text=${text}`, "_blank");
   }
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-3xl p-6">
-        <p>Caricamento…</p>
-      </div>
-    );
-  }
-
-  if (!patient) {
-    return (
-      <div className="mx-auto max-w-3xl p-6">
-        <Link href="/app/therapist/pazienti" className="text-sm underline">
-          ← Lista pazienti
-        </Link>
-        <p className="mt-6 text-red-600">{err || "Paziente non trovato."}</p>
-      </div>
-    );
-  }
+  const inviteLink =
+    inviteToken && typeof window !== "undefined"
+      ? `${window.location.origin}/q/gad7/${inviteToken}`
+      : "";
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="max-w-3xl mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
         <Link
           href="/app/therapist/pazienti"
-          className="rounded border px-3 py-1 text-sm hover:bg-gray-50"
+          className="rounded border px-3 py-2 hover:bg-gray-50"
         >
           ← Lista pazienti
         </Link>
 
-        <Link
-          href={`/app/therapist/pazienti/${pid}/gad7`}
-          className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        {/* Spostato qui accanto agli altri pulsanti (coerente con richiesta) */}
+        <button
+          onClick={() => router.push(`/app/therapist/pazienti/${id}/gad7`)}
+          className="rounded bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700"
         >
           + Esegui GAD-7 in seduta
-        </Link>
+        </button>
       </div>
 
-      <h1 className="mb-4 text-2xl font-semibold">Scheda paziente</h1>
+      <h1 className="text-2xl font-semibold mb-4">Scheda paziente</h1>
 
-      {err && <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-red-700">{err}</div>}
-      {msg && <div className="mb-4 rounded border border-green-200 bg-green-50 p-3 text-green-700">{msg}</div>}
+      {msg && (
+        <div className="mb-4 rounded bg-green-50 text-green-700 px-4 py-3">
+          {msg}
+        </div>
+      )}
+      {err && (
+        <div className="mb-4 rounded bg-red-50 text-red-700 px-4 py-3">
+          {err}
+        </div>
+      )}
 
-      <div className="rounded border bg-white p-4 shadow-sm">
-        <div className="mb-4">
-          <label className="mb-1 block text-sm text-gray-600">Nome</label>
+      <div className="rounded border p-4 space-y-4 mb-4">
+        <div>
+          <label className="block text-sm mb-1">Nome</label>
           <input
             className="w-full rounded border px-3 py-2"
-            value={patient.display_name || ""}
-            onChange={(e) => setPatient({ ...patient, display_name: e.target.value })}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
 
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm text-gray-600">Email</label>
+            <label className="block text-sm mb-1">Email</label>
             <input
               className="w-full rounded border px-3 py-2"
-              value={patient.email || ""}
-              onChange={(e) => setPatient({ ...patient, email: e.target.value })}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-gray-600">Telefono</label>
+            <label className="block text-sm mb-1">Telefono</label>
             <input
               className="w-full rounded border px-3 py-2"
-              value={patient.phone || ""}
-              onChange={(e) => setPatient({ ...patient, phone: e.target.value })}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="mb-1 block text-sm text-gray-600">Problemi</label>
+        <div>
+          <label className="block text-sm mb-1">Problemi</label>
           <textarea
-            className="w-full rounded border px-3 py-2"
-            rows={3}
-            value={patient.issues || ""}
-            onChange={(e) => setPatient({ ...patient, issues: e.target.value })}
+            className="w-full min-h-[110px] rounded border px-3 py-2"
+            value={issues}
+            onChange={(e) => setIssues(e.target.value)}
           />
         </div>
 
-        <div className="mb-4">
-          <label className="mb-1 block text-sm text-gray-600">Obiettivi</label>
+        <div>
+          <label className="block text-sm mb-1">Obiettivi</label>
           <textarea
-            className="w-full rounded border px-3 py-2"
-            rows={3}
-            value={patient.goals || ""}
-            onChange={(e) => setPatient({ ...patient, goals: e.target.value })}
+            className="w-full min-h-[110px] rounded border px-3 py-2"
+            value={goals}
+            onChange={(e) => setGoals(e.target.value)}
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        {/* RIGA AZIONI */}
+        <div className="flex flex-wrap items-center gap-3 pt-2">
           <button
             onClick={savePatient}
-            disabled={saving}
-            className="rounded border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-60"
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60"
           >
             💾 Salva
           </button>
 
-          {/* INVIO GAD-7 AL PAZIENTE (email Resend) */}
+          {/* Esegui in seduta – spostato qui accanto agli altri */}
           <button
-            onClick={sendGadInviteByEmail}
-            disabled={sending}
-            className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+            onClick={() => router.push(`/app/therapist/pazienti/${id}/gad7`)}
+            className="inline-flex items-center gap-2 rounded bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700"
           >
-            📧 Invia GAD-7 al paziente
+            ➕ Esegui GAD-7 in seduta
           </button>
 
-          {/* opzionale WhatsApp manuale se il link è già stato generato */}
-          {inviteUrl && (
-            <button
-              onClick={openWhatsAppManual}
-              className="rounded border px-4 py-2 text-sm hover:bg-gray-50"
-              title="Apre WhatsApp con il testo precompilato"
-            >
-              💬 Invia via WhatsApp (manuale)
-            </button>
-          )}
+          <button
+            onClick={async () => {
+              await generateInvite();
+              await sendInviteEmail();
+            }}
+            className="inline-flex items-center gap-2 rounded bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700"
+          >
+            ✉️ Invia GAD-7 al paziente
+          </button>
+
+          <button
+            onClick={openWhatsApp}
+            className="inline-flex items-center gap-2 rounded border px-3 py-2 hover:bg-gray-50"
+          >
+            💬 Invia via WhatsApp (manuale)
+          </button>
         </div>
 
-        {inviteUrl && (
-          <div className="mt-3 rounded border bg-gray-50 p-3 text-sm">
-            <span className="font-medium">Link paziente:</span> {inviteUrl}
+        {inviteToken && (
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">Link paziente:</span>{" "}
+            <span className="select-all">{inviteLink}</span>
           </div>
         )}
       </div>
 
-      {/* Storico risultati */}
-      <h2 className="mt-8 mb-3 text-xl font-semibold">Storico GAD-7</h2>
+      {/* Storico sintetico */}
+      <ResultsList patientId={id} />
+    </div>
+  );
+}
+
+function ResultsList({ patientId }: { patientId: string }) {
+  const [rows, setRows] = useState<GadRow[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("gad7_results")
+        .select("created_at,total,severity")
+        .eq("patient_id", patientId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      setRows(data || []);
+    })();
+  }, [patientId]);
+
+  if (!rows.length) return null;
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-semibold mb-3">Storico GAD-7</h2>
       <div className="space-y-2">
-        {history.length === 0 && (
-          <div className="rounded border bg-white p-3 text-sm text-gray-500">Nessun risultato ancora.</div>
-        )}
-        {history.map((r) => (
-          <div key={r.id} className="flex items-center justify-between rounded border bg-white px-3 py-2">
+        {rows.map((r, i) => (
+          <div key={i} className="rounded border px-3 py-2 flex items-center justify-between">
             <div>
-              <span className="font-medium">Score: {r.total}</span>
-              {r.severity && (
-                <span className="ml-2 rounded border px-2 py-[2px] text-xs text-gray-600">{r.severity}</span>
-              )}
+              <span className="font-medium">Score:</span> {r.total}{" "}
+              <span className="text-xs text-gray-600 border rounded px-2 py-0.5 ml-2">
+                {r.severity}
+              </span>
             </div>
-            <div className="text-sm text-gray-600">
-              {new Date(r.created_at).toLocaleString(undefined, {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+            <div className="text-sm text-gray-500">
+              {new Date(r.created_at).toLocaleString()}
             </div>
           </div>
         ))}
