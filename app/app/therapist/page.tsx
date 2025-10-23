@@ -1,70 +1,157 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+
+type Patient = { id: string; display_name: string | null };
+type GadRow = {
+  id: string;
+  total: number | null;
+  severity: string | null;
+  created_at: string | null;
+  patient_id: string | null;
+  patients?: { display_name: string | null } | null;
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Therapist = { customer_code: string | null; email: string | null; full_name?: string | null; };
-
-export default function Page() {
-  const router = useRouter();
-  const [me, setMe] = useState<{ email: string | null } | null>(null);
-  const [t, setT] = useState<Therapist | null>(null);
+export default function TherapistDashboard() {
+  const [name, setName] = useState<string>("");
+  const [recentResults, setRecentResults] = useState<GadRow[]>([]);
+  const [recentPatients, setRecentPatients] = useState<Patient[]>([]);
+  const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const user = userRes?.user;
-      if (!user) { router.replace("/login"); return; }
-      setMe({ email: user.email ?? null });
+      try {
+        setErr(null);
+        setLoading(true);
 
-      const { data: rows } = await supabase
-        .from("therapists")
-        .select("customer_code,email,full_name")
-        .eq("user_id", user.id)
-        .limit(1);
+        // 1) Utente loggato
+        const { data: auth } = await supabase.auth.getUser();
+        const user = auth?.user;
+        if (!user) throw new Error("Sessione non valida.");
 
-      setT(rows?.[0] ?? null);
-      setLoading(false);
+        // 2) Nome terapeuta
+        const { data: t, error: te } = await supabase
+          .from("therapists")
+          .select("display_name")
+          .eq("user_id", user.id)
+          .single();
+        if (te) throw te;
+        setName(t?.display_name || "Terapeuta");
+
+        // 3) Ultimi 5 risultati GAD-7
+        const { data: g, error: ge } = await supabase
+          .from("gad7_results")
+          .select("id,total,severity,created_at,patient_id,patients(display_name)")
+          .eq("therapist_user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (ge) throw ge;
+        setRecentResults(g || []);
+
+        // 4) Ultimi 5 pazienti creati
+        const { data: p, error: pe } = await supabase
+          .from("patients")
+          .select("id,display_name")
+          .eq("therapist_user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (pe) throw pe;
+        setRecentPatients(p || []);
+      } catch (e: any) {
+        setErr(e?.message || "Errore");
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [router]);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
-
-  if (loading) return <main style={{maxWidth:720,margin:"40px auto",padding:20}}>Caricamento…</main>;
+  }, []);
 
   return (
-    <main style={{maxWidth:720,margin:"40px auto",padding:20}}>
-      <h1>Dashboard Terapeuta</h1>
-      <p style={{marginTop:8}}>Email: <b>{me?.email ?? "—"}</b></p>
-      {t?.customer_code
-        ? <p style={{marginTop:8}}>Codice cliente: <b>{t.customer_code}</b></p>
-        : <p style={{marginTop:8,color:"#b45309"}}>Completa l’<a href="/app/therapist/onboarding">onboarding</a> per ottenere il codice cliente.</p>
-      }
-
-      <div style={{marginTop:24,display:"flex",gap:16,flexWrap:"wrap"}}>
-        <a href="/app/therapist/pazienti" style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,textDecoration:"none"}}>
-          👤 Lista pazienti
-        </a>
-        <a href="/app/therapist/schemi" style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,textDecoration:"none"}}>
-          📄 Schemi
-        </a>
-        <a href="/app/therapist/onboarding" style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,textDecoration:"none"}}>
-          ⚙️ Modifica dati / Onboarding
-        </a>
-        <button onClick={logout} style={{border:"1px solid #222",padding:"10px 14px",borderRadius:8,cursor:"pointer"}}>
-          Logout
-        </button>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Ciao, {name}</h1>
+        <div className="flex gap-3">
+          <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">
+            + Nuovo / Lista pazienti
+          </Link>
+        </div>
       </div>
-    </main>
+
+      {err && (
+        <div className="rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+          {err}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded border px-4 py-6">Caricamento…</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Riquadro ultimi risultati */}
+          <section className="rounded border p-4">
+            <h2 className="font-medium mb-3">Ultimi GAD-7</h2>
+            <ul className="space-y-2">
+              {recentResults.length === 0 && <li className="text-sm text-gray-500">Nessun risultato.</li>}
+              {recentResults.map(r => (
+                <li key={r.id} className="rounded border px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm">
+                        Paziente:{" "}
+                        <span className="font-medium">
+                          {r.patients?.display_name || r.patient_id || "—"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {new Date(r.created_at || "").toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm">Score: <b>{r.total ?? "—"}</b></div>
+                      <div className="text-xs text-gray-600">{r.severity || "—"}</div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 text-right">
+              <Link href="/app/therapist/pazienti" className="text-sm underline">
+                Vai ai pazienti
+              </Link>
+            </div>
+          </section>
+
+          {/* Riquadro ultimi pazienti */}
+          <section className="rounded border p-4">
+            <h2 className="font-medium mb-3">Ultimi pazienti</h2>
+            <ul className="space-y-2">
+              {recentPatients.length === 0 && <li className="text-sm text-gray-500">Nessun paziente.</li>}
+              {recentPatients.map(p => (
+                <li key={p.id} className="rounded border px-3 py-2 flex items-center justify-between">
+                  <span>{p.display_name || p.id}</span>
+                  <Link
+                    href={`/app/therapist/pazienti/${p.id}`}
+                    className="text-sm underline"
+                  >
+                    Apri scheda
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 text-right">
+              <Link href="/app/therapist/pazienti" className="text-sm underline">
+                Gestisci pazienti
+              </Link>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
   );
 }
