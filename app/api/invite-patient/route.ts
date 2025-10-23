@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE!,
+  process.env.SUPABASE_SERVICE_ROLE!, // Service Role (solo server)
   { auth: { persistSession: false } }
 );
 
@@ -21,24 +21,30 @@ export async function POST(req: Request) {
     let subject = "Il tuo accesso a Therap-IA (invito)";
     let htmlPrefix = "<p>Il tuo terapeuta ti invita a registrarti e accedere alla tua area paziente.</p>";
 
-    // Prova INVITE
-    const inviteRes = await supabaseAdmin.auth.admin.generateLink({ type: "invite", email });
+    // 1) Prova INVITE
+    const { data: invData, error: invErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "invite",
+      email,
+    });
 
-    if (inviteRes.error) {
-      // Se l'utente esiste già → MAGIC LINK
-      const magicRes = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
-      if (magicRes.error) throw magicRes.error;
+    if (invErr) {
+      // 2) Utente già esistente? Fallback MAGIC LINK (login)
+      const { data: magData, error: magErr } = await supabaseAdmin.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+      });
+      if (magErr) throw magErr;
 
-      link = magicRes.data?.properties?.action_link || null;
+      link = magData?.properties?.action_link ?? null;
       subject = "Accedi a Therap-IA";
       htmlPrefix = "<p>Accedi alla tua area paziente con il link qui sotto.</p>";
     } else {
-      link = inviteRes.data?.properties?.action_link || null;
+      link = invData?.properties?.action_link ?? null;
     }
 
     if (!link) throw new Error("Nessun link generato.");
 
-    // aggiorna email sul record paziente (opzionale)
+    // (facoltativo) aggiorna email nel record paziente
     await supabaseAdmin.from("patients").update({ email }).eq("id", patientId);
 
     const from = process.env.RESEND_FROM!;
@@ -54,6 +60,7 @@ export async function POST(req: Request) {
         <p><a href="${link}">${link}</a></p>
       </div>
     `;
+
     const r = await resend.emails.send({ from, to: email, subject, html });
     if (r.error) throw new Error(r.error.message);
 
