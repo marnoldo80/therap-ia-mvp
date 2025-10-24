@@ -38,7 +38,7 @@ export default function TherapistHome() {
       setLoading(true);
       setErr(null);
       try {
-        // 1) Utente loggato
+        // 1) utente loggato
         const { data: au } = await supabase.auth.getUser();
         const uid = au?.user?.id;
         const email = au?.user?.email ?? null;
@@ -47,21 +47,25 @@ export default function TherapistHome() {
           return;
         }
 
-        // 2) Profilo terapeuta: prova user_id oppure auth_user_id
+        // 2) profilo terapeuta: SOLO user_id (niente auth_user_id)
+        let displayName: string | null = null;
         const { data: t, error: te } = await supabase
           .from("therapists")
           .select("display_name")
-          .or(`user_id.eq.${uid},auth_user_id.eq.${uid}`)
+          .eq("user_id", uid)
           .maybeSingle();
-        if (te) throw te;
-        setTherapistName(t?.display_name ?? email);
+        if (te) {
+          // non bloccare la pagina per errori schema: mostra email e continua
+          console.warn("therapists select error:", te.message);
+        } else {
+          displayName = t?.display_name ?? null;
+        }
+        setTherapistName(displayName || email);
 
-        // 3) Ultimi 5 risultati GAD-7
+        // 3) ultimi 5 risultati GAD-7
         const { data: g, error: ge } = await supabase
           .from("gad7_results")
-          .select(
-            "id,total,severity,created_at,patient_id,patients(display_name)"
-          )
+          .select("id,total,severity,created_at,patient_id,patients(display_name)")
           .order("created_at", { ascending: false })
           .limit(5);
         if (ge) throw ge;
@@ -74,7 +78,7 @@ export default function TherapistHome() {
         })) as GadRow[];
         setRecentResults(normG);
 
-        // 4) Ultimi 5 pazienti creati
+        // 4) ultimi 5 pazienti
         const { data: p, error: pe } = await supabase
           .from("patients")
           .select("id,display_name,created_at")
@@ -92,7 +96,6 @@ export default function TherapistHome() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
-      {/* Header (senza bottone GAD-7 come richiesto) */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
           {therapistName ? `Ciao, ${therapistName}` : "Area Terapeuta"}
@@ -109,7 +112,6 @@ export default function TherapistHome() {
         <div className="text-gray-500">Caricamento…</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Box risultati GAD-7 */}
           <section className="rounded-lg border p-4">
             <h2 className="font-medium mb-3">Ultimi risultati GAD-7</h2>
             <ul className="space-y-2">
@@ -122,9 +124,7 @@ export default function TherapistHome() {
                     <div>
                       <div className="font-medium">
                         {r.patients?.display_name || "Paziente"} —{" "}
-                        <span className="font-normal">
-                          score: {r.total ?? "-"}
-                        </span>
+                        <span className="font-normal">score: {r.total ?? "-"}</span>
                       </div>
                       <div className="text-xs text-gray-500">
                         {r.severity || "-"} •{" "}
@@ -147,7 +147,6 @@ export default function TherapistHome() {
             </ul>
           </section>
 
-          {/* Box pazienti recenti */}
           <section className="rounded-lg border p-4">
             <h2 className="font-medium mb-3">Pazienti recenti</h2>
             <ul className="space-y-2">
