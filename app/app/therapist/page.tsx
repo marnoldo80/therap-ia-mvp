@@ -1,31 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-type TherapistRow = {
-  display_name: string | null;
-  codice_cliente: string | null;
-};
-
-type ApptRow = {
-  id: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  location: string | null;
-  patient_id: string | null;
-  patients?: { display_name: string | null }[]; // join supabase restituisce array
-};
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type GadRow = {
   id: string;
-  created_at: string | null;
   total: number | null;
   severity: string | null;
+  created_at: string | null;
   patient_id: string | null;
-  patients?: { display_name: string | null }[];
+  patients?: { display_name: string | null } | null;
 };
 
 type PatientRow = {
@@ -34,221 +24,148 @@ type PatientRow = {
   created_at: string | null;
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function TherapistHome() {
   const router = useRouter();
 
-  const [email, setEmail] = useState<string | null>(null);
-  const [me, setMe] = useState<TherapistRow | null>(null);
-
-  const [nextAppts, setNextAppts] = useState<ApptRow[]>([]);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [recentResults, setRecentResults] = useState<GadRow[]>([]);
   const [recentPatients, setRecentPatients] = useState<PatientRow[]>([]);
-
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       setErr(null);
+      try {
+        // 1) Utente loggato
+        const { data: au } = await supabase.auth.getUser();
+        const uid = au?.user?.id;
+        if (!uid) {
+          router.replace("/login");
+          return;
+        }
 
-      // 1) Utente loggato
-      const { data: u } = await supabase.auth.getUser();
-      const user = u?.user || null;
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-      setEmail(user.email ?? null);
-
-      // 2) I miei dati (tabella therapists)
-      {
-        const { data, error } = await supabase
+        // 2) Profilo terapeuta (serve display_name)
+        const { data: t, error: te } = await supabase
           .from("therapists")
-          .select("display_name, codice_cliente")
-          .eq("user_id", user.id)
+          .select("display_name")
+          .eq("auth_user_id", uid)
           .maybeSingle();
-        if (error) setErr(error.message);
-        setMe((data as TherapistRow) || null);
-      }
+        if (te) throw te;
+        setDisplayName(t?.display_name ?? null);
 
-      // 3) Prossimi appuntamenti (prossimi 5)
-      {
-        const nowIso = new Date().toISOString();
-        const { data, error } = await supabase
-          .from("appointments")
-          .select("id, starts_at, ends_at, location, patient_id, patients ( display_name )")
-          .eq("therapist_user_id", user.id)
-          .gte("starts_at", nowIso)
-          .order("starts_at", { ascending: true })
-          .limit(5);
-        if (error) setErr(error.message);
-        setNextAppts((data as ApptRow[]) || []);
-      }
-
-      // 4) Ultimi GAD-7 (5) con nome paziente
-      {
-        const { data, error } = await supabase
+        // 3) Ultimi 5 risultati GAD-7
+        const { data: g, error: ge } = await supabase
           .from("gad7_results")
-          .select("id, created_at, total, severity, patient_id, patients ( display_name )")
-          .eq("therapist_user_id", user.id)
+          .select("id,total,severity,created_at,patient_id,patients(display_name)")
           .order("created_at", { ascending: false })
           .limit(5);
-        if (error) setErr(error.message);
-        setRecentResults((data as GadRow[]) || []);
-      }
+        if (ge) throw ge;
 
-      // 5) Ultimi pazienti creati (5)
-      {
-        const { data, error } = await supabase
+        // normalizza la relazione patients a singolo oggetto
+        const normG = (g ?? []).map((row: any) => ({
+          ...row,
+          patients: Array.isArray(row.patients) ? row.patients[0] ?? null : row.patients ?? null,
+        })) as GadRow[];
+        setRecentResults(normG);
+
+        // 4) Ultimi 5 pazienti creati
+        const { data: p, error: pe } = await supabase
           .from("patients")
-          .select("id, display_name, created_at")
-          .eq("therapist_user_id", user.id)
+          .select("id,display_name,created_at")
           .order("created_at", { ascending: false })
           .limit(5);
-        if (error) setErr(error.message);
-        setRecentPatients((data as PatientRow[]) || []);
+        if (pe) throw pe;
+        setRecentPatients(p ?? []);
+      } catch (e: any) {
+        setErr(e?.message || "Errore");
+      } finally {
+        setLoading(false);
       }
     })();
   }, [router]);
 
   return (
-    <div className="min-h-[70vh] flex justify-center px-4">
-      <div className="w-full max-w-5xl py-8">
-        <h1 className="text-2xl font-semibold mb-1">Area Terapeuta</h1>
-        <p className="text-sm text-gray-600 mb-6">
-          {email ? `Accesso: ${email}` : ""}
-        </p>
+    <div className="max-w-5xl mx-auto p-6 space-y-8">
+      {/* Header con nome terapeuta */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">
+          {displayName ? `Ciao, ${displayName}` : "Area Terapeuta"}
+        </h1>
+        {/* (RIMOSSO) Nessun bottone “Somministra GAD-7” qui */}
+      </div>
 
-        {err && (
-          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
-            {err}
-          </div>
-        )}
+      {err && (
+        <div className="rounded-md border border-red-300 bg-red-50 text-red-700 px-4 py-2">
+          {err}
+        </div>
+      )}
 
-        {/* Sezione: I miei dati */}
-        <section className="mb-6 rounded-xl border p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold">I miei dati</h2>
-            <Link
-              className="text-sm underline hover:opacity-80"
-              href="/app/therapist/onboarding"
-            >
-              Modifica profilo
-            </Link>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <div className="text-gray-500">Nome visualizzato</div>
-              <div className="font-medium">{me?.display_name || "—"}</div>
-            </div>
-            <div>
-              <div className="text-gray-500">Codice cliente</div>
-              <div className="font-medium">{me?.codice_cliente || "—"}</div>
-            </div>
-          </div>
-        </section>
-
-        {/* Azioni rapide */}
-        <section className="mb-6 grid gap-3 sm:grid-cols-3">
-          <Link href="/app/therapist/pazienti" className="rounded-xl border p-4 hover:bg-gray-50">
-            <div className="font-semibold">Lista pazienti →</div>
-            <div className="text-sm text-gray-600">Visualizza e gestisci i pazienti</div>
-          </Link>
-          <Link href="/app/therapist/pazienti/nuovo" className="rounded-xl border p-4 hover:bg-gray-50">
-            <div className="font-semibold">Aggiungi paziente →</div>
-            <div className="text-sm text-gray-600">Crea una nuova scheda</div>
-          </Link>
-          <Link href="/app/therapist/pazienti" className="rounded-xl border p-4 hover:bg-gray-50">
-            <div className="font-semibold">Somministra GAD-7 →</div>
-            <div className="text-sm text-gray-600">Avvia da scheda paziente</div>
-          </Link>
-        </section>
-
-        {/* Prossimi appuntamenti */}
-        <section className="mb-6 rounded-xl border p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold">Prossimi appuntamenti</h2>
-            <Link href="#" className="text-sm underline pointer-events-none opacity-50">
-              Nuovo appuntamento (presto)
-            </Link>
-          </div>
-          {nextAppts.length === 0 ? (
-            <div className="text-sm text-gray-600">Nessun appuntamento in calendario.</div>
-          ) : (
+      {loading ? (
+        <div className="text-gray-500">Caricamento…</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Box risultati GAD-7 */}
+          <section className="rounded-lg border p-4">
+            <h2 className="font-medium mb-3">Ultimi risultati GAD-7</h2>
             <ul className="space-y-2">
-              {nextAppts.map(a => {
-                const name = a.patients && a.patients[0]?.display_name ? a.patients[0].display_name : "Paziente";
-                const when = a.starts_at ? new Date(a.starts_at).toLocaleString() : "—";
-                return (
-                  <li key={a.id} className="rounded-lg border px-3 py-2">
-                    <div className="text-sm">
-                      <b>{name}</b> — {when}
+              {(recentResults ?? []).length === 0 && (
+                <li className="text-sm text-gray-500">Nessun risultato.</li>
+              )}
+              {(recentResults ?? []).map((r) => (
+                <li key={r.id} className="rounded border px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">
+                        {r.patients?.display_name || "Paziente"} —{" "}
+                        <span className="font-normal">score: {r.total ?? "-"}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {r.severity || "-"} •{" "}
+                        {r.created_at
+                          ? new Date(r.created_at).toLocaleString()
+                          : "-"}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {a.location || "—"}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        {/* Ultimi risultati GAD-7 */}
-        <section className="mb-6 rounded-xl border p-4">
-          <h2 className="font-semibold mb-2">Ultimi risultati GAD-7</h2>
-          {recentResults.length === 0 ? (
-            <div className="text-sm text-gray-600">Nessun risultato disponibile.</div>
-          ) : (
-            <ul className="space-y-2">
-              {recentResults.map(r => {
-                const name = r.patients && r.patients[0]?.display_name ? r.patients[0].display_name : "Paziente";
-                return (
-                  <li key={r.id} className="rounded-lg border px-3 py-2">
-                    <div className="text-sm">
-                      <b>{name}</b> — Totale: {r.total ?? "—"} · Gravità: {r.severity ?? "—"}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        {/* Ultimi pazienti */}
-        <section className="mb-8 rounded-xl border p-4">
-          <h2 className="font-semibold mb-2">Ultimi pazienti creati</h2>
-          {recentPatients.length === 0 ? (
-            <div className="text-sm text-gray-600">Nessun paziente.</div>
-          ) : (
-            <ul className="grid sm:grid-cols-2 gap-2">
-              {recentPatients.map(p => (
-                <li key={p.id} className="rounded-lg border px-3 py-2">
-                  <div className="text-sm font-medium">{p.display_name || "Senza nome"}</div>
-                  <div className="text-xs text-gray-500">
-                    {p.created_at ? new Date(p.created_at).toLocaleString() : ""}
-                  </div>
-                  <div className="mt-1">
-                    <Link
-                      className="text-xs underline"
-                      href={`/app/therapist/pazienti/${p.id}`}
-                    >
-                      Apri scheda →
-                    </Link>
+                    {r.patient_id && (
+                      <a
+                        className="text-sm underline"
+                        href={`/app/therapist/pazienti/${r.patient_id}`}
+                      >
+                        Apri paziente
+                      </a>
+                    )}
                   </div>
                 </li>
               ))}
             </ul>
-          )}
-        </section>
-      </div>
+          </section>
+
+          {/* Box pazienti recenti */}
+          <section className="rounded-lg border p-4">
+            <h2 className="font-medium mb-3">Pazienti recenti</h2>
+            <ul className="space-y-2">
+              {(recentPatients ?? []).length === 0 && (
+                <li className="text-sm text-gray-500">Nessun paziente.</li>
+              )}
+              {(recentPatients ?? []).map((p) => (
+                <li key={p.id} className="rounded border px-3 py-2 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{p.display_name || "—"}</div>
+                    <div className="text-xs text-gray-500">
+                      {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                    </div>
+                  </div>
+                  <a className="text-sm underline" href={`/app/therapist/pazienti/${p.id}`}>
+                    Apri
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
