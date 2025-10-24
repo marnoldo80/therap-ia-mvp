@@ -27,7 +27,7 @@ type PatientRow = {
 export default function TherapistHome() {
   const router = useRouter();
 
-  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [therapistName, setTherapistName] = useState<string | null>(null);
   const [recentResults, setRecentResults] = useState<GadRow[]>([]);
   const [recentPatients, setRecentPatients] = useState<PatientRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,32 +41,36 @@ export default function TherapistHome() {
         // 1) Utente loggato
         const { data: au } = await supabase.auth.getUser();
         const uid = au?.user?.id;
+        const email = au?.user?.email ?? null;
         if (!uid) {
           router.replace("/login");
           return;
         }
 
-        // 2) Profilo terapeuta (serve display_name)
+        // 2) Profilo terapeuta: prova user_id oppure auth_user_id
         const { data: t, error: te } = await supabase
           .from("therapists")
           .select("display_name")
-          .eq("auth_user_id", uid)
+          .or(`user_id.eq.${uid},auth_user_id.eq.${uid}`)
           .maybeSingle();
         if (te) throw te;
-        setDisplayName(t?.display_name ?? null);
+        setTherapistName(t?.display_name ?? email);
 
         // 3) Ultimi 5 risultati GAD-7
         const { data: g, error: ge } = await supabase
           .from("gad7_results")
-          .select("id,total,severity,created_at,patient_id,patients(display_name)")
+          .select(
+            "id,total,severity,created_at,patient_id,patients(display_name)"
+          )
           .order("created_at", { ascending: false })
           .limit(5);
         if (ge) throw ge;
 
-        // normalizza la relazione patients a singolo oggetto
         const normG = (g ?? []).map((row: any) => ({
           ...row,
-          patients: Array.isArray(row.patients) ? row.patients[0] ?? null : row.patients ?? null,
+          patients: Array.isArray(row.patients)
+            ? row.patients[0] ?? null
+            : row.patients ?? null,
         })) as GadRow[];
         setRecentResults(normG);
 
@@ -88,12 +92,11 @@ export default function TherapistHome() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
-      {/* Header con nome terapeuta */}
+      {/* Header (senza bottone GAD-7 come richiesto) */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
-          {displayName ? `Ciao, ${displayName}` : "Area Terapeuta"}
+          {therapistName ? `Ciao, ${therapistName}` : "Area Terapeuta"}
         </h1>
-        {/* (RIMOSSO) Nessun bottone “Somministra GAD-7” qui */}
       </div>
 
       {err && (
@@ -119,7 +122,9 @@ export default function TherapistHome() {
                     <div>
                       <div className="font-medium">
                         {r.patients?.display_name || "Paziente"} —{" "}
-                        <span className="font-normal">score: {r.total ?? "-"}</span>
+                        <span className="font-normal">
+                          score: {r.total ?? "-"}
+                        </span>
                       </div>
                       <div className="text-xs text-gray-500">
                         {r.severity || "-"} •{" "}
@@ -150,14 +155,22 @@ export default function TherapistHome() {
                 <li className="text-sm text-gray-500">Nessun paziente.</li>
               )}
               {(recentPatients ?? []).map((p) => (
-                <li key={p.id} className="rounded border px-3 py-2 flex items-center justify-between">
+                <li
+                  key={p.id}
+                  className="rounded border px-3 py-2 flex items-center justify-between"
+                >
                   <div>
                     <div className="font-medium">{p.display_name || "—"}</div>
                     <div className="text-xs text-gray-500">
-                      {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                      {p.created_at
+                        ? new Date(p.created_at).toLocaleString()
+                        : "-"}
                     </div>
                   </div>
-                  <a className="text-sm underline" href={`/app/therapist/pazienti/${p.id}`}>
+                  <a
+                    className="text-sm underline"
+                    href={`/app/therapist/pazienti/${p.id}`}
+                  >
                     Apri
                   </a>
                 </li>
