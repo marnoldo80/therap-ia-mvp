@@ -8,11 +8,15 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// -- Tipi --
 type Therapist = {
   display_name: string | null;
   address: string | null;
   vat_number: string | null;
 };
+
+// NB: `patients` può arrivare come oggetto, array, o null
+type PatientRel = { display_name: string | null } | { display_name: string | null }[] | null;
 
 type GadRow = {
   id: string;
@@ -20,7 +24,7 @@ type GadRow = {
   severity: string | null;
   created_at: string;
   patient_id: string | null;
-  patients?: { display_name: string | null } | null;
+  patients?: PatientRel;
 };
 
 type PatRow = {
@@ -35,8 +39,15 @@ type ApptRow = {
   starts_at: string;
   ends_at: string;
   status: 'scheduled' | 'done' | 'canceled' | string;
-  patients?: { display_name: string | null } | null;
+  patients?: PatientRel;
 };
+
+// Helper: estrae il nome paziente da oggetto/array/null
+function getPatientName(rel: PatientRel): string {
+  if (!rel) return '';
+  if (Array.isArray(rel)) return rel[0]?.display_name || '';
+  return rel.display_name || '';
+}
 
 export default function Page() {
   const [err, setErr] = useState<string | null>(null);
@@ -73,7 +84,7 @@ export default function Page() {
           .order('created_at', { ascending: false })
           .limit(5);
         if (error) setErr(error.message);
-        setRecentResults((data || []) as GadRow[]);
+        setRecentResults((data || []) as unknown as GadRow[]);
       }
 
       // PAZIENTI RECENTI
@@ -98,7 +109,7 @@ export default function Page() {
           .order('starts_at', { ascending: true })
           .limit(5);
         if (error) setErr(error.message);
-        setNextAppts((data || []) as ApptRow[]);
+        setNextAppts((data || []) as unknown as ApptRow[]);
       }
 
       setLoading(false);
@@ -119,7 +130,7 @@ export default function Page() {
       {err && <div className="p-3 border border-red-300 bg-red-50 rounded">{err}</div>}
       {loading && <div>Caricamento…</div>}
 
-      {/* Griglia 2x2 su desktop */}
+      {/* Griglia 2x2 */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* Card: Profilo terapeuta */}
         <div className="border rounded p-4">
@@ -152,7 +163,9 @@ export default function Page() {
           <ul className="space-y-2">
             {nextAppts.map(a => (
               <li key={a.id} className="border rounded px-3 py-2">
-                <div className="font-medium">{a.title}{a.patients?.display_name ? ` · ${a.patients.display_name}` : ''}</div>
+                <div className="font-medium">
+                  {a.title}{(() => { const n = getPatientName(a.patients || null); return n ? ` · ${n}` : ''; })()}
+                </div>
                 <div className="text-xs text-gray-600">
                   {new Date(a.starts_at).toLocaleString()} — {new Date(a.ends_at).toLocaleTimeString()} · {a.status}
                 </div>
