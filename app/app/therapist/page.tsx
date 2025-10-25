@@ -8,41 +8,29 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// -- Tipi --
-type Therapist = {
-  display_name: string | null;
-  address: string | null;
-  vat_number: string | null;
-};
-
-// NB: `patients` può arrivare come oggetto, array, o null
-type PatientRel = { display_name: string | null } | { display_name: string | null }[] | null;
+type Therapist = { display_name: string|null; address: string|null; vat_number: string|null; };
+type PatientRel = { display_name: string|null } | { display_name: string|null }[] | null;
 
 type GadRow = {
   id: string;
   total: number;
-  severity: string | null;
+  severity: string|null;
   created_at: string;
-  patient_id: string | null;
+  patient_id: string|null;
   patients?: PatientRel;
 };
 
-type PatRow = {
-  id: string;
-  display_name: string | null;
-  created_at: string;
-};
+type PatRow = { id: string; display_name: string|null; created_at: string; };
 
 type ApptRow = {
   id: string;
   title: string;
   starts_at: string;
   ends_at: string;
-  status: 'scheduled' | 'done' | 'canceled' | string;
+  status: string;
   patients?: PatientRel;
 };
 
-// Helper: estrae il nome paziente da oggetto/array/null
 function getPatientName(rel: PatientRel): string {
   if (!rel) return '';
   if (Array.isArray(rel)) return rel[0]?.display_name || '';
@@ -50,8 +38,8 @@ function getPatientName(rel: PatientRel): string {
 }
 
 export default function Page() {
-  const [err, setErr] = useState<string | null>(null);
-  const [therapist, setTherapist] = useState<Therapist | null>(null);
+  const [err, setErr] = useState<string|null>(null);
+  const [therapist, setTherapist] = useState<Therapist|null>(null);
   const [recentResults, setRecentResults] = useState<GadRow[]>([]);
   const [recentPatients, setRecentPatients] = useState<PatRow[]>([]);
   const [nextAppts, setNextAppts] = useState<ApptRow[]>([]);
@@ -59,12 +47,11 @@ export default function Page() {
 
   useEffect(() => {
     (async () => {
-      setErr(null);
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      setErr(null); setLoading(true);
+      const { data:{ user } } = await supabase.auth.getUser();
       if (!user) { setErr('Non autenticato'); setLoading(false); return; }
 
-      // PROFILO TERAPEUTA
+      // Profilo
       {
         const { data, error } = await supabase
           .from('therapists')
@@ -72,10 +59,10 @@ export default function Page() {
           .eq('user_id', user.id)
           .maybeSingle();
         if (error) setErr(error.message);
-        setTherapist((data || null) as Therapist | null);
+        setTherapist((data || null) as Therapist|null);
       }
 
-      // ULTIMI GAD-7
+      // Ultimi GAD-7
       {
         const { data, error } = await supabase
           .from('gad7_results')
@@ -87,7 +74,7 @@ export default function Page() {
         setRecentResults((data || []) as unknown as GadRow[]);
       }
 
-      // PAZIENTI RECENTI
+      // Pazienti recenti
       {
         const { data, error } = await supabase
           .from('patients')
@@ -99,11 +86,11 @@ export default function Page() {
         setRecentPatients((data || []) as PatRow[]);
       }
 
-      // PROSSIMI APPUNTAMENTI
+      // Prossimi appuntamenti — embed con relazione esplicita
       {
         const { data, error } = await supabase
           .from('appointments')
-          .select('id,title,starts_at,ends_at,status,patients(display_name)')
+          .select('id,title,starts_at,ends_at,status,patients!appointments_patient_fkey(display_name)')
           .eq('therapist_user_id', user.id)
           .gte('starts_at', new Date().toISOString())
           .order('starts_at', { ascending: true })
@@ -130,9 +117,7 @@ export default function Page() {
       {err && <div className="p-3 border border-red-300 bg-red-50 rounded">{err}</div>}
       {loading && <div>Caricamento…</div>}
 
-      {/* Griglia 2x2 */}
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Card: Profilo terapeuta */}
         <div className="border rounded p-4">
           <div className="font-semibold mb-2">Profilo terapeuta</div>
           {therapist ? (
@@ -151,7 +136,6 @@ export default function Page() {
           )}
         </div>
 
-        {/* Card: Prossimi appuntamenti */}
         <div className="border rounded p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="font-semibold">Prossimi appuntamenti</div>
@@ -175,7 +159,6 @@ export default function Page() {
           </ul>
         </div>
 
-        {/* Card: Pazienti recenti */}
         <div className="border rounded p-4">
           <div className="font-semibold mb-2">Pazienti recenti</div>
           <ul className="space-y-2">
@@ -192,7 +175,6 @@ export default function Page() {
           </ul>
         </div>
 
-        {/* Card: Ultimi risultati GAD-7 */}
         <div className="border rounded p-4">
           <div className="font-semibold mb-2">Ultimi risultati GAD-7</div>
           <ul className="space-y-2">
