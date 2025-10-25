@@ -1,149 +1,92 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-
-type GadRow = {
-  id: string;
-  created_at: string | null;
-  total: number | null;
-  severity: string | null;
-};
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function PazienteHome() {
+type Patient = {
+  id: string;
+  display_name: string|null;
+  email: string|null;
+  phone: string|null;
+  goals: string|null;
+};
+
+export default function Page() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string>("");
-  const [gadResults, setGadResults] = useState<GadRow[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<string|null>(null);
+  const [patient, setPatient] = useState<Patient|null>(null);
 
   useEffect(() => {
     (async () => {
-      setErr(null); setMsg(null);
-      // 1) Utente
-      const { data: u } = await supabase.auth.getUser();
-      const user = u?.user || null;
-      if (!user) { router.replace("/login"); return; }
-      setEmail(user.email ?? null);
+      setErr(null); setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setErr('Non autenticato'); setLoading(false); return; }
 
-      // 2) Trova il record paziente collegato a questa email (MVP: primo match)
-      let patientId: string | null = null;
-      if (user.email) {
-        const { data: pRes, error: pErr } = await supabase
-          .from("patients")
-          .select("id, display_name")
-          .eq("email", user.email)
-          .limit(1)
-          .maybeSingle();
-        if (pErr) setErr(pErr.message);
-        if (pRes?.id) {
-          patientId = pRes.id;
-          setDisplayName(pRes.display_name || "");
-        }
-      }
+      const email = user.email;
+      if (!email) { setErr('Email utente non disponibile'); setLoading(false); return; }
 
-      // 3) Carica ultimi GAD-7
-      if (patientId) {
-        const { data: gRes, error: gErr } = await supabase
-          .from("gad7_results")
-          .select("id, created_at, total, severity")
-          .eq("patient_id", patientId)
-          .order("created_at", { ascending: false })
-          .limit(5);
-        if (gErr) setErr(gErr.message);
-        setGadResults(gRes || []);
+      // 1) Trova il record paziente via email
+      const { data: p, error: pe } = await supabase
+        .from('patients')
+        .select('id,display_name,email,phone,goals')
+        .eq('email', email)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (pe) { setErr(pe.message); setLoading(false); return; }
+      if (!p?.id) { setErr('Paziente non trovato. Contatta il terapeuta.'); setLoading(false); return; }
+
+      setPatient(p as Patient);
+
+      // 2) Se nessun consenso → vai alla pagina di consenso
+      const { data: c, error: ce } = await supabase
+        .from('consents')
+        .select('id')
+        .eq('patient_id', p.id)
+        .limit(1);
+
+      if (ce) { setErr(ce.message); setLoading(false); return; }
+      if (!c || c.length === 0) {
+        router.replace('/app/paziente/consenso');
+        return;
       }
 
       setLoading(false);
     })();
   }, [router]);
 
-  async function logout() {
-    setErr(null); setMsg(null);
-    const { error } = await supabase.auth.signOut();
-    if (error) { setErr(error.message); return; }
-    router.replace("/");
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center text-gray-600">
-        Caricamento…
-      </div>
-    );
-  }
+  if (loading) return <div className="max-w-3xl mx-auto p-6">Caricamento…</div>;
+  if (err) return <div className="max-w-3xl mx-auto p-6">{err}</div>;
+  if (!patient) return <div className="max-w-3xl mx-auto p-6">Paziente non trovato.</div>;
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-2xl rounded-2xl border p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold">Area Paziente</h1>
-          <button
-            onClick={logout}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-          >
-            Esci
-          </button>
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-semibold">Area paziente</h1>
+
+      <div className="border rounded p-4">
+        <div className="font-semibold mb-2">Dati personali</div>
+        <div className="text-sm space-y-1">
+          <div><span className="text-gray-500">Nome: </span>{patient.display_name || '—'}</div>
+          <div><span className="text-gray-500">Email: </span>{patient.email || '—'}</div>
+          <div><span className="text-gray-500">Telefono: </span>{patient.phone || '—'}</div>
         </div>
+      </div>
 
-        <p className="text-sm text-gray-600 mb-6">
-          Benvenuto{displayName ? `, ${displayName}` : email ? `, ${email}` : ""}.
-        </p>
+      <div className="border rounded p-4">
+        <div className="font-semibold mb-2">Obiettivi</div>
+        <div className="text-sm whitespace-pre-wrap">{patient.goals || 'Nessun obiettivo impostato.'}</div>
+      </div>
 
-        {err && <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{err}</div>}
-        {msg && <div className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded p-3">{msg}</div>}
-
-        <div className="grid gap-4">
-          <section className="rounded-lg border p-4">
-            <h2 className="font-semibold mb-2">I tuoi dati</h2>
-            <div className="text-sm text-gray-700">
-              <div>Nome visualizzato: <b>{displayName || "—"}</b></div>
-              <div>Email: <b>{email || "—"}</b></div>
-            </div>
-          </section>
-
-          <section className="rounded-lg border p-4">
-            <h2 className="font-semibold mb-2">Questionari (ultimi GAD-7)</h2>
-            {gadResults.length === 0 ? (
-              <div className="text-sm text-gray-600">Nessun risultato disponibile.</div>
-            ) : (
-              <ul className="space-y-2">
-                {gadResults.map(r => (
-                  <li key={r.id} className="rounded-md border px-3 py-2">
-                    <div className="text-sm">
-                      <b>Totale:</b> {r.total ?? "—"} &nbsp;·&nbsp; <b>Gravità:</b> {r.severity ?? "—"}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="rounded-lg border p-4">
-            <h2 className="font-semibold mb-2">Piano terapeutico</h2>
-            <div className="text-sm text-gray-600">In arrivo nell’MVP (obiettivi, compiti, scadenze).</div>
-          </section>
-
-          <section className="rounded-lg border p-4">
-            <h2 className="font-semibold mb-2">Appuntamenti</h2>
-            <div className="text-sm text-gray-600">In arrivo nell’MVP (prossime sedute).</div>
-          </section>
-        </div>
-
-        <div className="mt-6 text-center">
-          <a href="/" className="text-sm text-gray-500 underline">Torna alla home</a>
-        </div>
+      <div className="text-sm">
+        <Link href="/logout" className="underline">Esci</Link>
       </div>
     </div>
   );
