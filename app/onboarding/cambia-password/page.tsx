@@ -37,10 +37,7 @@ export default function ChangePasswordPage() {
 
     setSubmitting(true)
 
-# crea la cartella se non esiste
-mkdir -p app/onboarding/cambia-password
 
-# crea la pagina di cambio password
 cat > app/onboarding/cambia-password/page.tsx <<'EOF'
 'use client';
 
@@ -81,10 +78,7 @@ export default function ChangePasswordPage() {
 
     setSubmitting(true)
 
-# crea la cartella se non esiste
-mkdir -p app/onboarding/cambia-password
 
-# crea la pagina di cambio password
 cat > app/onboarding/cambia-password/page.tsx <<'EOF'
 'use client';
 
