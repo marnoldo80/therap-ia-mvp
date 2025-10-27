@@ -15,7 +15,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-function Inner(): JSX.Element {
+function Inner() {
   const router = useRouter();
   const _searchParams = useSearchParams(); // richiesto da Next 15 → va wrappato in <Suspense>
 
@@ -164,7 +164,7 @@ function Inner(): JSX.Element {
   );
 }
 
-export default function Page(): JSX.Element {
+export default function Page() {
   // Boundary richiesto da Next 15 quando si usa useSearchParams
   return (
     <Suspense fallback={<div style={{ padding: 24 }}>Caricamento…</div>}>
