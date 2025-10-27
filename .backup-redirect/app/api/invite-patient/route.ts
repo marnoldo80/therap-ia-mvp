@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing email/patientId" }, { status: 400 });
     }
 
-    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/consenso`;
+    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/app/paziente`;
 
     let link: string | null = null;
     let subject = "Il tuo accesso a Therap-IA (invito)";

@@ -55,7 +55,7 @@ export default function Page() {
 
       if (ce) { setErr(ce.message); setLoading(false); return; }
       if (!c || c.length === 0) {
-        router.replace('/onboarding/consenso/consenso');
+        router.replace('/app/paziente/consenso');
         return;
       }
 

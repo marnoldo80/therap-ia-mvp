@@ -46,7 +46,7 @@ export default function Page() {
         .limit(1);
 
       if (ce) { setErr(ce.message); setLoading(false); return; }
-      if (c && c.length > 0) { router.replace('/onboarding/consenso'); return; }
+      if (c && c.length > 0) { router.replace('/app/paziente'); return; }
 
       setLoading(false);
     })();
@@ -71,7 +71,7 @@ export default function Page() {
         });
 
       if (error) throw error;
-      router.replace('/onboarding/consenso');
+      router.replace('/app/paziente');
     } catch (e: any) {
       setErr(e?.message || 'Errore durante il salvataggio del consenso.');
     } finally {

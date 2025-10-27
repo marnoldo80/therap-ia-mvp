@@ -57,7 +57,7 @@ export default function ConsensoPage() {
 
       if (updErr) throw updErr;
 
-      router.replace('/onboarding/consenso');
+      router.replace('/app/paziente');
     } catch (e: any) {
       setError(e.message ?? 'Errore nel salvataggio del consenso');
     } finally {
@@ -67,7 +67,7 @@ export default function ConsensoPage() {
 
   if (loading) return <div className="p-6">Verifica stato consenso…</div>;
   if (!needsConsent) {
-    router.replace('/onboarding/consenso');
+    router.replace('/app/paziente');
     return null;
   }
 
