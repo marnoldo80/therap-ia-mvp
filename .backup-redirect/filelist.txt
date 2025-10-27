@@ -1,0 +1,5 @@
+app/app/paziente/page.tsx
+app/app/paziente/consenso/page.tsx
+app/onboarding/cambia-password/page.tsx
+app/onboarding/consenso/page.tsx
+app/api/invite-patient/route.ts

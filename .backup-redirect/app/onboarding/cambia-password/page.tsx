@@ -79,7 +79,7 @@ function Inner() {
         return;
       }
       setDone(true);
-      router.replace("/onboarding/consenso");
+      router.replace("/app/paziente");
     } catch {
       setError("Errore imprevisto durante il salvataggio della password.");
       setLoading(false);
