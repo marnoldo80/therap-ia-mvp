@@ -1,61 +1,110 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-function h() {
-  const key = process.env.SUPABASE_SERVICE_ROLE as string;
-  return {
-    'Content-Type': 'application/json',
-    'apikey': key,
-    'Authorization': `Bearer ${key}`,
-    'Prefer': 'return=representation',
-  };
-}
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE!,
+  { auth: { persistSession: false } }
+);
 
 export async function POST(req: Request) {
   try {
     const { email, user_id } = await req.json();
+    
     if (!email || !user_id) {
-      return NextResponse.json({ ok: false, error: 'missing params' }, { status: 400 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Parametri mancanti: email o user_id' 
+      }, { status: 400 });
     }
 
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    // PATCH usando OR su email/mail + user_id is null
-    const qs =
-      `or=(email.ilike.${encodeURIComponent(email)},mail.ilike.${encodeURIComponent(email)})&user_id=is.null`;
+    const emailLower = email.toLowerCase().trim();
 
-    const resp = await fetch(`${base}/rest/v1/patients?${qs}`, {
-      method: 'PATCH',
-      headers: h(),
-      body: JSON.stringify({ user_id }),
-    });
+    console.log('🔍 Cerco paziente con email:', emailLower, 'user_id:', user_id);
 
-    const text = await resp.text();
-    let rows: any[] = [];
-    try { rows = JSON.parse(text); } catch { /* text vuoto */ }
+    // 1. Cerca il paziente con quella email che non ha ancora user_id
+    const { data: patients, error: searchError } = await supabaseAdmin
+      .from('patients')
+      .select('*')
+      .ilike('email', emailLower)
+      .is('user_id', null);
 
-    // Controllo: esiste ora un paziente con quel user_id?
-    const check = await fetch(`${base}/rest/v1/patients?user_id=eq.${user_id}`, {
-      headers: { 'apikey': process.env.SUPABASE_SERVICE_ROLE as string, 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE}` }
-    });
-    const got = await check.json();
-
-    if (!resp.ok) {
-      return NextResponse.json({ ok: false, step: 'patch', resp: text }, { status: 500 });
-    }
-    if (Array.isArray(got) && got.length > 0) {
-      return NextResponse.json({ ok: true, linked: got[0], patched_count: rows?.length ?? 0 });
+    if (searchError) {
+      console.error('❌ Errore ricerca paziente:', searchError);
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Errore nella ricerca del paziente',
+        details: searchError.message 
+      }, { status: 500 });
     }
 
-    // Non trovato: restituisci cosa c'è per quell’email (diagnostica)
-    const probe = await fetch(`${base}/rest/v1/patients?or=(email.ilike.${encodeURIComponent(email)},mail.ilike.${encodeURIComponent(email)})`, {
-      headers: { 'apikey': process.env.SUPABASE_SERVICE_ROLE as string, 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE}` }
-    });
-    const probeRows = await probe.json();
+    console.log('📋 Pazienti trovati senza user_id:', patients);
 
-    return NextResponse.json({ ok: false, error: 'patient_not_found_after_patch', patched_count: rows?.length ?? 0, probe: probeRows }, { status: 404 });
+    if (!patients || patients.length === 0) {
+      // Verifica se esiste già un paziente con quel user_id
+      const { data: existing } = await supabaseAdmin
+        .from('patients')
+        .select('*')
+        .eq('user_id', user_id)
+        .single();
+
+      if (existing) {
+        console.log('✅ Paziente già collegato:', existing);
+        return NextResponse.json({ ok: true, linked: existing, already_linked: true });
+      }
+
+      // Cerca pazienti con quella email (anche se hanno già user_id)
+      const { data: allWithEmail } = await supabaseAdmin
+        .from('patients')
+        .select('*')
+        .ilike('email', emailLower);
+
+      console.log('🔍 Tutti i pazienti con questa email:', allWithEmail);
+
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'patient_not_found',
+        message: 'Nessun paziente trovato con questa email senza user_id già impostato',
+        email: emailLower,
+        all_with_email: allWithEmail
+      }, { status: 404 });
+    }
+
+    // 2. Collega il primo paziente trovato
+    const patient = patients[0];
+    
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from('patients')
+      .update({ user_id })
+      .eq('id', patient.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('❌ Errore aggiornamento paziente:', updateError);
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Errore nel collegamento del paziente',
+        details: updateError.message 
+      }, { status: 500 });
+    }
+
+    console.log('✅ Paziente collegato con successo:', updated);
+
+    return NextResponse.json({ 
+      ok: true, 
+      linked: updated,
+      message: 'Paziente collegato con successo' 
+    });
+
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? 'unknown' }, { status: 500 });
+    console.error('❌ Errore generale:', e);
+    return NextResponse.json({ 
+      ok: false, 
+      error: e?.message || 'Errore sconosciuto' 
+    }, { status: 500 });
   }
 }
