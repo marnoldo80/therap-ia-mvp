@@ -28,21 +28,19 @@ export default function PatientPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     
     async function fetchPatient() {
       try {
-        console.log('Cercando paziente con ID:', id);
-        
         const { data, error } = await supabase
           .from('patients')
           .select('*')
           .eq('id', id)
           .single();
-
-        console.log('Risultato query:', { data, error });
 
         if (error) {
           console.error('Errore Supabase:', error);
@@ -67,6 +65,44 @@ export default function PatientPage() {
     fetchPatient();
   }, [id]);
 
+  async function sendInvite() {
+    if (!patient?.email) {
+      alert('Il paziente non ha un indirizzo email. Aggiungi l\'email prima di inviare l\'invito.');
+      return;
+    }
+
+    if (!confirm(`Inviare email di invito a ${patient.email}?`)) {
+      return;
+    }
+
+    setSendingInvite(true);
+    setInviteMsg(null);
+
+    try {
+      const res = await fetch('/api/invite-patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: patient.email,
+          patientId: patient.id
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Errore invio email');
+      }
+
+      setInviteMsg('✅ Email di invito inviata con successo!');
+      
+    } catch (err: any) {
+      alert(`Errore: ${err.message}`);
+    } finally {
+      setSendingInvite(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto p-6">
@@ -85,7 +121,6 @@ export default function PatientPage() {
           <p className="font-semibold">Paziente non trovato</p>
           <p className="text-sm mt-1">ID: {id}</p>
           {error && <p className="text-sm mt-1">Errore: {error}</p>}
-          <p className="text-sm mt-2">Apri la console del browser (F12) per vedere i dettagli.</p>
         </div>
       </div>
     );
@@ -93,7 +128,7 @@ export default function PatientPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">
           ← Lista pazienti
         </Link>
@@ -110,12 +145,19 @@ export default function PatientPage() {
           📧 Invia GAD-7 al paziente
         </button>
         <button 
-          onClick={() => alert('Funzione in sviluppo')} 
-          className="rounded bg-gray-800 text-white px-3 py-2 hover:bg-gray-900"
+          onClick={sendInvite}
+          disabled={sendingInvite || !patient.email}
+          className="rounded bg-gray-800 text-white px-3 py-2 hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          🔐 Invita paziente (crea credenziali)
+          {sendingInvite ? '⏳ Invio...' : '🔐 Invita paziente (crea credenziali)'}
         </button>
       </div>
+
+      {inviteMsg && (
+        <div className="mb-4 rounded bg-green-50 text-green-700 px-4 py-3">
+          {inviteMsg}
+        </div>
+      )}
 
       <h1 className="text-2xl font-semibold mb-4">Scheda paziente</h1>
 
@@ -128,7 +170,7 @@ export default function PatientPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-600">Email</p>
-            <p className="font-medium">{patient.email || 'Non specificata'}</p>
+            <p className="font-medium">{patient.email || '⚠️ Email non presente'}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600">Telefono</p>
