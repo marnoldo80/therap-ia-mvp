@@ -14,34 +14,33 @@ export default function Client() {
 
   useEffect(() => {
     (async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error || !data.user?.email) {
-          setMsg('Sessione non attiva. Riapri il link dalla mail.');
-          return;
-        }
-        const email = data.user.email.toLowerCase();
-        const user_id = data.user.id;
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user?.email) {
+        setMsg('Sessione non attiva. Riapri il link dalla mail.');
+        return;
+      }
+      const email = (data.user.email || '').toLowerCase().trim();
+      const user_id = data.user.id;
 
-        const res = await fetch('/api/link-patient', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, user_id })
-        });
+      const res = await fetch('/api/link-patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, user_id }),
+      });
 
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          if (j?.error === 'patient_not_found') {
-            setMsg('Paziente non trovato. Contatta il terapeuta.');
-            return;
-          }
-          setMsg('Errore nel collegamento del profilo. Riprova dal link email.');
-          return;
-        }
-
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j?.ok) {
         router.replace('/app/paziente');
-      } catch (e) {
-        setMsg('Errore inatteso. Riprova dal link email.');
+      } else {
+        if (j?.error === 'patient_not_found_after_patch') {
+          console.warn('Diagnostica paziente:', j);
+          setMsg('Paziente non trovato. Contatta il terapeuta (email non combacia o già collegato).');
+        } else if (j?.step === 'patch') {
+          console.error('Errore Supabase PATCH:', j?.resp);
+          setMsg('Errore nel collegamento del profilo. Riapri il link dalla mail o avvisa il terapeuta.');
+        } else {
+          setMsg('Non riesco a collegare il profilo. Riprova dal link email.');
+        }
       }
     })();
   }, [router]);
