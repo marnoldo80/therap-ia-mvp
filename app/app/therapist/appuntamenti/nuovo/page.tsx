@@ -21,7 +21,7 @@ export default function Page(){
   const [err, setErr] = useState<string|null>(null);
 
   useEffect(()=>{
-    const pid = sp.get('patient_id');
+    const pid = sp?.get('patient_id');
     if (pid) setPatientId(pid);
   },[sp]);
 
