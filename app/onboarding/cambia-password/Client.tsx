@@ -49,6 +49,9 @@ export default function Client() {
       }
       console.log('✅ Utente autenticato:', me.user.id, me.user.email);
 
+      const email = me.user.email?.toLowerCase().trim();
+      const user_id = me.user.id;
+
       // 3. Aggiorna la password
       console.log('🔐 Aggiorno password...');
       const { error: upErr } = await supabase.auth.updateUser({ password });
@@ -58,20 +61,30 @@ export default function Client() {
       }
       console.log('✅ Password aggiornata');
 
-      // 4. IMPORTANTE: Aspetta che la sessione si stabilizzi
-      console.log('⏳ Attendo stabilizzazione sessione...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 4. Collega il paziente all'utente (chiamata API)
+      console.log('🔗 Collego paziente all\'utente...');
+      const linkRes = await fetch('/api/link-patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, user_id }),
+      });
 
-      // 5. Verifica nuovamente la sessione prima del redirect
-      const { data: sessionCheck } = await supabase.auth.getSession();
-      console.log('📋 Sessione finale:', sessionCheck);
+      const linkData = await linkRes.json().catch(() => ({}));
+      console.log('📦 Risposta link-patient:', linkData);
 
-      if (!sessionCheck?.session) {
-        throw new Error('Sessione non valida dopo aggiornamento password');
+      if (!linkRes.ok || !linkData.ok) {
+        throw new Error(linkData.error || 'Errore nel collegamento del profilo');
       }
 
-      console.log('✅ Tutto OK, redirect a /onboarding/fatto');
-      router.replace('/onboarding/fatto');
+      console.log('✅ Paziente collegato con successo!');
+
+      // 5. Attendi stabilizzazione
+      console.log('⏳ Attendo 2 secondi...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // 6. Redirect finale
+      console.log('✅ Redirect a /app/paziente');
+      window.location.href = '/app/paziente'; // Usa window.location invece di router
       
     } catch (e: any) {
       console.error('❌ Errore:', e);
@@ -83,17 +96,20 @@ export default function Client() {
   return (
     <div className="mx-auto max-w-md p-6">
       <h1 className="text-2xl font-semibold mb-4">Crea la tua password</h1>
+      <p className="text-sm text-gray-600 mb-4">
+        Imposta una password sicura per accedere alla tua area paziente.
+      </p>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm mb-2 text-gray-700">
-            Nuova password (minimo 8 caratteri)
+          <label className="block text-sm mb-2 text-gray-700 font-medium">
+            Nuova password
           </label>
           <input
             type="password"
             required
             minLength={8}
-            placeholder="Inserisci la tua password"
-            className="w-full rounded border p-3"
+            placeholder="Minimo 8 caratteri"
+            className="w-full rounded border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -101,18 +117,18 @@ export default function Client() {
         <button
           type="submit"
           disabled={loading || password.length < 8}
-          className="w-full rounded bg-black text-white p-3 disabled:opacity-50 hover:bg-gray-800"
+          className="w-full rounded bg-black text-white p-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition"
         >
-          {loading ? 'Salvataggio in corso...' : 'Imposta password'}
+          {loading ? '⏳ Configurazione in corso...' : 'Conferma e accedi'}
         </button>
         {err && (
           <div className="rounded bg-red-50 border border-red-200 p-3 text-red-700 text-sm">
-            {err}
+            <strong>Errore:</strong> {err}
           </div>
         )}
       </form>
-      <p className="text-xs text-gray-500 mt-4">
-        Apri la Console (F12) per vedere i dettagli tecnici.
+      <p className="text-xs text-gray-400 mt-6 text-center">
+        Apri la Console (F12) per dettagli tecnici
       </p>
     </div>
   );
