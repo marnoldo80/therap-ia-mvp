@@ -1,129 +1,32 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { redirect } from 'next/navigation';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const dynamic = 'force-dynamic';
 
-type Patient = {
-  id: string;
-  display_name: string | null;
-  email: string | null;
-  phone: string | null;
-  goals: string | null;
-  issues: string | null;
-};
-
-export default function Page() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const [patient, setPatient] = useState<Patient | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      setErr(null);
-      setLoading(true);
-
-      console.log('🔐 Verifico autenticazione...');
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.error('❌ Utente non autenticato');
-        setErr('Non autenticato. Effettua il login.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Utente autenticato:', user.id, user.email);
-
-      // 1) Cerca il paziente usando user_id (più affidabile)
-      console.log('🔍 Cerco paziente con user_id:', user.id);
-      
-      const { data: p, error: pe } = await supabase
-        .from('patients')
-        .select('id, display_name, email, phone, goals, issues')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      console.log('📋 Risultato ricerca paziente:', { p, pe });
-
-      if (pe) {
-        console.error('❌ Errore query paziente:', pe);
-        setErr(pe.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!p?.id) {
-        console.error('❌ Paziente non trovato per user_id:', user.id);
-        setErr('Profilo paziente non trovato. Contatta il terapeuta.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Paziente trovato:', p);
-      setPatient(p as Patient);
-
-      // 2) Verifica se ha già dato il consenso
-      console.log('🔍 Verifico consenso per patient_id:', p.id);
-      
-      const { data: c, error: ce } = await supabase
-        .from('consents')
-        .select('id')
-        .eq('patient_id', p.id)
-        .limit(1);
-
-      console.log('📋 Risultato consenso:', { c, ce });
-
-      if (ce) {
-        console.error('❌ Errore query consenso:', ce);
-        setErr(ce.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!c || c.length === 0) {
-        console.log('⚠️ Consenso mancante, redirect a /app/paziente/consenso');
-        router.replace('/app/paziente/consenso');
-        return;
-      }
-
-      console.log('✅ Tutto OK, mostro dashboard');
-      setLoading(false);
-    })();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="max-w-3xl mx-auto p-6">
-        <p>Caricamento della tua area...</p>
-      </div>
-    );
+export default async function PatientDashboard() {
+  const supabase = createServerComponentClient({ cookies });
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    redirect('/login');
   }
 
-  if (err) {
-    return (
-      <div className="max-w-3xl mx-auto p-6">
-        <div className="rounded bg-red-50 border border-red-200 p-4 text-red-700">
-          <p className="font-semibold mb-2">Errore</p>
-          <p className="text-sm">{err}</p>
-          <p className="text-xs mt-3 text-gray-600">
-            Apri la Console (F12) per vedere i dettagli tecnici.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
 
   if (!patient) {
     return (
       <div className="max-w-3xl mx-auto p-6">
-        <p>Profilo paziente non disponibile.</p>
+        <div className="rounded bg-yellow-50 border border-yellow-200 p-4">
+          <p className="font-semibold">Profilo non trovato</p>
+          <p className="text-sm mt-2">Il tuo profilo paziente non è ancora stato configurato. Contatta il terapeuta.</p>
+          <p className="text-xs mt-2 text-gray-600">User ID: {user.id}</p>
+        </div>
       </div>
     );
   }
@@ -163,12 +66,6 @@ export default function Page() {
           <div className="text-sm whitespace-pre-wrap">{patient.goals}</div>
         </div>
       )}
-
-      <div className="pt-4 border-t">
-        <Link href="/login" className="text-sm text-blue-600 hover:underline">
-          Esci
-        </Link>
-      </div>
     </div>
   );
 }
