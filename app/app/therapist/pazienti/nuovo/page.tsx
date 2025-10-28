@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -29,10 +28,14 @@ export default function NewPatientPage() {
   }, [router]);
 
   async function createPatient() {
-    setMsg(null); setErr(null); setLoading(true);
+    setMsg(null); 
+    setErr(null); 
+    setLoading(true);
+    
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) throw new Error("Sessione non valida.");
+
       const { data, error } = await supabase
         .from("patients")
         .insert({
@@ -45,9 +48,16 @@ export default function NewPatientPage() {
         })
         .select("id")
         .single();
+
       if (error) throw error;
-      setMsg("Paziente creato.");
-      router.replace(`/app/therapist/pazienti/${data.id}`);
+      
+      setMsg("Paziente creato con successo!");
+      
+      // FIX: Parentesi corretta
+      setTimeout(() => {
+        router.push(`/app/therapist/pazienti/${data.id}`);
+      }, 1000);
+      
     } catch (e:any) {
       setErr(e?.message || "Errore creazione paziente");
     } finally {
@@ -58,8 +68,11 @@ export default function NewPatientPage() {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="mb-4">
-        <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">← Lista pazienti</Link>
+        <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">
+          ← Lista pazienti
+        </Link>
       </div>
+
       <h1 className="text-2xl font-semibold mb-4">Nuovo paziente</h1>
 
       {msg && <div className="mb-4 rounded bg-green-50 text-green-700 px-4 py-3">{msg}</div>}
@@ -68,28 +81,56 @@ export default function NewPatientPage() {
       <div className="rounded border p-4 space-y-4">
         <div>
           <label className="block text-sm mb-1">Nome</label>
-          <input className="w-full rounded border px-3 py-2" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
+          <input 
+            className="w-full rounded border px-3 py-2" 
+            value={displayName} 
+            onChange={e=>setDisplayName(e.target.value)} 
+          />
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm mb-1">Email</label>
-            <input className="w-full rounded border px-3 py-2" value={email} onChange={e=>setEmail(e.target.value)} />
+            <input 
+              className="w-full rounded border px-3 py-2" 
+              value={email} 
+              onChange={e=>setEmail(e.target.value)} 
+            />
           </div>
           <div>
             <label className="block text-sm mb-1">Telefono</label>
-            <input className="w-full rounded border px-3 py-2" value={phone} onChange={e=>setPhone(e.target.value)} />
+            <input 
+              className="w-full rounded border px-3 py-2" 
+              value={phone} 
+              onChange={e=>setPhone(e.target.value)} 
+            />
           </div>
         </div>
+
         <div>
           <label className="block text-sm mb-1">Problemi</label>
-          <textarea className="w-full min-h-[110px] rounded border px-3 py-2" value={issues} onChange={e=>setIssues(e.target.value)} />
+          <textarea 
+            className="w-full min-h-[110px] rounded border px-3 py-2" 
+            value={issues} 
+            onChange={e=>setIssues(e.target.value)} 
+          />
         </div>
+
         <div>
           <label className="block text-sm mb-1">Obiettivi</label>
-          <textarea className="w-full min-h-[110px] rounded border px-3 py-2" value={goals} onChange={e=>setGoals(e.target.value)} />
+          <textarea 
+            className="w-full min-h-[110px] rounded border px-3 py-2" 
+            value={goals} 
+            onChange={e=>setGoals(e.target.value)} 
+          />
         </div>
-        <button onClick={createPatient} disabled={loading} className="rounded bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700 disabled:opacity-60">
-          Crea paziente
+
+        <button 
+          onClick={createPatient} 
+          disabled={loading} 
+          className="rounded bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700 disabled:opacity-60"
+        >
+          {loading ? "Creazione in corso..." : "Crea paziente"}
         </button>
       </div>
     </div>
