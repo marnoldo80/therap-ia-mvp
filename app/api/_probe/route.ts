@@ -1,52 +1,81 @@
 import { NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { createClient } from '@supabase/supabase-js';
 
-function hJSON() {
-  const key = process.env.SUPABASE_SERVICE_ROLE as string;
-  return {
-    'Content-Type': 'application/json',
-    'apikey': key,
-    'Authorization': `Bearer ${key}`,
-    'Prefer': 'return=representation',
-  };
-}
-function hGET() {
-  const key = process.env.SUPABASE_SERVICE_ROLE as string;
-  return {
-    'apikey': key,
-    'Authorization': `Bearer ${key}`,
-  };
+function makeAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE!;
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
 export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email')?.trim().toLowerCase();
+
+  const res: any = {
+    ok: true,
+    email,
+    env: {
+      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE,
+      supabaseUrlSet: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    },
+    read: {},
+  };
+
+  if (!email) {
+    return NextResponse.json({ ok: false, error: 'missing email param' }, { status: 400 });
+  }
+
   try {
-    const u = new URL(req.url);
-    const email = (u.searchParams.get('email') || '').toLowerCase().trim();
-    if (!email) return NextResponse.json({ ok:false, error:'missing email param' }, { status:400 });
+    if (!process.env.SUPABASE_SERVICE_ROLE || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      res.read = { status: 'no-admin', body: 'Missing SUPABASE_SERVICE_ROLE or URL' };
+      return NextResponse.json(res, { status: 200 });
+    }
 
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const or = `or=(email.ilike.${encodeURIComponent(email)},mail.ilike.${encodeURIComponent(email)})`;
+    const admin = makeAdmin();
 
-    const r1 = await fetch(`${base}/rest/v1/patients?${or}`, { headers: hGET() });
-    const body1 = await r1.text();
+    // Tenta varie tabelle note; se una manca, cattura l’errore e continua.
+    const checks: Array<{table: string, rows: any[] | string}> = [];
 
-    const r2 = await fetch(`${base}/rest/v1/patients?${or}&user_id=is.null`, {
-      method: 'PATCH',
-      headers: hJSON(),
-      body: JSON.stringify({ user_id: 'TEST_ONLY_DO_NOT_USE' })
-    });
-    const body2 = await r2.text();
+    // patients
+    try {
+      const { data, error } = await admin
+        .from('patients')
+        .select('id,email,therapist_id,created_at')
+        .ilike('email', email)
+        .limit(10);
+      checks.push({ table: 'patients', rows: error ? `ERROR: ${error.message}` : (data ?? []) });
+    } catch (e: any) {
+      checks.push({ table: 'patients', rows: `EXCEPTION: ${e?.message || String(e)}` });
+    }
 
-    return NextResponse.json({
-      ok: true,
-      email,
-      read: { status: r1.status, body: tryParse(body1) },
-      patch_dryrun: { status: r2.status, body: safeText(body2) }
-    });
-  } catch (e:any) {
-    return NextResponse.json({ ok:false, error: e?.message ?? 'unknown' }, { status:500 });
+    // therapists
+    try {
+      const { data, error } = await admin
+        .from('therapists')
+        .select('id,email,created_at')
+        .ilike('email', email)
+        .limit(10);
+      checks.push({ table: 'therapists', rows: error ? `ERROR: ${error.message}` : (data ?? []) });
+    } catch (e: any) {
+      checks.push({ table: 'therapists', rows: `EXCEPTION: ${e?.message || String(e)}` });
+    }
+
+    // profiles (se esiste)
+    try {
+      const { data, error } = await admin
+        .from('profiles')
+        .select('id,email,role,created_at')
+        .ilike('email', email)
+        .limit(10);
+      checks.push({ table: 'profiles', rows: error ? `ERROR: ${error.message}` : (data ?? []) });
+    } catch (e: any) {
+      checks.push({ table: 'profiles', rows: `EXCEPTION: ${e?.message || String(e)}` });
+    }
+
+    res.read = { status: 'ok', body: checks };
+    return NextResponse.json(res, { status: 200 });
+  } catch (e: any) {
+    res.read = { status: 'exception', body: e?.message || String(e) };
+    return NextResponse.json(res, { status: 500 });
   }
 }
-function tryParse(t:string){ try{ return JSON.parse(t); } catch{ return t.slice(0,4000); } }
-function safeText(t:string){ return (t || '').slice(0,4000); }
