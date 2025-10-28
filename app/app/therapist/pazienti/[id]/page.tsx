@@ -71,10 +71,6 @@ export default function PatientPage() {
       return;
     }
 
-    if (!confirm(`Inviare email di invito a ${patient.email}?`)) {
-      return;
-    }
-
     setSendingInvite(true);
     setInviteMsg(null);
 
