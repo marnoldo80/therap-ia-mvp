@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
@@ -11,54 +10,38 @@ const supabase = createBrowserClient(
 
 export default function Client() {
   const router = useRouter();
-  const [status, setStatus] = useState<'idle'|'working'|'done'|'error'>('idle');
-  const [msg, setMsg] = useState<string>('Sto preparando la tua area…');
+  const [msg, setMsg] = useState('Sto preparando la tua area…');
 
   useEffect(() => {
     (async () => {
       try {
-        setStatus('working');
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user?.email) {
+          setMsg('Sessione non attiva. Riapri il link dalla mail.');
+          return;
+        }
+        const email = data.user.email.toLowerCase();
+        const user_id = data.user.id;
 
-        // 1) prendo l'utente loggato (dopo cambio password è loggato)
-        const { data: u, error: eUser } = await supabase.auth.getUser();
-        if (eUser) throw eUser;
-        const user = u.user;
-        if (!user?.email) {
-          setMsg('Utente non autenticato. Riapri il link dalla mail.');
-          setStatus('error');
+        const res = await fetch('/api/link-patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, user_id })
+        });
+
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          if (j?.error === 'patient_not_found') {
+            setMsg('Paziente non trovato. Contatta il terapeuta.');
+            return;
+          }
+          setMsg('Errore nel collegamento del profilo. Riprova dal link email.');
           return;
         }
 
-        // 2) aggiorno il record paziente: scrivo user_id dove email combacia e user_id è NULL
-        const { error: eUpdate } = await supabase
-          .from('patients')
-          .update({ user_id: user.id })
-          .eq('email', user.email)
-          .is('user_id', null);
-
-        if (eUpdate) throw eUpdate;
-
-        // 3) (opzionale) controllo che ora esista il paziente collegato
-        const { data: rows, error: eCheck } = await supabase
-          .from('patients')
-          .select('id,user_id,email')
-          .eq('user_id', user.id)
-          .limit(1);
-
-        if (eCheck) throw eCheck;
-        if (!rows || rows.length === 0) {
-          setMsg('Paziente non trovato. Contatta il terapeuta.');
-          setStatus('error');
-          return;
-        }
-
-        setStatus('done');
-        // 4) vai all’area paziente
         router.replace('/app/paziente');
-      } catch (err) {
-        console.error(err);
-        setMsg('Errore nel collegamento del profilo. Riprova dal link email.');
-        setStatus('error');
+      } catch (e) {
+        setMsg('Errore inatteso. Riprova dal link email.');
       }
     })();
   }, [router]);
@@ -67,7 +50,6 @@ export default function Client() {
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-3">Tutto pronto…</h1>
       <p>{msg}</p>
-      {status === 'working' && <p>Attendi qualche secondo…</p>}
     </div>
   );
 }
