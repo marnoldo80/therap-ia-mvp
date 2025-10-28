@@ -1,17 +1,22 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function AttivaAccount() {
-  const { token } = useParams();
+  const params = useParams();
+  const token = params?.token as string;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
     async function validateToken() {
+      if (!token) {
+        router.push('/errore?tipo=token-mancante');
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('inviti')
@@ -32,6 +37,7 @@ export default function AttivaAccount() {
           router.push('/paziente/dashboard');
         }
       } catch (err) {
+        console.error('Errore validazione token:', err);
         router.push('/errore?tipo=errore-generico');
       } finally {
         setLoading(false);
@@ -42,9 +48,9 @@ export default function AttivaAccount() {
   }, [token, router, supabase]);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, textAlign: 'center' }}>
       <h1>Attivazione in corso...</h1>
-      {loading && <p>Verifica token, attendere...</p>}
+      {loading && <p>Verifica del tuo account in corso, attendere...</p>}
     </div>
   );
 }
