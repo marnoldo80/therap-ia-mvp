@@ -60,7 +60,7 @@ export default function NewAppointmentPage() {
         title,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
-        status: 'da_confermare'
+        status: 'scheduled'
       });
 
       if (error) throw error;
