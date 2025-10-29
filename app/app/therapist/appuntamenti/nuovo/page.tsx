@@ -15,7 +15,9 @@ export default function NewAppointmentPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [patientId, setPatientId] = useState('');
-  const [startsAt, setStartsAt] = useState('');
+  const [date, setDate] = useState('');
+  const [hour, setHour] = useState('09');
+  const [minute, setMinute] = useState('00');
   const [duration, setDuration] = useState('60');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,7 +53,7 @@ export default function NewAppointmentPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non autenticato');
 
-      const start = new Date(startsAt);
+      const start = new Date(`${date}T${hour}:${minute}`);
       const end = new Date(start.getTime() + parseInt(duration) * 60000);
 
       const { error } = await supabase.from('appointments').insert({
@@ -75,10 +77,9 @@ export default function NewAppointmentPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-4">
-        <Link href="/app/therapist/appuntamenti" className="text-blue-600 hover:underline">
-          ← Torna agli appuntamenti
-        </Link>
+      <div className="mb-4 flex gap-3">
+        <Link href="/app/therapist" className="text-blue-600 hover:underline">← Dashboard</Link>
+        <Link href="/app/therapist/appuntamenti" className="text-blue-600 hover:underline">Lista appuntamenti</Link>
       </div>
 
       <h1 className="text-2xl font-bold mb-4">Nuovo Appuntamento</h1>
@@ -115,14 +116,40 @@ export default function NewAppointmentPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Data e ora inizio</label>
+          <label className="block text-sm font-medium mb-1">Data</label>
           <input
-            type="datetime-local"
+            type="date"
             required
             className="w-full border rounded px-3 py-2"
-            value={startsAt}
-            onChange={(e) => setStartsAt(e.target.value)}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Ora di inizio</label>
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="border rounded px-3 py-2"
+              value={hour}
+              onChange={(e) => setHour(e.target.value)}
+            >
+              {Array.from({ length: 15 }, (_, i) => i + 8).map(h => (
+                <option key={h} value={h.toString().padStart(2, '0')}>
+                  {h.toString().padStart(2, '0')}
+                </option>
+              ))}
+            </select>
+            <select
+              className="border rounded px-3 py-2"
+              value={minute}
+              onChange={(e) => setMinute(e.target.value)}
+            >
+              {['00', '15', '30', '45'].map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>

@@ -1,67 +1,72 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Row = { id: string; display_name: string | null; created_at: string | null };
+type Patient = { id: string; display_name: string | null; email: string | null; phone: string | null; };
 
-export default function PatientsList() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState("");
+export default function PatientsPage() {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u?.user) {
-        window.location.href = "/login";
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data } = await supabase
-        .from("patients")
-        .select("id,display_name,created_at")
-        .order("created_at", { ascending: false });
-      setRows(data || []);
+        .from('patients')
+        .select('id, display_name, email, phone')
+        .eq('therapist_user_id', user.id)
+        .order('display_name');
+
+      setPatients(data || []);
+      setLoading(false);
     })();
   }, []);
 
-  const filtered = rows.filter(r =>
-    (r.display_name || "").toLowerCase().includes(q.toLowerCase())
-  );
-
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Pazienti</h1>
-        <Link href="/app/therapist/pazienti/nuovo" className="rounded bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700">
-          ➕ Nuovo paziente
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="mb-4">
+        <Link href="/app/therapist" className="text-blue-600 hover:underline">← Dashboard</Link>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">I tuoi pazienti</h1>
+        <Link href="/app/therapist/pazienti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          + Nuovo Paziente
         </Link>
       </div>
 
-      <input
-        className="w-full rounded border px-3 py-2 mb-4"
-        placeholder="Cerca per nome…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      {loading && <div className="text-center py-8">Caricamento...</div>}
 
-      <ul className="space-y-2">
-        {filtered.map(p => (
-          <li key={p.id} className="rounded border p-3 hover:bg-gray-50">
-            <Link href={`/app/therapist/pazienti/${p.id}`} className="font-medium">
-              {p.display_name || "(senza nome)"}
-            </Link>
-            <div className="text-sm text-gray-500">
-              {p.created_at ? new Date(p.created_at).toLocaleString() : ""}
-            </div>
-          </li>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {patients.map((p) => (
+          <Link
+            key={p.id}
+            href={`/app/therapist/pazienti/${p.id}`}
+            className="block border rounded-lg p-4 bg-white hover:shadow-lg transition"
+          >
+            <h3 className="font-semibold text-lg">{p.display_name || 'Senza nome'}</h3>
+            <p className="text-sm text-gray-600 mt-1">{p.email || 'Nessuna email'}</p>
+            {p.phone && <p className="text-sm text-gray-600">{p.phone}</p>}
+          </Link>
         ))}
-      </ul>
+      </div>
+
+      {patients.length === 0 && !loading && (
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-lg">Nessun paziente ancora</p>
+          <Link href="/app/therapist/pazienti/nuovo" className="text-blue-600 hover:underline mt-2 inline-block">
+            Crea il primo paziente
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
