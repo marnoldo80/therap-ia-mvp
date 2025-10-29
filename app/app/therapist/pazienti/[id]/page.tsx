@@ -260,34 +260,40 @@ export default function PatientPage() {
             <div className="space-y-4">
               <div>
                 <label className="block font-medium mb-2">Obiettivi generali:</label>
-                {obiettiviGenerali.length === 0 ? (
-                  <p className="text-gray-500">Nessun obiettivo generale</p>
+                {editMode ? (
+                  <textarea 
+                    className="w-full border rounded p-3 min-h-[100px]" 
+                    value={obiettiviGenerali.join('\n')} 
+                    onChange={e => setObiettiviGenerali(e.target.value.split('\n').filter(o => o.trim()))} 
+                    placeholder="Inserisci un obiettivo per riga"
+                  />
                 ) : (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {obiettiviGenerali.map((o, i) => <li key={i}>{o}</li>)}
-                  </ul>
-                )}
-                {editMode && (
-                  <button onClick={() => {
-                    const nuovo = prompt('Nuovo obiettivo generale:');
-                    if (nuovo) setObiettiviGenerali([...obiettiviGenerali, nuovo]);
-                  }} className="mt-2 text-blue-600 text-sm">+ Aggiungi</button>
+                  obiettiviGenerali.length === 0 ? (
+                    <p className="text-gray-500">Nessun obiettivo generale</p>
+                  ) : (
+                    <ul className="list-disc pl-5 space-y-1">
+                      {obiettiviGenerali.map((o, i) => <li key={i}>{o}</li>)}
+                    </ul>
+                  )
                 )}
               </div>
               <div>
                 <label className="block font-medium mb-2">Obiettivi specifici:</label>
-                {obiettiviSpecifici.length === 0 ? (
-                  <p className="text-gray-500">Nessun obiettivo specifico</p>
+                {editMode ? (
+                  <textarea 
+                    className="w-full border rounded p-3 min-h-[100px]" 
+                    value={obiettiviSpecifici.join('\n')} 
+                    onChange={e => setObiettiviSpecifici(e.target.value.split('\n').filter(o => o.trim()))} 
+                    placeholder="Inserisci un obiettivo per riga"
+                  />
                 ) : (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {obiettiviSpecifici.map((o, i) => <li key={i}>{o}</li>)}
-                  </ul>
-                )}
-                {editMode && (
-                  <button onClick={() => {
-                    const nuovo = prompt('Nuovo obiettivo specifico:');
-                    if (nuovo) setObiettiviSpecifici([...obiettiviSpecifici, nuovo]);
-                  }} className="mt-2 text-blue-600 text-sm">+ Aggiungi</button>
+                  obiettiviSpecifici.length === 0 ? (
+                    <p className="text-gray-500">Nessun obiettivo specifico</p>
+                  ) : (
+                    <ul className="list-disc pl-5 space-y-1">
+                      {obiettiviSpecifici.map((o, i) => <li key={i}>{o}</li>)}
+                    </ul>
+                  )
                 )}
               </div>
             </div>
@@ -295,18 +301,21 @@ export default function PatientPage() {
 
           <div className="bg-white border rounded-lg p-6">
             <h3 className="font-bold text-lg mb-3">💪 ESERCIZI</h3>
-            {esercizi.length === 0 ? (
-              <p className="text-gray-500">Nessun esercizio</p>
+            {editMode ? (
+              <textarea 
+                className="w-full border rounded p-3 min-h-[120px]" 
+                value={esercizi.join('\n')} 
+                onChange={e => setEsercizi(e.target.value.split('\n').filter(e => e.trim()))} 
+                placeholder="Inserisci un esercizio per riga"
+              />
             ) : (
-              <ul className="list-disc pl-5 space-y-1">
-                {esercizi.map((e, i) => <li key={i}>{e}</li>)}
-              </ul>
-            )}
-            {editMode && (
-              <button onClick={() => {
-                const nuovo = prompt('Nuovo esercizio:');
-                if (nuovo) setEsercizi([...esercizi, nuovo]);
-              }} className="mt-2 text-blue-600 text-sm">+ Aggiungi esercizio</button>
+              esercizi.length === 0 ? (
+                <p className="text-gray-500">Nessun esercizio</p>
+              ) : (
+                <ul className="list-disc pl-5 space-y-1">
+                  {esercizi.map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              )
             )}
           </div>
         </div>
