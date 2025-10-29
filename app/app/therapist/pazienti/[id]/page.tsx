@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 
@@ -16,8 +16,6 @@ type Patient = {
   phone: string | null;
   address: string | null;
   fiscal_code: string | null;
-  issues: string | null;
-  goals: string | null;
 };
 
 type TherapyPlan = {
@@ -25,9 +23,9 @@ type TherapyPlan = {
   anamnesi: string | null;
   valutazione_psicodiagnostica: string | null;
   formulazione_caso: string | null;
-  obiettivi_generali: string[];
-  obiettivi_specifici: string[];
-  esercizi: string[];
+  obiettivi_generali: any[];
+  obiettivi_specifici: any[];
+  esercizi: any[];
 };
 
 type SessionNote = {
@@ -35,7 +33,6 @@ type SessionNote = {
   session_date: string;
   notes: string | null;
   ai_summary: string | null;
-  themes: string[];
 };
 
 type GAD7Result = {
@@ -49,13 +46,11 @@ type Appointment = {
   id: string;
   title: string;
   starts_at: string;
-  status: string;
 };
 
 export default function PatientPage() {
   const params = useParams();
   const id = params?.id as string;
-  const router = useRouter();
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [therapyPlan, setTherapyPlan] = useState<TherapyPlan | null>(null);
@@ -63,7 +58,16 @@ export default function PatientPage() {
   const [gad7Results, setGad7Results] = useState<GAD7Result[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari' | 'docs'>('piano');
+  const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari'>('piano');
+  const [editMode, setEditMode] = useState(false);
+
+  // Form states
+  const [anamnesi, setAnamnesi] = useState('');
+  const [valutazionePsico, setValutazionePsico] = useState('');
+  const [formulazioneCaso, setFormulazioneCaso] = useState('');
+  const [obiettiviGenerali, setObiettiviGenerali] = useState<string[]>([]);
+  const [obiettiviSpecifici, setObiettiviSpecifici] = useState<string[]>([]);
+  const [esercizi, setEsercizi] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -76,7 +80,6 @@ export default function PatientPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Carica paziente
       const { data: patientData } = await supabase
         .from('patients')
         .select('*')
@@ -84,15 +87,22 @@ export default function PatientPage() {
         .single();
       setPatient(patientData);
 
-      // Carica piano terapeutico
       const { data: planData } = await supabase
         .from('therapy_plan')
         .select('*')
         .eq('patient_id', id)
         .maybeSingle();
-      setTherapyPlan(planData);
+      
+      if (planData) {
+        setTherapyPlan(planData);
+        setAnamnesi(planData.anamnesi || '');
+        setValutazionePsico(planData.valutazione_psicodiagnostica || '');
+        setFormulazioneCaso(planData.formulazione_caso || '');
+        setObiettiviGenerali(planData.obiettivi_generali || []);
+        setObiettiviSpecifici(planData.obiettivi_specifici || []);
+        setEsercizi(planData.esercizi || []);
+      }
 
-      // Carica note sedute
       const { data: notesData } = await supabase
         .from('session_notes')
         .select('*')
@@ -101,7 +111,6 @@ export default function PatientPage() {
         .limit(5);
       setSessionNotes(notesData || []);
 
-      // Carica risultati GAD-7
       const { data: gad7Data } = await supabase
         .from('gad7_results')
         .select('id, total, severity, created_at')
@@ -109,10 +118,9 @@ export default function PatientPage() {
         .order('created_at', { ascending: false });
       setGad7Results(gad7Data || []);
 
-      // Carica appuntamenti
       const { data: apptsData } = await supabase
         .from('appointments')
-        .select('id, title, starts_at, status')
+        .select('id, title, starts_at')
         .eq('patient_id', id)
         .gte('starts_at', new Date().toISOString())
         .order('starts_at', { ascending: true })
@@ -120,9 +128,39 @@ export default function PatientPage() {
       setAppointments(apptsData || []);
 
     } catch (e) {
-      console.error('Errore caricamento dati:', e);
+      console.error('Errore:', e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function savePlan() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const planData = {
+        patient_id: id,
+        therapist_user_id: user.id,
+        anamnesi,
+        valutazione_psicodiagnostica: valutazionePsico,
+        formulazione_caso: formulazioneCaso,
+        obiettivi_generali: obiettiviGenerali,
+        obiettivi_specifici: obiettiviSpecifici,
+        esercizi: esercizi
+      };
+
+      if (therapyPlan?.id) {
+        await supabase.from('therapy_plan').update(planData).eq('id', therapyPlan.id);
+      } else {
+        await supabase.from('therapy_plan').insert(planData);
+      }
+
+      alert('✅ Piano salvato!');
+      setEditMode(false);
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
     }
   }
 
@@ -131,14 +169,12 @@ export default function PatientPage() {
       alert('Il paziente non ha email');
       return;
     }
-
     try {
       const res = await fetch('/api/invite-patient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: patient.email, patientId: id })
       });
-
       if (!res.ok) throw new Error('Errore invio');
       alert('✅ Email inviata!');
     } catch (e: any) {
@@ -151,14 +187,10 @@ export default function PatientPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="mb-4">
-        <Link href="/app/therapist/pazienti" className="text-blue-600 hover:underline">
-          ← Lista pazienti
-        </Link>
+        <Link href="/app/therapist/pazienti" className="text-blue-600 hover:underline">← Lista pazienti</Link>
       </div>
 
-      {/* Info paziente */}
       <div className="bg-white border rounded-lg p-6">
         <h1 className="text-3xl font-bold mb-4">{patient.display_name || 'Senza nome'}</h1>
         <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -168,49 +200,118 @@ export default function PatientPage() {
           <div>🆔 {patient.fiscal_code || 'Nessun codice fiscale'}</div>
         </div>
         <div className="flex gap-3 mt-4">
-          <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">
-            🔐 Invita paziente
-          </button>
-          <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            📅 Nuovo appuntamento
-          </Link>
+          <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">🔐 Invita paziente</button>
+          <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">📅 Nuovo appuntamento</Link>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 border-b">
-        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
-          Piano Terapeutico
-        </button>
-        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
-          Sedute & IA
-        </button>
-        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
-          Questionari
-        </button>
+        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Piano Terapeutico</button>
+        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Sedute & IA</button>
+        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Questionari</button>
       </div>
 
-      {/* Tab Piano Terapeutico */}
       {activeTab === 'piano' && (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            {editMode ? (
+              <>
+                <button onClick={savePlan} className="bg-green-600 text-white px-4 py-2 rounded mr-2 hover:bg-green-700">💾 Salva</button>
+                <button onClick={() => setEditMode(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Annulla</button>
+              </>
+            ) : (
+              <button onClick={() => setEditMode(true)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">✏️ Modifica</button>
+            )}
+          </div>
+
           <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">🎯 Piano Terapeutico</h3>
-            <p className="text-sm text-gray-600 mb-4">Sezione in sviluppo - funzionalità complete in arrivo</p>
+            <h3 className="font-bold text-lg mb-3">🎯 VALUTAZIONE (Anamnesi e psicodiagnosi)</h3>
             <div className="space-y-4">
               <div>
-                <strong>Problemi:</strong>
-                <p className="text-gray-700 whitespace-pre-wrap">{patient.issues || 'Nessuna informazione'}</p>
+                <label className="block font-medium mb-2">Anamnesi:</label>
+                {editMode ? (
+                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={anamnesi} onChange={e => setAnamnesi(e.target.value)} />
+                ) : (
+                  <p className="text-gray-700 whitespace-pre-wrap">{anamnesi || 'Nessuna informazione'}</p>
+                )}
               </div>
               <div>
-                <strong>Obiettivi:</strong>
-                <p className="text-gray-700 whitespace-pre-wrap">{patient.goals || 'Nessuna informazione'}</p>
+                <label className="block font-medium mb-2">Valutazione psicodiagnostica:</label>
+                {editMode ? (
+                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={valutazionePsico} onChange={e => setValutazionePsico(e.target.value)} />
+                ) : (
+                  <p className="text-gray-700 whitespace-pre-wrap">{valutazionePsico || 'Nessuna informazione'}</p>
+                )}
               </div>
             </div>
+          </div>
+
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-bold text-lg mb-3">📝 FORMULAZIONE DEL CASO</h3>
+            {editMode ? (
+              <textarea className="w-full border rounded p-3 min-h-[120px]" value={formulazioneCaso} onChange={e => setFormulazioneCaso(e.target.value)} />
+            ) : (
+              <p className="text-gray-700 whitespace-pre-wrap">{formulazioneCaso || 'Nessuna informazione'}</p>
+            )}
+          </div>
+
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-bold text-lg mb-3">🎯 CONTRATTO TERAPEUTICO E OBIETTIVI</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block font-medium mb-2">Obiettivi generali:</label>
+                {obiettiviGenerali.length === 0 ? (
+                  <p className="text-gray-500">Nessun obiettivo generale</p>
+                ) : (
+                  <ul className="list-disc pl-5 space-y-1">
+                    {obiettiviGenerali.map((o, i) => <li key={i}>{o}</li>)}
+                  </ul>
+                )}
+                {editMode && (
+                  <button onClick={() => {
+                    const nuovo = prompt('Nuovo obiettivo generale:');
+                    if (nuovo) setObiettiviGenerali([...obiettiviGenerali, nuovo]);
+                  }} className="mt-2 text-blue-600 text-sm">+ Aggiungi</button>
+                )}
+              </div>
+              <div>
+                <label className="block font-medium mb-2">Obiettivi specifici:</label>
+                {obiettiviSpecifici.length === 0 ? (
+                  <p className="text-gray-500">Nessun obiettivo specifico</p>
+                ) : (
+                  <ul className="list-disc pl-5 space-y-1">
+                    {obiettiviSpecifici.map((o, i) => <li key={i}>{o}</li>)}
+                  </ul>
+                )}
+                {editMode && (
+                  <button onClick={() => {
+                    const nuovo = prompt('Nuovo obiettivo specifico:');
+                    if (nuovo) setObiettiviSpecifici([...obiettiviSpecifici, nuovo]);
+                  }} className="mt-2 text-blue-600 text-sm">+ Aggiungi</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-bold text-lg mb-3">💪 ESERCIZI</h3>
+            {esercizi.length === 0 ? (
+              <p className="text-gray-500">Nessun esercizio</p>
+            ) : (
+              <ul className="list-disc pl-5 space-y-1">
+                {esercizi.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            )}
+            {editMode && (
+              <button onClick={() => {
+                const nuovo = prompt('Nuovo esercizio:');
+                if (nuovo) setEsercizi([...esercizi, nuovo]);
+              }} className="mt-2 text-blue-600 text-sm">+ Aggiungi esercizio</button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Tab Sedute */}
       {activeTab === 'sedute' && (
         <div className="space-y-6">
           <div className="bg-white border rounded-lg p-6">
@@ -246,7 +347,6 @@ export default function PatientPage() {
         </div>
       )}
 
-      {/* Tab Questionari */}
       {activeTab === 'questionari' && (
         <div className="bg-white border rounded-lg p-6">
           <h3 className="font-bold text-lg mb-3">📊 Questionari Realizzati</h3>
