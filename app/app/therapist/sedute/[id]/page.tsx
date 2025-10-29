@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
@@ -9,166 +9,130 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Patient = { id: string; display_name: string | null };
+type SessionNote = {
+  id: string;
+  patient_id: string;
+  session_date: string;
+  notes: string | null;
+  ai_summary: string | null;
+  themes: string[];
+  created_at: string;
+  patients?: {
+    display_name: string | null;
+  } | null;
+};
 
-function NuovaNotaForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const patientIdFromUrl = searchParams?.get('patientId');
+export default function DettaglioSedutaPage() {
+  const params = useParams();
+  const id = params?.id as string;
 
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [patientId, setPatientId] = useState(patientIdFromUrl || '');
-  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
-  const [notes, setNotes] = useState('');
-  const [themes, setThemes] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState<SessionNote | null>(null);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPatients();
-  }, []);
+    if (!id) return;
+    loadSession();
+  }, [id]);
 
-  async function loadPatients() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from('patients')
-        .select('id, display_name')
-        .eq('therapist_user_id', user.id)
-        .order('display_name');
-
-      setPatients(data || []);
-    } catch (e) {
-      console.error('Errore caricamento pazienti:', e);
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(null);
+  async function loadSession() {
     setLoading(true);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non autenticato');
 
-      const themesArray = themes
-        .split('\n')
-        .map(t => t.trim())
-        .filter(t => t);
-
-      const { error } = await supabase.from('session_notes').insert({
-        patient_id: patientId,
-        therapist_user_id: user.id,
-        session_date: sessionDate,
-        notes,
-        themes: themesArray
-      });
+      const { data, error } = await supabase
+        .from('session_notes')
+        .select('*, patients(display_name)')
+        .eq('id', id)
+        .eq('therapist_user_id', user.id)
+        .single();
 
       if (error) throw error;
-
-      alert('✅ Nota seduta salvata!');
-      router.push(`/app/therapist/pazienti/${patientId}`);
+      setSession(data as SessionNote);
     } catch (e: any) {
-      setErr(e?.message || 'Errore salvataggio');
+      setErr(e?.message || 'Errore caricamento');
     } finally {
       setLoading(false);
     }
   }
 
+  if (loading) return <div className="max-w-4xl mx-auto p-6">Caricamento...</div>;
+  if (err) return <div className="max-w-4xl mx-auto p-6"><div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div></div>;
+  if (!session) return <div className="max-w-4xl mx-auto p-6">Seduta non trovata</div>;
+
+  const patientName = session.patients && typeof session.patients === 'object' && 'display_name' in session.patients 
+    ? session.patients.display_name 
+    : 'Paziente';
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-     <div className="mb-4 flex gap-4">
+      <div className="flex gap-4">
         <Link href="/app/therapist" className="text-blue-600 hover:underline">
           ← Dashboard
         </Link>
-        {patientId && (
-          <Link href={`/app/therapist/pazienti/${patientId}`} className="text-blue-600 hover:underline">
-            ← Scheda Paziente
-          </Link>
+        <Link href={`/app/therapist/pazienti/${session.patient_id}`} className="text-blue-600 hover:underline">
+          ← Scheda Paziente
+        </Link>
+      </div>
+
+      <div className="bg-white border rounded-lg p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold">Seduta del {new Date(session.session_date).toLocaleDateString('it-IT')}</h1>
+            <p className="text-gray-600 mt-2">Paziente: {patientName}</p>
+          </div>
+          <div className="text-sm text-gray-500">
+            Creata il {new Date(session.created_at).toLocaleDateString('it-IT')}
+          </div>
+        </div>
+
+        {session.themes && session.themes.length > 0 && (
+          <div className="mb-6">
+            <h3 className="font-semibold text-lg mb-2">🏷️ Temi principali</h3>
+            <div className="flex flex-wrap gap-2">
+              {session.themes.map((theme, i) => (
+                <span key={i} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                  {theme}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-2">📝 Note seduta</h3>
+          <div className="bg-gray-50 border rounded-lg p-4 whitespace-pre-wrap">
+            {session.notes || 'Nessuna nota'}
+          </div>
+        </div>
+
+        {session.ai_summary && (
+          <div className="mb-6">
+            <h3 className="font-semibold text-lg mb-2">🤖 Riassunto IA</h3>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 whitespace-pre-wrap">
+              {session.ai_summary}
+            </div>
+          </div>
+        )}
+
+        {!session.ai_summary && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-700 text-sm">
+              💡 <strong>Suggerimento:</strong> In futuro potrai generare automaticamente un riassunto di questa seduta usando l'IA.
+            </p>
+          </div>
         )}
       </div>
 
-      <h1 className="text-3xl font-bold">Nuova Nota Seduta</h1>
-
-      {err && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div>}
-
-      <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Paziente *</label>
-          <select
-            required
-            className="w-full border rounded px-3 py-2"
-            value={patientId}
-            onChange={(e) => setPatientId(e.target.value)}
-          >
-            <option value="">-- Seleziona paziente --</option>
-            {patients.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.display_name || 'Senza nome'}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Data seduta *</label>
-          <input
-            type="date"
-            required
-            className="w-full border rounded px-3 py-2"
-            value={sessionDate}
-            onChange={(e) => setSessionDate(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Note seduta *</label>
-          <textarea
-            required
-            className="w-full border rounded px-3 py-2 min-h-[200px]"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Descrivi cosa è emerso durante la seduta, tecniche utilizzate, progressi..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Temi principali (uno per riga)</label>
-          <textarea
-            className="w-full border rounded px-3 py-2 min-h-[100px]"
-            value={themes}
-            onChange={(e) => setThemes(e.target.value)}
-            placeholder="Es:&#10;Ansia sociale&#10;Tecniche di rilassamento&#10;Obiettivi settimanali"
-          />
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
-          >
-            {loading ? 'Salvataggio...' : '💾 Salva Nota'}
-          </button>
+      <div className="flex gap-3">
         <Link
-            href={patientId ? `/app/therapist/pazienti/${patientId}` : '/app/therapist'}
-            className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
-          >
-            Annulla
-          </Link>
-        </div>
-      </form>
+          href={`/app/therapist/pazienti/${session.patient_id}`}
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+        >
+          Torna alla Scheda Paziente
+        </Link>
+      </div>
     </div>
-  );
-}
-
-export default function NuovaNotaSedutaPage() {
-  return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto p-6">Caricamento...</div>}>
-      <NuovaNotaForm />
-    </Suspense>
   );
 }
