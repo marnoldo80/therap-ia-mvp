@@ -324,7 +324,15 @@ export default function PatientPage() {
       {activeTab === 'sedute' && (
         <div className="space-y-6">
           <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">📝 Sedute e Riassunti IA</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">📝 Sedute e Riassunti IA</h3>
+              <Link 
+                href={`/app/therapist/sedute/nuovo?patientId=${id}`}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+              >
+                + Nuova Nota
+              </Link>
+            </div>
             {sessionNotes.length === 0 ? (
               <p className="text-gray-500">Nessuna seduta registrata</p>
             ) : (
