@@ -14,10 +14,42 @@ type Patient = {
   display_name: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
+  fiscal_code: string | null;
   issues: string | null;
   goals: string | null;
-  therapist_user_id: string;
-  created_at?: string;
+};
+
+type TherapyPlan = {
+  id: string;
+  anamnesi: string | null;
+  valutazione_psicodiagnostica: string | null;
+  formulazione_caso: string | null;
+  obiettivi_generali: string[];
+  obiettivi_specifici: string[];
+  esercizi: string[];
+};
+
+type SessionNote = {
+  id: string;
+  session_date: string;
+  notes: string | null;
+  ai_summary: string | null;
+  themes: string[];
+};
+
+type GAD7Result = {
+  id: string;
+  total: number;
+  severity: string;
+  created_at: string;
+};
+
+type Appointment = {
+  id: string;
+  title: string;
+  starts_at: string;
+  status: string;
 };
 
 export default function PatientPage() {
@@ -26,171 +58,224 @@ export default function PatientPage() {
   const router = useRouter();
 
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [therapyPlan, setTherapyPlan] = useState<TherapyPlan | null>(null);
+  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
+  const [gad7Results, setGad7Results] = useState<GAD7Result[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sendingInvite, setSendingInvite] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari' | 'docs'>('piano');
 
   useEffect(() => {
     if (!id) return;
-    
-    async function fetchPatient() {
-      try {
-        const { data, error } = await supabase
-          .from('patients')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) {
-          console.error('Errore Supabase:', error);
-          setError(error.message);
-          return;
-        }
-        
-        if (!data) {
-          setError('Paziente non trovato nel database');
-          return;
-        }
-
-        setPatient(data);
-      } catch (err: any) {
-        console.error('Errore generale:', err);
-        setError(err?.message || 'Errore sconosciuto');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPatient();
+    loadData();
   }, [id]);
 
-  async function sendInvite() {
+  async function loadData() {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Carica paziente
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', id)
+        .single();
+      setPatient(patientData);
+
+      // Carica piano terapeutico
+      const { data: planData } = await supabase
+        .from('therapy_plan')
+        .select('*')
+        .eq('patient_id', id)
+        .maybeSingle();
+      setTherapyPlan(planData);
+
+      // Carica note sedute
+      const { data: notesData } = await supabase
+        .from('session_notes')
+        .select('*')
+        .eq('patient_id', id)
+        .order('session_date', { ascending: false })
+        .limit(5);
+      setSessionNotes(notesData || []);
+
+      // Carica risultati GAD-7
+      const { data: gad7Data } = await supabase
+        .from('gad7_results')
+        .select('id, total, severity, created_at')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+      setGad7Results(gad7Data || []);
+
+      // Carica appuntamenti
+      const { data: apptsData } = await supabase
+        .from('appointments')
+        .select('id, title, starts_at, status')
+        .eq('patient_id', id)
+        .gte('starts_at', new Date().toISOString())
+        .order('starts_at', { ascending: true })
+        .limit(3);
+      setAppointments(apptsData || []);
+
+    } catch (e) {
+      console.error('Errore caricamento dati:', e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function invitePatient() {
     if (!patient?.email) {
-      alert('Il paziente non ha un indirizzo email. Aggiungi l\'email prima di inviare l\'invito.');
+      alert('Il paziente non ha email');
       return;
     }
-
-    setSendingInvite(true);
-    setInviteMsg(null);
 
     try {
       const res = await fetch('/api/invite-patient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: patient.email,
-          patientId: patient.id
-        })
+        body: JSON.stringify({ email: patient.email, patientId: id })
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore invio email');
-      }
-
-      setInviteMsg('✅ Email di invito inviata con successo!');
-      
-    } catch (err: any) {
-      alert(`Errore: ${err.message}`);
-    } finally {
-      setSendingInvite(false);
+      if (!res.ok) throw new Error('Errore invio');
+      alert('✅ Email inviata!');
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="max-w-3xl mx-auto p-6">
-        <p>Caricamento paziente...</p>
-      </div>
-    );
-  }
-
-  if (error || !patient) {
-    return (
-      <div className="max-w-3xl mx-auto p-6">
-        <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50 inline-block mb-4">
-          ← Lista pazienti
-        </Link>
-        <div className="rounded bg-red-50 text-red-700 px-4 py-3">
-          <p className="font-semibold">Paziente non trovato</p>
-          <p className="text-sm mt-1">ID: {id}</p>
-          {error && <p className="text-sm mt-1">Errore: {error}</p>}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="max-w-6xl mx-auto p-6">Caricamento...</div>;
+  if (!patient) return <div className="max-w-6xl mx-auto p-6">Paziente non trovato</div>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/app/therapist/pazienti" className="rounded border px-3 py-2 hover:bg-gray-50">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="mb-4">
+        <Link href="/app/therapist/pazienti" className="text-blue-600 hover:underline">
           ← Lista pazienti
         </Link>
-        <button 
-          onClick={() => alert('Funzione in sviluppo')} 
-          className="rounded bg-blue-600 text-white px-3 py-2 hover:bg-blue-700"
-        >
-          ↻ Esegui GAD-7 in seduta
+      </div>
+
+      {/* Info paziente */}
+      <div className="bg-white border rounded-lg p-6">
+        <h1 className="text-3xl font-bold mb-4">{patient.display_name || 'Senza nome'}</h1>
+        <div className="grid md:grid-cols-2 gap-4 text-sm">
+          <div>📧 {patient.email || 'Nessuna email'}</div>
+          <div>📱 {patient.phone || 'Nessun telefono'}</div>
+          <div>📍 {patient.address || 'Nessun indirizzo'}</div>
+          <div>🆔 {patient.fiscal_code || 'Nessun codice fiscale'}</div>
+        </div>
+        <div className="flex gap-3 mt-4">
+          <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">
+            🔐 Invita paziente
+          </button>
+          <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            📅 Nuovo appuntamento
+          </Link>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b">
+        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
+          Piano Terapeutico
         </button>
-        <button 
-          onClick={() => alert('Funzione in sviluppo')} 
-          className="rounded bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700"
-        >
-          📧 Invia GAD-7 al paziente
+        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
+          Sedute & IA
         </button>
-        <button 
-          onClick={sendInvite}
-          disabled={sendingInvite || !patient.email}
-          className="rounded bg-gray-800 text-white px-3 py-2 hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {sendingInvite ? '⏳ Invio...' : '🔐 Invita paziente (crea credenziali)'}
+        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
+          Questionari
         </button>
       </div>
 
-      {inviteMsg && (
-        <div className="mb-4 rounded bg-green-50 text-green-700 px-4 py-3">
-          {inviteMsg}
+      {/* Tab Piano Terapeutico */}
+      {activeTab === 'piano' && (
+        <div className="space-y-6">
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-bold text-lg mb-3">🎯 Piano Terapeutico</h3>
+            <p className="text-sm text-gray-600 mb-4">Sezione in sviluppo - funzionalità complete in arrivo</p>
+            <div className="space-y-4">
+              <div>
+                <strong>Problemi:</strong>
+                <p className="text-gray-700 whitespace-pre-wrap">{patient.issues || 'Nessuna informazione'}</p>
+              </div>
+              <div>
+                <strong>Obiettivi:</strong>
+                <p className="text-gray-700 whitespace-pre-wrap">{patient.goals || 'Nessuna informazione'}</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <h1 className="text-2xl font-semibold mb-4">Scheda paziente</h1>
-
-      <div className="rounded border p-6 space-y-4">
-        <div>
-          <p className="text-sm text-gray-600">Nome</p>
-          <p className="text-lg font-medium">{patient.display_name || 'Non specificato'}</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Email</p>
-            <p className="font-medium">{patient.email || '⚠️ Email non presente'}</p>
+      {/* Tab Sedute */}
+      {activeTab === 'sedute' && (
+        <div className="space-y-6">
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-bold text-lg mb-3">📝 Sedute e Riassunti IA</h3>
+            {sessionNotes.length === 0 ? (
+              <p className="text-gray-500">Nessuna seduta registrata</p>
+            ) : (
+              <div className="space-y-3">
+                {sessionNotes.map(note => (
+                  <div key={note.id} className="border rounded p-4">
+                    <div className="font-medium">📅 {new Date(note.session_date).toLocaleDateString('it-IT')}</div>
+                    {note.ai_summary && <div className="text-sm text-gray-600 mt-1">🤖 Riassunto IA disponibile</div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Telefono</p>
-            <p className="font-medium">{patient.phone || 'Non specificato'}</p>
+
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-bold text-lg mb-3">📅 Prossimi Appuntamenti</h3>
+            {appointments.length === 0 ? (
+              <p className="text-gray-500">Nessun appuntamento programmato</p>
+            ) : (
+              <div className="space-y-2">
+                {appointments.map(apt => (
+                  <div key={apt.id} className="border rounded p-3">
+                    {new Date(apt.starts_at).toLocaleString('it-IT')} - {apt.title}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        <div>
-          <p className="text-sm text-gray-600">Problemi</p>
-          <p className="whitespace-pre-wrap">{patient.issues || 'Nessuna informazione'}</p>
+      {/* Tab Questionari */}
+      {activeTab === 'questionari' && (
+        <div className="bg-white border rounded-lg p-6">
+          <h3 className="font-bold text-lg mb-3">📊 Questionari Realizzati</h3>
+          {gad7Results.length === 0 ? (
+            <p className="text-gray-500">Nessun questionario compilato</p>
+          ) : (
+            <div className="space-y-3">
+              {gad7Results.map(result => (
+                <div key={result.id} className="border rounded p-4 flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">GAD-7</span> | Score: {result.total} | 
+                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                      result.severity === 'minima' ? 'bg-green-100 text-green-700' :
+                      result.severity === 'lieve' ? 'bg-blue-100 text-blue-700' :
+                      result.severity === 'moderata' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {result.severity}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {new Date(result.created_at).toLocaleDateString('it-IT')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-
-        <div>
-          <p className="text-sm text-gray-600">Obiettivi</p>
-          <p className="whitespace-pre-wrap">{patient.goals || 'Nessuna informazione'}</p>
-        </div>
-
-        {patient.created_at && (
-          <div>
-            <p className="text-sm text-gray-600">Data creazione</p>
-            <p className="text-sm">{new Date(patient.created_at).toLocaleDateString('it-IT')}</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
