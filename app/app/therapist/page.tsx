@@ -114,20 +114,12 @@ export default function Page() {
             Benvenuto, {therapist?.display_name || 'Dottore'}
           </p>
         </div>
-        <div className="flex gap-4">
-          <Link 
-            href="/app/therapist/pazienti" 
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50 font-medium"
-          >
-            Pazienti
-          </Link>
-          <Link 
-            href="/app/therapist/onboarding" 
-            className="text-sm text-blue-600 hover:underline self-center"
-          >
-            Modifica profilo
-          </Link>
-        </div>
+        <Link 
+          href="/app/therapist/onboarding" 
+          className="text-sm text-blue-600 hover:underline"
+        >
+          Modifica profilo
+        </Link>
       </div>
 
       {err && <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-700">{err}</div>}
