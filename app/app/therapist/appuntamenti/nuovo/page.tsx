@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -8,89 +8,83 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function Page(){
+export default function NewAppointmentPage() {
   const router = useRouter();
-  const sp = useSearchParams();
-  const [title, setTitle] = useState('Seduta');
-  const [notes, setNotes] = useState('');
-  const [date, setDate]   = useState<string>('');
-  const [time, setTime]   = useState<string>('');
-  const [dur, setDur]     = useState<number>(50);
-  const [patientId, setPatientId] = useState<string>('');
-  const [msg, setMsg] = useState<string|null>(null);
-  const [err, setErr] = useState<string|null>(null);
+  const [title, setTitle] = useState('');
+  const [startsAt, setStartsAt] = useState('');
+  const [endsAt, setEndsAt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  useEffect(()=>{
-    const pid = sp?.get('patient_id');
-    if (pid) setPatientId(pid);
-  },[sp]);
-
-  async function onSubmit(e: React.FormEvent){
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMsg(null); setErr(null);
+    setErr(null);
+    setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setErr('Non autenticato'); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non autenticato');
 
-    if (!date || !time) { setErr('Inserisci data e ora'); return; }
-    const starts_at = new Date(`${date}T${time}:00`);
-    const ends_at   = new Date(starts_at.getTime() + dur*60000);
+      const { error } = await supabase.from('appointments').insert({
+        therapist_user_id: user.id,
+        title,
+        starts_at: new Date(startsAt).toISOString(),
+        ends_at: new Date(endsAt).toISOString(),
+        status: 'da_confermare'
+      });
 
-    const payload: any = {
-      therapist_user_id: user.id,
-      title,
-      notes: notes || null,
-      starts_at: starts_at.toISOString(),
-      ends_at: ends_at.toISOString(),
-      status: 'scheduled'
-    };
-    if (patientId) payload.patient_id = patientId;
+      if (error) throw error;
 
-    const { error } = await supabase.from('appointments').insert(payload);
-    if (error){ setErr(error.message); return; }
-
-    setMsg('Appuntamento creato.');
-    setTimeout(()=>router.push('/app/therapist'), 500);
+      router.push('/app/therapist/appuntamenti');
+    } catch (e: any) {
+      setErr(e?.message || 'Errore');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Nuovo appuntamento</h1>
-      {err && <div className="p-3 border border-red-300 bg-red-50 rounded">{err}</div>}
-      {msg && <div className="p-3 border border-green-300 bg-green-50 rounded">{msg}</div>}
-      <form onSubmit={onSubmit} className="space-y-3">
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Nuovo Appuntamento</h1>
+      {err && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div>}
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm mb-1">Titolo</label>
-          <input value={title} onChange={e=>setTitle(e.target.value)} className="w-full border rounded px-3 py-2" />
+          <label className="block text-sm font-medium mb-1">Titolo</label>
+          <input
+            type="text"
+            required
+            className="w-full border rounded px-3 py-2"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
         </div>
         <div>
-          <label className="block text-sm mb-1">Note</label>
-          <textarea value={notes} onChange={e=>setNotes(e.target.value)} className="w-full border rounded px-3 py-2" />
+          <label className="block text-sm font-medium mb-1">Data e ora inizio</label>
+          <input
+            type="datetime-local"
+            required
+            className="w-full border rounded px-3 py-2"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+          />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm mb-1">Data</label>
-            <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Ora</label>
-            <input type="time" value={time} onChange={e=>setTime(e.target.value)} className="w-full border rounded px-3 py-2" />
-          </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Data e ora fine</label>
+          <input
+            type="datetime-local"
+            required
+            className="w-full border rounded px-3 py-2"
+            value={endsAt}
+            onChange={(e) => setEndsAt(e.target.value)}
+          />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm mb-1">Durata (min)</label>
-            <input type="number" min={10} max={240} value={dur} onChange={e=>setDur(parseInt(e.target.value||'0',10))} className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Patient ID (opzionale)</label>
-            <input value={patientId} onChange={e=>setPatientId(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="uuid paziente" />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button type="submit" className="px-4 py-2 border rounded">Crea</button>
-          <button type="button" onClick={()=>history.back()} className="px-4 py-2 border rounded">Annulla</button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Creazione...' : 'Crea Appuntamento'}
+        </button>
       </form>
     </div>
   );
