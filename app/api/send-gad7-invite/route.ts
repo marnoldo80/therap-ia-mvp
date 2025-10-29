@@ -19,11 +19,22 @@ export async function POST(req: Request) {
 
     const token = crypto.randomUUID();
     
-    // SALVA IL TOKEN - Se fallisce, blocca tutto
+   // Prima prendi il therapist_user_id del paziente
+    const { data: patientData } = await supabaseAdmin
+      .from('patients')
+      .select('therapist_user_id')
+      .eq('id', patientId)
+      .single();
+
+    if (!patientData?.therapist_user_id) {
+      throw new Error('Paziente non trovato o senza terapeuta associato');
+    }
+
     const { error: tokenError } = await supabaseAdmin
       .from('gad7_invites')
       .insert({
         patient_id: patientId,
+        therapist_user_id: patientData.therapist_user_id,
         token,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       });
