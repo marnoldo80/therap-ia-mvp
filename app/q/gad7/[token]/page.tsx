@@ -40,7 +40,7 @@ export default function GAD7PublicPage() {
         .eq('token', token)
         .single();
       
-     if (data && typeof data.patients === 'object' && data.patients && 'display_name' in data.patients) {
+      if (data && typeof data.patients === 'object' && data.patients && 'display_name' in data.patients) {
         const name = data.patients.display_name;
         setPatientName(typeof name === 'string' ? name : '');
       }
@@ -49,13 +49,7 @@ export default function GAD7PublicPage() {
     }
   }
 
-  const total = risposte.reduce((acc, val) => (val >= 0 ? acc + val : acc), 0);
   const allAnswered = risposte.every(r => r >= 0);
-
-  let severity = 'minima';
-  if (total >= 15) severity = 'grave';
-  else if (total >= 10) severity = 'moderata';
-  else if (total >= 5) severity = 'lieve';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,26 +95,13 @@ export default function GAD7PublicPage() {
       <div className="bg-white border rounded-lg p-6">
         <h1 className="text-2xl font-bold">GAD-7</h1>
         {patientName && <p className="text-gray-600 mt-1">Paziente: {patientName}</p>}
-        
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <div className="text-sm text-gray-600">Punteggio attuale</div>
-          <div className="text-3xl font-bold">{total}</div>
-          <div className={`inline-block mt-2 px-3 py-1 rounded text-sm ${
-            severity === 'minima' ? 'bg-green-100 text-green-700' :
-            severity === 'lieve' ? 'bg-blue-100 text-blue-700' :
-            severity === 'moderata' ? 'bg-yellow-100 text-yellow-700' :
-            'bg-red-100 text-red-700'
-          }`}>
-            {severity.charAt(0).toUpperCase() + severity.slice(1)}
-          </div>
-        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <p className="text-sm text-gray-600">
-          Nelle ultime 2 settimane, con quale frequenza sei stato infastidito dai seguenti problemi?
-        </p>
+      <p className="text-gray-600">
+        Nelle ultime 2 settimane, con quale frequenza sei stato infastidito dai seguenti problemi?
+      </p>
 
+      <form onSubmit={handleSubmit} className="space-y-4">
         {err && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div>}
 
         {domande.map((domanda, i) => (
