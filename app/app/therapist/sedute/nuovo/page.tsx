@@ -80,10 +80,15 @@ function NuovaNotaForm() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="mb-4">
+     <div className="mb-4 flex gap-4">
         <Link href="/app/therapist" className="text-blue-600 hover:underline">
           ← Dashboard
         </Link>
+        {patientId && (
+          <Link href={`/app/therapist/pazienti/${patientId}`} className="text-blue-600 hover:underline">
+            ← Scheda Paziente
+          </Link>
+        )}
       </div>
 
       <h1 className="text-3xl font-bold">Nuova Nota Seduta</h1>
@@ -148,8 +153,8 @@ function NuovaNotaForm() {
           >
             {loading ? 'Salvataggio...' : '💾 Salva Nota'}
           </button>
-          <Link
-            href="/app/therapist"
+        <Link
+            href={patientId ? `/app/therapist/pazienti/${patientId}` : '/app/therapist'}
             className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
           >
             Annulla
