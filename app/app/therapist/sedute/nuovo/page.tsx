@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
@@ -11,7 +11,7 @@ const supabase = createClient(
 
 type Patient = { id: string; display_name: string | null };
 
-export default function NuovaNotaSedutaPage() {
+function NuovaNotaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const patientIdFromUrl = searchParams?.get('patientId');
@@ -157,5 +157,13 @@ export default function NuovaNotaSedutaPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NuovaNotaSedutaPage() {
+  return (
+    <Suspense fallback={<div className="max-w-4xl mx-auto p-6">Caricamento...</div>}>
+      <NuovaNotaForm />
+    </Suspense>
   );
 }
