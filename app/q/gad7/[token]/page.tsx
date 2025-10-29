@@ -40,8 +40,9 @@ export default function GAD7PublicPage() {
         .eq('token', token)
         .single();
       
-      if (data && typeof data.patients === 'object' && 'display_name' in data.patients) {
-        setPatientName(data.patients.display_name || '');
+     if (data && typeof data.patients === 'object' && data.patients && 'display_name' in data.patients) {
+        const name = data.patients.display_name;
+        setPatientName(typeof name === 'string' ? name : '');
       }
     } catch (e) {
       console.error('Errore caricamento paziente:', e);
