@@ -338,10 +338,19 @@ export default function PatientPage() {
             ) : (
               <div className="space-y-3">
                 {sessionNotes.map(note => (
-                  <div key={note.id} className="border rounded p-4">
+                  <Link
+                    key={note.id}
+                    href={`/app/therapist/sedute/${note.id}`}
+                    className="block border rounded p-4 hover:bg-gray-50 transition"
+                  >
                     <div className="font-medium">📅 {new Date(note.session_date).toLocaleDateString('it-IT')}</div>
                     {note.ai_summary && <div className="text-sm text-gray-600 mt-1">🤖 Riassunto IA disponibile</div>}
-                  </div>
+                    {note.notes && (
+                      <div className="text-sm text-gray-600 mt-2 line-clamp-2">
+                        {note.notes.substring(0, 100)}...
+                      </div>
+                    )}
+                  </Link>
                 ))}
               </div>
             )}
