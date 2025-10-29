@@ -19,6 +19,7 @@ export async function POST(req: Request) {
 
     const token = crypto.randomUUID();
     
+    // SALVA IL TOKEN - Se fallisce, blocca tutto
     const { error: tokenError } = await supabaseAdmin
       .from('gad7_invites')
       .insert({
@@ -29,8 +30,10 @@ export async function POST(req: Request) {
 
     if (tokenError) {
       console.error('Errore salvataggio token:', tokenError);
+      throw new Error('Impossibile salvare il token: ' + tokenError.message);
     }
 
+    // Solo se il token è salvato, invia l'email
     const link = `${process.env.NEXT_PUBLIC_SITE_URL}/q/gad7/${token}`;
 
     const html = `
@@ -46,18 +49,18 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    const { error } = await resend.emails.send({
+    const { error: emailError } = await resend.emails.send({
       from: process.env.RESEND_FROM!,
       to: email,
       subject: 'Questionario GAD-7 - Therap-IA',
       html
     });
 
-    if (error) throw error;
+    if (emailError) throw emailError;
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, token });
   } catch (e: any) {
-    console.error('Errore invio email:', e);
+    console.error('Errore completo:', e);
     return NextResponse.json({ error: e?.message || 'Errore' }, { status: 500 });
   }
 }
