@@ -106,7 +106,6 @@ export default function Page() {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-3xl font-bold">Area Terapeuta</h1>
@@ -125,7 +124,7 @@ export default function Page() {
       {err && <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-700">{err}</div>}
 
       {/* Azioni rapide */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link 
           href="/app/therapist/pazienti/nuovo"
           className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
@@ -139,6 +138,13 @@ export default function Page() {
         >
           <div className="text-4xl mb-2">📅</div>
           <div>Nuovo Appuntamento</div>
+        </Link>
+        <Link 
+          href="/app/therapist/questionari"
+          className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
+        >
+          <div className="text-4xl mb-2">📋</div>
+          <div>Questionari</div>
         </Link>
       </div>
 
@@ -178,9 +184,7 @@ export default function Page() {
                 </div>
                 <div className="text-xs mt-2">
                   <span className={`inline-block px-2 py-1 rounded ${
-                    a.status === 'confermato' ? 'bg-green-100 text-green-700' :
-                    a.status === 'da_confermare' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
+                    a.status === 'scheduled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                   }`}>
                     {a.status}
                   </span>
@@ -199,9 +203,14 @@ export default function Page() {
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">I tuoi pazienti</h2>
-            <Link href="/app/therapist/pazienti/nuovo" className="text-sm text-blue-600 hover:underline">
-              + Nuovo
-            </Link>
+            <div className="flex gap-3">
+              <Link href="/app/therapist/pazienti" className="text-sm text-blue-600 hover:underline">
+                Vedi tutti
+              </Link>
+              <Link href="/app/therapist/pazienti/nuovo" className="text-sm text-blue-600 hover:underline">
+                + Nuovo
+              </Link>
+            </div>
           </div>
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {allPatients.map(p => (
