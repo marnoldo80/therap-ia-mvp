@@ -24,12 +24,30 @@ function getPatientName(patients: Appointment['patients']): string {
   return patients.display_name || '';
 }
 
+function getWeekDays(weekOffset: number = 0) {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff + (weekOffset * 7));
+  monday.setHours(0, 0, 0, 0);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    days.push(day);
+  }
+  return days;
+}
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     loadAppointments();
@@ -78,20 +96,23 @@ export default function AppointmentsPage() {
     }
   }
 
-  function groupByDay(apts: Appointment[]) {
-    const groups: { [key: string]: Appointment[] } = {};
-    apts.forEach((apt) => {
-      const date = new Date(apt.starts_at).toLocaleDateString('it-IT');
-      if (!groups[date]) groups[date] = [];
-      groups[date].push(apt);
+  function getAppointmentsForDay(date: Date) {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    return appointments.filter(apt => {
+      const aptDate = new Date(apt.starts_at);
+      return aptDate >= dayStart && aptDate <= dayEnd;
     });
-    return groups;
   }
 
-  const groupedAppointments = groupByDay(appointments);
+  const weekDays = getWeekDays(weekOffset);
+  const hours = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 - 22:00
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Appuntamenti</h1>
         <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
@@ -139,21 +160,55 @@ export default function AppointmentsPage() {
       )}
 
       {view === 'calendar' && (
-        <div className="space-y-6">
-          {Object.entries(groupedAppointments).map(([date, apts]) => (
-            <div key={date} className="border rounded-lg p-4 bg-white">
-              <h3 className="font-bold text-lg mb-3">{date}</h3>
-              <div className="space-y-2">
-                {apts.map((apt) => (
-                  <div key={apt.id} className="border-l-4 border-blue-600 pl-3 py-2">
-                    <div className="font-medium">{new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - {apt.title}</div>
-                    {getPatientName(apt.patients) && <div className="text-sm text-gray-600">{getPatientName(apt.patients)}</div>}
-                  </div>
-                ))}
-              </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-white border rounded-lg p-4">
+            <button onClick={() => setWeekOffset(weekOffset - 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">← Settimana Precedente</button>
+            <div className="font-semibold text-lg">
+              {weekDays[0].toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })} - {weekDays[6].toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
-          ))}
-          {appointments.length === 0 && !loading && <div className="text-center py-12 text-gray-500"><p className="text-lg">Nessun appuntamento trovato</p></div>}
+            <button onClick={() => setWeekOffset(weekOffset + 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Settimana Successiva →</button>
+          </div>
+
+          <div className="bg-white border rounded-lg overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="p-2 text-left w-20 sticky left-0 bg-gray-50">Ora</th>
+                  {weekDays.map((day, i) => (
+                    <th key={i} className="p-2 text-center min-w-32">
+                      <div className="font-semibold">{day.toLocaleDateString('it-IT', { weekday: 'short' })}</div>
+                      <div className="text-sm text-gray-600">{day.getDate()}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {hours.map(hour => (
+                  <tr key={hour} className="border-b hover:bg-gray-50">
+                    <td className="p-2 text-sm text-gray-600 sticky left-0 bg-white">{hour}:00</td>
+                    {weekDays.map((day, dayIndex) => {
+                      const dayAppts = getAppointmentsForDay(day).filter(apt => {
+                        const aptHour = new Date(apt.starts_at).getHours();
+                        return aptHour === hour;
+                      });
+
+                      return (
+                        <td key={dayIndex} className="p-1 align-top">
+                          {dayAppts.map(apt => (
+                            <div key={apt.id} className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded">
+                              <div className="font-medium">{new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+                              <div className="truncate">{apt.title}</div>
+                              {getPatientName(apt.patients) && <div className="text-gray-600 truncate">{getPatientName(apt.patients)}</div>}
+                            </div>
+                          ))}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
