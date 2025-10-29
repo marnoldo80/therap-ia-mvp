@@ -16,7 +16,7 @@ export default function NewAppointmentPage() {
   const [title, setTitle] = useState('');
   const [patientId, setPatientId] = useState('');
   const [startsAt, setStartsAt] = useState('');
-  const [endsAt, setEndsAt] = useState('');
+  const [duration, setDuration] = useState('60');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -51,12 +51,15 @@ export default function NewAppointmentPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non autenticato');
 
+      const start = new Date(startsAt);
+      const end = new Date(start.getTime() + parseInt(duration) * 60000);
+
       const { error } = await supabase.from('appointments').insert({
         therapist_user_id: user.id,
         patient_id: patientId || null,
         title,
-        starts_at: new Date(startsAt).toISOString(),
-        ends_at: new Date(endsAt).toISOString(),
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
         status: 'da_confermare'
       });
 
@@ -123,20 +126,29 @@ export default function NewAppointmentPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Data e ora fine</label>
-          <input
-            type="datetime-local"
-            required
-            className="w-full border rounded px-3 py-2"
-            value={endsAt}
-            onChange={(e) => setEndsAt(e.target.value)}
-          />
+          <label className="block text-sm font-medium mb-1">Durata</label>
+          <div className="grid grid-cols-4 gap-2">
+            {['15', '30', '45', '60'].map((min) => (
+              <button
+                key={min}
+                type="button"
+                onClick={() => setDuration(min)}
+                className={`px-4 py-3 rounded border font-medium transition ${
+                  duration === min
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white hover:border-blue-600'
+                }`}
+              >
+                {min} min
+              </button>
+            ))}
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
         >
           {loading ? 'Creazione...' : 'Crea Appuntamento'}
         </button>
