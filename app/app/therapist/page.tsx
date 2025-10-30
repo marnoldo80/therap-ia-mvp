@@ -15,7 +15,7 @@ type ApptRow = {
 };
 type PatRow = { id: string; display_name: string|null; created_at: string; email: string|null; };
 
-function getPatientName(rel: PatientRel): string {
+function getPatientName(rel: PatientRel | undefined): string {
   if (!rel) return '';
   if (Array.isArray(rel)) return rel[0]?.display_name || '';
   return rel.display_name || '';
@@ -36,7 +36,6 @@ export default function Page() {
       setErr(null); 
       setLoading(true);
       
-      // Attendi che la sessione sia pronta
       await new Promise(r => setTimeout(r, 500));
       
       const { data:{ user } } = await supabase.auth.getUser();
@@ -46,7 +45,6 @@ export default function Page() {
         return; 
       }
 
-      // Profilo
       {
         const { data, error } = await supabase
           .from('therapists')
@@ -57,7 +55,6 @@ export default function Page() {
         setTherapist((data || null) as Therapist|null);
       }
 
-      // Statistiche
       {
         const { count } = await supabase
           .from('patients')
@@ -79,7 +76,6 @@ export default function Page() {
         setWeekAppts(apptCount || 0);
       }
 
-      // Tutti i pazienti
       {
         const { data } = await supabase
           .from('patients')
@@ -89,7 +85,6 @@ export default function Page() {
         setAllPatients(data || []);
       }
 
-      // Prossimi appuntamenti
       {
         const now = new Date().toISOString();
         const { data } = await supabase
