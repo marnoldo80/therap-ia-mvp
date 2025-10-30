@@ -6,21 +6,8 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
   
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  const isLoginPage = req.nextUrl.pathname.startsWith('/login');
-  const isOnboarding = req.nextUrl.pathname.includes('/onboarding');
-  const isAppPage = req.nextUrl.pathname.startsWith('/app');
-  
-  // NON bloccare la pagina di onboarding
-  if (isOnboarding) {
-    return res;
-  }
-  
-  // Se NON autenticato e cerca di accedere a pagine protette → login
-  if (!session && isAppPage) {
-    return NextResponse.redirect(new URL('/login', req.url));
-  }
+  // Solo refresh della sessione, NESSUN redirect
+  await supabase.auth.getSession();
   
   return res;
 }
