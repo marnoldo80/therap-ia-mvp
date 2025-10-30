@@ -1,11 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseBrowserClient } from "@/lib/supabase-client";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Page() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -15,17 +19,14 @@ export default function Page() {
 
   useEffect(() => {
     (async () => {
-      // Attendi un momento per dare tempo alla sessione di essere salvata
       await new Promise(r => setTimeout(r, 500));
       
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.log('Nessun utente trovato, redirect a login');
         return router.replace("/login");
       }
 
-      // carica eventuali dati già presenti
       const { data: rows, error } = await supabase
         .from("therapists")
         .select("full_name,address,vat_number,customer_code")
