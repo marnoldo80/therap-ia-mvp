@@ -1,16 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getSupabaseBrowserClient } from '@/lib/supabase-client';
 
 type Therapist = { display_name: string|null; address: string|null; vat_number: string|null; };
 type PatientRel = { display_name: string|null } | { display_name: string|null }[] | null;
-
 type ApptRow = {
   id: string;
   title: string;
@@ -19,7 +13,6 @@ type ApptRow = {
   status: string;
   patients?: PatientRel;
 };
-
 type PatRow = { id: string; display_name: string|null; created_at: string; email: string|null; };
 
 function getPatientName(rel: PatientRel): string {
@@ -29,6 +22,7 @@ function getPatientName(rel: PatientRel): string {
 }
 
 export default function Page() {
+  const supabase = getSupabaseBrowserClient();
   const [err, setErr] = useState<string|null>(null);
   const [therapist, setTherapist] = useState<Therapist|null>(null);
   const [allPatients, setAllPatients] = useState<PatRow[]>([]);
@@ -39,9 +33,18 @@ export default function Page() {
 
   useEffect(() => {
     (async () => {
-      setErr(null); setLoading(true);
+      setErr(null); 
+      setLoading(true);
+      
+      // Attendi che la sessione sia pronta
+      await new Promise(r => setTimeout(r, 500));
+      
       const { data:{ user } } = await supabase.auth.getUser();
-      if (!user) { setErr('Non autenticato'); setLoading(false); return; }
+      if (!user) { 
+        setErr('Non autenticato'); 
+        setLoading(false); 
+        return; 
+      }
 
       // Profilo
       {
@@ -78,158 +81,100 @@ export default function Page() {
 
       // Tutti i pazienti
       {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('patients')
-          .select('id,display_name,email,created_at')
+          .select('id,display_name,created_at,email')
           .eq('therapist_user_id', user.id)
-          .order('display_name', { ascending: true });
-        if (error) setErr(error.message);
-        setAllPatients((data || []) as PatRow[]);
+          .order('created_at', { ascending: false });
+        setAllPatients(data || []);
       }
 
       // Prossimi appuntamenti
       {
-        const { data, error } = await supabase
+        const now = new Date().toISOString();
+        const { data } = await supabase
           .from('appointments')
-          .select('id,title,starts_at,ends_at,status,patients!appointments_patient_fkey(display_name)')
+          .select('id,title,starts_at,ends_at,status,patients(display_name)')
           .eq('therapist_user_id', user.id)
-          .gte('starts_at', new Date().toISOString())
+          .gte('starts_at', now)
           .order('starts_at', { ascending: true })
           .limit(5);
-        if (error) setErr(error.message);
-        setNextAppts((data || []) as unknown as ApptRow[]);
+        setNextAppts(data || []);
       }
 
       setLoading(false);
     })();
   }, []);
 
+  if (loading) return <div style={{ padding: 40 }}>Caricamento...</div>;
+
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between border-b pb-4">
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
         <div>
-          <h1 className="text-3xl font-bold">Area Terapeuta</h1>
-          <p className="text-gray-600 mt-1">
-            Benvenuto, {therapist?.display_name || 'Dottore'}
-          </p>
+          <h1 style={{ margin: 0 }}>Area Terapeuta</h1>
+          {therapist?.display_name && <p style={{ margin: '8px 0 0', color: '#666' }}>Benvenuto, {therapist.display_name}</p>}
         </div>
-        <Link 
-          href="/app/therapist/onboarding" 
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Modifica profilo
-        </Link>
+        <Link href="/app/therapist/onboarding" style={{ color: '#0066cc' }}>Modifica profilo</Link>
       </div>
 
-      {err && <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-700">{err}</div>}
+      {err && <div style={{ padding: 16, background: '#fee', border: '1px solid #c00', borderRadius: 8, marginBottom: 20, color: '#c00' }}>{err}</div>}
 
-      {/* Azioni rapide */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link 
-          href="/app/therapist/pazienti/nuovo"
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
-        >
-          <div className="text-4xl mb-2">👤</div>
-          <div>Nuovo Paziente</div>
-        </Link>
-        <Link 
-          href="/app/therapist/appuntamenti/nuovo"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
-        >
-          <div className="text-4xl mb-2">📅</div>
-          <div>Nuovo Appuntamento</div>
-        </Link>
-        <Link 
-          href="/app/therapist/questionari"
-          className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
-        >
-          <div className="text-4xl mb-2">📋</div>
-          <div>Questionari</div>
-        </Link>
-      </div>
-
-      {/* Statistiche */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="text-gray-500 text-sm font-medium">Pazienti totali</div>
-          <div className="text-3xl font-bold mt-2">{totalPatients}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 16, marginBottom: 30 }}>
+        <div style={{ padding: 20, background: '#f9f9f9', borderRadius: 12 }}>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>Pazienti totali</div>
+          <div style={{ fontSize: 32, fontWeight: 'bold' }}>{totalPatients}</div>
         </div>
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="text-gray-500 text-sm font-medium">Appuntamenti questa settimana</div>
-          <div className="text-3xl font-bold mt-2">{weekAppts}</div>
+        <div style={{ padding: 20, background: '#f9f9f9', borderRadius: 12 }}>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>Appuntamenti questa settimana</div>
+          <div style={{ fontSize: 32, fontWeight: 'bold' }}>{weekAppts}</div>
         </div>
       </div>
 
-      {loading && <div className="text-center py-8 text-gray-500">Caricamento...</div>}
-
-      {/* Contenuto principale */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Prossimi appuntamenti */}
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Prossimi appuntamenti</h2>
-            <Link href="/app/therapist/appuntamenti" className="text-sm text-blue-600 hover:underline">
-              Vedi tutti
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {nextAppts.map(a => (
-              <div key={a.id} className="border rounded-lg p-4 hover:bg-gray-50 transition">
-                <div className="font-medium text-lg">
-                  {a.title}
-                  {(() => { const n = getPatientName(a.patients || null); return n ? ` · ${n}` : ''; })()}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  📅 {new Date(a.starts_at).toLocaleString('it-IT')}
-                </div>
-                <div className="text-xs mt-2">
-                  <span className={`inline-block px-2 py-1 rounded ${
-                    a.status === 'scheduled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {a.status}
-                  </span>
-                </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px,1fr))', gap: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>Prossimi appuntamenti</h2>
+          {nextAppts.length === 0 && <p style={{ color: '#999' }}>Nessun appuntamento in programma</p>}
+          {nextAppts.map(a => (
+            <div key={a.id} style={{ padding: 12, background: '#f9f9f9', borderRadius: 8, marginBottom: 8 }}>
+              <div style={{ fontWeight: 'bold' }}>{a.title}</div>
+              <div style={{ fontSize: 14, color: '#666' }}>
+                {new Date(a.starts_at).toLocaleString('it-IT')} • {getPatientName(a.patients)}
               </div>
-            ))}
-            {nextAppts.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Nessun appuntamento programmato
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Lista pazienti */}
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">I tuoi pazienti</h2>
-            <div className="flex gap-3">
-              <Link href="/app/therapist/pazienti" className="text-sm text-blue-600 hover:underline">
-                Vedi tutti
-              </Link>
-              <Link href="/app/therapist/pazienti/nuovo" className="text-sm text-blue-600 hover:underline">
-                + Nuovo
-              </Link>
             </div>
-          </div>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {allPatients.map(p => (
-              <Link 
-                key={p.id} 
-                href={`/app/therapist/pazienti/${p.id}`}
-                className="block border rounded-lg p-4 hover:bg-gray-50 transition"
-              >
-                <div className="font-medium text-lg">{p.display_name || 'Senza nome'}</div>
-                <div className="text-sm text-gray-600 mt-1">{p.email || 'Nessuna email'}</div>
-              </Link>
-            ))}
-            {allPatients.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Nessun paziente ancora
-              </div>
-            )}
-          </div>
+          ))}
+          <Link href="/app/therapist/appuntamenti" style={{ color: '#0066cc', fontSize: 14 }}>
+            Vedi tutti gli appuntamenti →
+          </Link>
         </div>
+
+        <div>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>Pazienti recenti</h2>
+          {allPatients.length === 0 && <p style={{ color: '#999' }}>Nessun paziente registrato</p>}
+          {allPatients.slice(0, 5).map(p => (
+            <div key={p.id} style={{ padding: 12, background: '#f9f9f9', borderRadius: 8, marginBottom: 8 }}>
+              <Link href={`/app/therapist/pazienti/${p.id}`} style={{ fontWeight: 'bold', color: '#000', textDecoration: 'none' }}>
+                {p.display_name || 'Senza nome'}
+              </Link>
+              <div style={{ fontSize: 14, color: '#666' }}>{p.email}</div>
+            </div>
+          ))}
+          <Link href="/app/therapist/pazienti" style={{ color: '#0066cc', fontSize: 14 }}>
+            Vedi tutti i pazienti →
+          </Link>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 30, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Link href="/app/therapist/pazienti/nuovo" style={{ padding: '12px 20px', background: '#0066cc', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 'bold' }}>
+          + Nuovo paziente
+        </Link>
+        <Link href="/app/therapist/appuntamenti/nuovo" style={{ padding: '12px 20px', background: '#fff', color: '#0066cc', border: '2px solid #0066cc', borderRadius: 8, textDecoration: 'none', fontWeight: 'bold' }}>
+          + Nuovo appuntamento
+        </Link>
+        <Link href="/app/therapist/questionari" style={{ padding: '12px 20px', background: '#fff', color: '#0066cc', border: '2px solid #0066cc', borderRadius: 8, textDecoration: 'none', fontWeight: 'bold' }}>
+          📋 Questionari
+        </Link>
       </div>
     </div>
   );
