@@ -48,6 +48,20 @@ type Appointment = {
   starts_at: string;
 };
 
+type PatientNote = {
+  id: string;
+  note_date: string;
+  content: string;
+};
+
+type AppointmentMessage = {
+  id: string;
+  appointment_id: string;
+  message: string;
+  created_at: string;
+  read_by_therapist: boolean;
+};
+
 export default function PatientPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -57,8 +71,11 @@ export default function PatientPage() {
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
   const [gad7Results, setGad7Results] = useState<GAD7Result[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
+  const [patientThoughts, setPatientThoughts] = useState<string>('');
+  const [appointmentMessages, setAppointmentMessages] = useState<AppointmentMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari'>('piano');
+  const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari' | 'area-paziente'>('piano');
   const [editMode, setEditMode] = useState(false);
 
   // Form states
@@ -77,6 +94,8 @@ export default function PatientPage() {
   async function loadData() {
     setLoading(true);
     try {
+      await new Promise(r => setTimeout(r, 500));
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -127,6 +146,33 @@ export default function PatientPage() {
         .limit(3);
       setAppointments(apptsData || []);
 
+      // Carica pensieri del paziente
+      const { data: thoughtsData } = await supabase
+        .from('patient_session_thoughts')
+        .select('content')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setPatientThoughts(thoughtsData?.content || '');
+
+      // Carica note diario paziente
+      const { data: diaryData } = await supabase
+        .from('patient_notes')
+        .select('*')
+        .eq('patient_id', id)
+        .order('note_date', { ascending: false })
+        .limit(10);
+      setPatientNotes(diaryData || []);
+
+      // Carica messaggi appuntamenti
+      const { data: messagesData } = await supabase
+        .from('appointment_messages')
+        .select('*')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+      setAppointmentMessages(messagesData || []);
+
     } catch (e) {
       console.error('Errore:', e);
     } finally {
@@ -161,6 +207,38 @@ export default function PatientPage() {
       loadData();
     } catch (e: any) {
       alert('Errore: ' + e.message);
+    }
+  }
+
+  async function clearPatientThoughts() {
+    if (!confirm('Vuoi svuotare i pensieri del paziente? (Seduta completata)')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('patient_session_thoughts')
+        .delete()
+        .eq('patient_id', id);
+
+      if (error) throw error;
+
+      alert('✅ Pensieri svuotati!');
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
+  }
+
+  async function markMessageAsRead(messageId: string) {
+    try {
+      const { error } = await supabase
+        .from('appointment_messages')
+        .update({ read_by_therapist: true })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      console.error('Errore:', e);
     }
   }
 
@@ -205,11 +283,103 @@ export default function PatientPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 border-b">
-        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Piano Terapeutico</button>
-        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Sedute & IA</button>
-        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Questionari</button>
+      <div className="flex gap-2 border-b overflow-x-auto">
+        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Piano Terapeutico</button>
+        <button onClick={() => setActiveTab('area-paziente')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'area-paziente' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
+          👤 Area Paziente
+          {(patientThoughts || appointmentMessages.some(m => !m.read_by_therapist)) && (
+            <span className="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">!</span>
+          )}
+        </button>
+        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Sedute & IA</button>
+        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Questionari</button>
       </div>
+
+      {/* TAB: Area Paziente */}
+      {activeTab === 'area-paziente' && (
+        <div className="space-y-6">
+          
+          {/* Pensieri per la prossima seduta */}
+          <div className="bg-white border rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <span>💭</span> Pensieri del paziente per la prossima seduta
+              </h3>
+              {patientThoughts && (
+                <button
+                  onClick={clearPatientThoughts}
+                  className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                >
+                  ✅ Seduta completata (svuota)
+                </button>
+              )}
+            </div>
+            {!patientThoughts ? (
+              <p className="text-gray-500 text-sm">Il paziente non ha ancora scritto pensieri per la prossima seduta.</p>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="whitespace-pre-wrap text-gray-800">{patientThoughts}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Messaggi sugli appuntamenti */}
+          <div className="bg-white border rounded-lg p-6 shadow-sm">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <span>📨</span> Messaggi del paziente sugli appuntamenti
+            </h3>
+            {appointmentMessages.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nessun messaggio ricevuto.</p>
+            ) : (
+              <div className="space-y-3">
+                {appointmentMessages.map(msg => (
+                  <div 
+                    key={msg.id} 
+                    className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-300 bg-gray-50' : 'border-orange-500 bg-orange-50'}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs text-gray-600">
+                        {new Date(msg.created_at).toLocaleString('it-IT')}
+                      </div>
+                      {!msg.read_by_therapist && (
+                        <button
+                          onClick={() => markMessageAsRead(msg.id)}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          Segna come letto
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-gray-800">{msg.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Diario del paziente */}
+          <div className="bg-white border rounded-lg p-6 shadow-sm">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <span>📔</span> Diario del paziente
+            </h3>
+            {patientNotes.length === 0 ? (
+              <p className="text-gray-500 text-sm">Il paziente non ha ancora scritto note nel diario.</p>
+            ) : (
+              <div className="space-y-4">
+                {patientNotes.map(note => (
+                  <div key={note.id} className="border-l-4 border-emerald-500 pl-4 py-3 bg-gray-50 rounded">
+                    <div className="text-sm font-medium text-gray-600 mb-1">
+                      {new Date(note.note_date).toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </div>
+                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
 
       {activeTab === 'piano' && (
         <div className="space-y-6">
@@ -271,8 +441,20 @@ export default function PatientPage() {
                   obiettiviGenerali.length === 0 ? (
                     <p className="text-gray-500">Nessun obiettivo generale</p>
                   ) : (
-                    <ul className="list-disc pl-5 space-y-1">
-                      {obiettiviGenerali.map((o, i) => <li key={i}>{o}</li>)}
+                    <ul className="space-y-2">
+                      {obiettiviGenerali.map((o, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <input 
+                            type="checkbox" 
+                            className="mt-1 w-5 h-5 text-blue-600 rounded"
+                            onChange={(e) => {
+                              // TODO: Salvare stato checkbox nel DB
+                              console.log('Obiettivo', i, 'checked:', e.target.checked);
+                            }}
+                          />
+                          <span>{o}</span>
+                        </li>
+                      ))}
                     </ul>
                   )
                 )}
@@ -290,8 +472,20 @@ export default function PatientPage() {
                   obiettiviSpecifici.length === 0 ? (
                     <p className="text-gray-500">Nessun obiettivo specifico</p>
                   ) : (
-                    <ul className="list-disc pl-5 space-y-1">
-                      {obiettiviSpecifici.map((o, i) => <li key={i}>{o}</li>)}
+                    <ul className="space-y-2">
+                      {obiettiviSpecifici.map((o, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <input 
+                            type="checkbox" 
+                            className="mt-1 w-5 h-5 text-blue-600 rounded"
+                            onChange={(e) => {
+                              // TODO: Salvare stato checkbox nel DB
+                              console.log('Obiettivo specifico', i, 'checked:', e.target.checked);
+                            }}
+                          />
+                          <span>{o}</span>
+                        </li>
+                      ))}
                     </ul>
                   )
                 )}
@@ -312,8 +506,20 @@ export default function PatientPage() {
               esercizi.length === 0 ? (
                 <p className="text-gray-500">Nessun esercizio</p>
               ) : (
-                <ul className="list-disc pl-5 space-y-1">
-                  {esercizi.map((e, i) => <li key={i}>{e}</li>)}
+                <ul className="space-y-2">
+                  {esercizi.map((ex, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <input 
+                        type="checkbox" 
+                        className="mt-1 w-5 h-5 text-blue-600 rounded"
+                        onChange={(e) => {
+                          // TODO: Salvare stato checkbox nel DB
+                          console.log('Esercizio', i, 'checked:', e.target.checked);
+                        }}
+                      />
+                      <span>{ex}</span>
+                    </li>
+                  ))}
                 </ul>
               )
             )}
