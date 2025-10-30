@@ -1,16 +1,11 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 export default function Page() {
   const router = useRouter();
+  const supabase = getSupabaseBrowserClient();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -20,79 +15,119 @@ export default function Page() {
 
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      const user = u?.user;
-      if (!user) return router.replace("/login");
+      // Attendi un momento per dare tempo alla sessione di essere salvata
+      await new Promise(r => setTimeout(r, 500));
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('Nessun utente trovato, redirect a login');
+        return router.replace("/login");
+      }
 
       // carica eventuali dati già presenti
       const { data: rows, error } = await supabase
         .from("therapists")
         .select("full_name,address,vat_number,customer_code")
         .eq("user_id", user.id)
-        .limit(1);
+        .single();
 
-      if (error) setErr(error.message);
-      const t = rows?.[0];
-      if (t) {
-        setFullName(t.full_name ?? "");
-        setAddress(t.address ?? "");
-        setVat(t.vat_number ?? "");
-        setHasCode(!!t.customer_code);
+      if (error) {
+        console.error(error);
+        setErr("Errore nel caricamento dei dati");
+        setLoading(false);
+        return;
+      }
+
+      if (rows) {
+        setFullName(rows.full_name || "");
+        setAddress(rows.address || "");
+        setVat(rows.vat_number || "");
+        setHasCode(!!rows.customer_code);
       }
       setLoading(false);
     })();
-  }, [router]);
+  }, []);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
+
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const user = u?.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessione scaduta");
 
-      // aggiorna dati + genera customer_code se mancante
-      const { error } = await supabase.rpc("exec_onboarding_update", {
-        p_user_id: user.id,
-        p_full_name: fullName,
-        p_address: address,
-        p_vat: vat,
-      });
+      const { error } = await supabase
+        .from("therapists")
+        .update({
+          full_name: fullName,
+          address: address,
+          vat_number: vat,
+          onboarding_completed: true,
+        })
+        .eq("user_id", user.id);
+
       if (error) throw error;
 
-      router.replace("/app/therapist");
-    } catch (e:any) {
-      setErr(e?.message ?? "Errore salvataggio");
+      router.push("/app/therapist");
+    } catch (e: any) {
+      setErr(e?.message ?? "Errore nel salvataggio");
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) return <main style={{maxWidth:680,margin:"40px auto",padding:20}}>Caricamento…</main>;
+  if (loading) {
+    return (
+      <div style={{ maxWidth: 480, margin: "40px auto", padding: 20 }}>
+        <p>Caricamento...</p>
+      </div>
+    );
+  }
 
   return (
-    <main style={{maxWidth:680,margin:"40px auto",padding:20}}>
-      <h1>Onboarding Terapeuta</h1>
-      {!hasCode && <p style={{color:"#b45309",marginTop:8}}>Completa i dati: genereremo il tuo Codice Cliente.</p>}
-      {err && <p style={{color:"crimson"}}>{err}</p>}
-
-      <form onSubmit={handleSave} style={{display:"grid",gap:12,marginTop:16}}>
-        <label>Nome e Cognome
-          <input value={fullName} onChange={e=>setFullName(e.target.value)} required
-                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
+    <main style={{ maxWidth: 480, margin: "40px auto", padding: 20 }}>
+      <h1>Completa il tuo profilo</h1>
+      {hasCode && <p style={{ color: "green", fontSize: 14 }}>✓ Codice assegnato</p>}
+      <form onSubmit={handleSave} style={{ display: "grid", gap: 12, marginTop: 16 }}>
+        <label>
+          Nome completo
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            style={{ width: "100%", padding: 8, border: "1px solid #ccc", borderRadius: 6 }}
+          />
         </label>
-        <label>Indirizzo
-          <input value={address} onChange={e=>setAddress(e.target.value)}
-                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
+        <label>
+          Indirizzo
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+            style={{ width: "100%", padding: 8, border: "1px solid #ccc", borderRadius: 6 }}
+          />
         </label>
-        <label>Partita IVA
-          <input value={vat} onChange={e=>setVat(e.target.value)}
-                 style={{width:"100%",padding:8,border:"1px solid #ccc",borderRadius:6}} />
+        <label>
+          Partita IVA
+          <input
+            type="text"
+            value={vat}
+            onChange={(e) => setVat(e.target.value)}
+            required
+            style={{ width: "100%", padding: 8, border: "1px solid #ccc", borderRadius: 6 }}
+          />
         </label>
-
-        <button type="submit" style={{padding:"10px 14px",borderRadius:8,border:"1px solid #333"}}>
-          Salva e vai in Dashboard
+        {err && <p style={{ color: "crimson" }}>{err}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #333" }}
+        >
+          {loading ? "Salvataggio..." : "Salva e continua"}
         </button>
       </form>
     </main>
