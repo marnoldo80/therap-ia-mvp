@@ -1,10 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getSupabaseBrowserClient } from '@/lib/supabase-client';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Page() {
-  const supabase = getSupabaseBrowserClient();
   const [err, setErr] = useState<string|null>(null);
   const [therapist, setTherapist] = useState<{ display_name: string|null; address: string|null; vat_number: string|null; }|null>(null);
   const [allPatients, setAllPatients] = useState<any[]>([]);
@@ -15,15 +19,14 @@ export default function Page() {
 
   useEffect(() => {
     (async () => {
-      setErr(null); setLoading(true);
+      setErr(null); 
+      setLoading(true);
       
-      // Attendi 500ms per la sessione
       await new Promise(r => setTimeout(r, 500));
       
       const { data:{ user } } = await supabase.auth.getUser();
       if (!user) { setErr('Non autenticato'); setLoading(false); return; }
 
-      // Profilo
       {
         const { data, error } = await supabase
           .from('therapists')
@@ -34,7 +37,6 @@ export default function Page() {
         setTherapist(data || null);
       }
 
-      // Statistiche
       {
         const { count } = await supabase
           .from('patients')
@@ -56,7 +58,6 @@ export default function Page() {
         setWeekAppts(apptCount || 0);
       }
 
-      // Tutti i pazienti
       {
         const { data, error } = await supabase
           .from('patients')
@@ -67,7 +68,6 @@ export default function Page() {
         setAllPatients(data || []);
       }
 
-      // Prossimi appuntamenti
       {
         const { data, error } = await supabase
           .from('appointments')
@@ -109,7 +109,6 @@ export default function Page() {
 
       {err && <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-700">{err}</div>}
 
-      {/* Azioni rapide */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link 
           href="/app/therapist/pazienti/nuovo"
@@ -134,7 +133,6 @@ export default function Page() {
         </Link>
       </div>
 
-      {/* Statistiche */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="text-gray-500 text-sm font-medium">Pazienti totali</div>
@@ -148,9 +146,7 @@ export default function Page() {
 
       {loading && <div className="text-center py-8 text-gray-500">Caricamento...</div>}
 
-      {/* Contenuto principale */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Prossimi appuntamenti */}
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Prossimi appuntamenti</h2>
@@ -185,7 +181,6 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Lista pazienti */}
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">I tuoi pazienti</h2>
