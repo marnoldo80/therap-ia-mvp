@@ -21,30 +21,44 @@ function LoginTerapeutaContent() {
 
     try {
       if (mode === 'signup') {
+        console.log('Inizio registrazione...');
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { user_type: 'therapist' } }
         });
 
-        if (signUpError) throw signUpError;
-        if (!signUpData.user || !signUpData.session) throw new Error('Errore creazione account');
+        console.log('SignUp data:', signUpData);
+        console.log('SignUp error:', signUpError);
 
+        if (signUpError) throw signUpError;
+        if (!signUpData.user || !signUpData.session) {
+          console.error('Nessun user o session dopo signup');
+          throw new Error('Errore creazione account');
+        }
+
+        console.log('Inserisco in therapists...');
         const { error: insertError } = await supabase
           .from('therapists')
           .insert({ user_id: signUpData.user.id, onboarding_completed: false });
 
+        console.log('Insert error:', insertError);
         if (insertError) throw insertError;
 
+        console.log('Attendo 1.5s prima del redirect...');
         await new Promise(r => setTimeout(r, 1500));
+        
+        console.log('Faccio redirect a onboarding');
         window.location.href = '/app/therapist/onboarding';
         
       } else {
+        console.log('Inizio login...');
         const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
 
+        console.log('Login data:', loginData);
         if (loginError) throw loginError;
 
         const { data: therapist } = await supabase
@@ -53,15 +67,20 @@ function LoginTerapeutaContent() {
           .eq('user_id', loginData.user.id)
           .single();
 
+        console.log('Therapist:', therapist);
+
         if (!therapist) {
           await supabase.auth.signOut();
           throw new Error('Account non riconosciuto come terapeuta');
         }
 
         await new Promise(r => setTimeout(r, 1000));
-        window.location.href = therapist.onboarding_completed ? '/app/therapist' : '/app/therapist/onboarding';
+        const url = therapist.onboarding_completed ? '/app/therapist' : '/app/therapist/onboarding';
+        console.log('Redirect a:', url);
+        window.location.href = url;
       }
     } catch (err: any) {
+      console.error('Errore:', err);
       setError(err.message || 'Errore durante l\'autenticazione');
       setLoading(false);
     }
