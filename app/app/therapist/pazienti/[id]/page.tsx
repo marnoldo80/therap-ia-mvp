@@ -62,6 +62,21 @@ type AppointmentMessage = {
   read_by_therapist: boolean;
 };
 
+type ObjectiveCompletion = {
+  id: string;
+  objective_index: number;
+  objective_text: string;
+  completed: boolean;
+  objective_type: string;
+};
+
+type ExerciseCompletion = {
+  id: string;
+  exercise_index: number;
+  exercise_text: string;
+  completed: boolean;
+};
+
 export default function PatientPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -74,6 +89,8 @@ export default function PatientPage() {
   const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
   const [patientThoughts, setPatientThoughts] = useState<string>('');
   const [appointmentMessages, setAppointmentMessages] = useState<AppointmentMessage[]>([]);
+  const [objectivesCompletion, setObjectivesCompletion] = useState<ObjectiveCompletion[]>([]);
+  const [exercisesCompletion, setExercisesCompletion] = useState<ExerciseCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari' | 'area-paziente'>('piano');
   const [editMode, setEditMode] = useState(false);
@@ -173,6 +190,20 @@ export default function PatientPage() {
         .order('created_at', { ascending: false });
       setAppointmentMessages(messagesData || []);
 
+      // Carica stato obiettivi
+      const { data: objData } = await supabase
+        .from('objectives_completion')
+        .select('*')
+        .eq('patient_id', id);
+      setObjectivesCompletion(objData || []);
+
+      // Carica stato esercizi
+      const { data: exData } = await supabase
+        .from('exercises_completion')
+        .select('*')
+        .eq('patient_id', id);
+      setExercisesCompletion(exData || []);
+
     } catch (e) {
       console.error('Errore:', e);
     } finally {
@@ -202,8 +233,90 @@ export default function PatientPage() {
         await supabase.from('therapy_plan').insert(planData);
       }
 
+      // Sincronizza obiettivi nelle tabelle completion
+      await syncObjectivesCompletion();
+      await syncExercisesCompletion();
+
       alert('✅ Piano salvato!');
       setEditMode(false);
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
+  }
+
+  async function syncObjectivesCompletion() {
+    // Elimina vecchi obiettivi
+    await supabase.from('objectives_completion').delete().eq('patient_id', id);
+
+    // Crea nuovi record per obiettivi generali
+    const generalObjs = obiettiviGenerali.map((text, index) => ({
+      patient_id: id,
+      objective_type: 'generale',
+      objective_index: index,
+      objective_text: text,
+      completed: false
+    }));
+
+    // Crea nuovi record per obiettivi specifici
+    const specificObjs = obiettiviSpecifici.map((text, index) => ({
+      patient_id: id,
+      objective_type: 'specifico',
+      objective_index: index,
+      objective_text: text,
+      completed: false
+    }));
+
+    if (generalObjs.length > 0 || specificObjs.length > 0) {
+      await supabase.from('objectives_completion').insert([...generalObjs, ...specificObjs]);
+    }
+  }
+
+  async function syncExercisesCompletion() {
+    // Elimina vecchi esercizi
+    await supabase.from('exercises_completion').delete().eq('patient_id', id);
+
+    // Crea nuovi record per esercizi
+    const exs = esercizi.map((text, index) => ({
+      patient_id: id,
+      exercise_index: index,
+      exercise_text: text,
+      completed: false
+    }));
+
+    if (exs.length > 0) {
+      await supabase.from('exercises_completion').insert(exs);
+    }
+  }
+
+  async function toggleObjectiveCompletion(objId: string, currentCompleted: boolean) {
+    try {
+      const { error } = await supabase
+        .from('objectives_completion')
+        .update({ 
+          completed: !currentCompleted,
+          completed_at: !currentCompleted ? new Date().toISOString() : null
+        })
+        .eq('id', objId);
+
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
+  }
+
+  async function toggleExerciseCompletion(exId: string, currentCompleted: boolean) {
+    try {
+      const { error } = await supabase
+        .from('exercises_completion')
+        .update({ 
+          completed: !currentCompleted,
+          completed_at: !currentCompleted ? new Date().toISOString() : null
+        })
+        .eq('id', exId);
+
+      if (error) throw error;
       loadData();
     } catch (e: any) {
       alert('Errore: ' + e.message);
@@ -260,8 +373,21 @@ export default function PatientPage() {
     }
   }
 
+  function getObjectiveCompletion(type: string, index: number) {
+    return objectivesCompletion.find(
+      o => o.objective_type === type && o.objective_index === index
+    );
+  }
+
+  function getExerciseCompletion(index: number) {
+    return exercisesCompletion.find(e => e.exercise_index === index);
+  }
+
   if (loading) return <div className="max-w-6xl mx-auto p-6">Caricamento...</div>;
   if (!patient) return <div className="max-w-6xl mx-auto p-6">Paziente non trovato</div>;
+
+  const unreadMessages = appointmentMessages.filter(m => !m.read_by_therapist).length;
+  const hasNotifications = patientThoughts || unreadMessages > 0;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -278,336 +404,4 @@ export default function PatientPage() {
           <div>🆔 {patient.fiscal_code || 'Nessun codice fiscale'}</div>
         </div>
         <div className="flex gap-3 mt-4">
-          <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">🔐 Invita paziente</button>
-          <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">📅 Nuovo appuntamento</Link>
-        </div>
-      </div>
-
-      <div className="flex gap-2 border-b overflow-x-auto">
-        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Piano Terapeutico</button>
-        <button onClick={() => setActiveTab('area-paziente')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'area-paziente' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
-          👤 Area Paziente
-          {(patientThoughts || appointmentMessages.some(m => !m.read_by_therapist)) && (
-            <span className="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">!</span>
-          )}
-        </button>
-        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Sedute & IA</button>
-        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Questionari</button>
-      </div>
-
-      {/* TAB: Area Paziente */}
-      {activeTab === 'area-paziente' && (
-        <div className="space-y-6">
-          
-          {/* Pensieri per la prossima seduta */}
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <span>💭</span> Pensieri del paziente per la prossima seduta
-              </h3>
-              {patientThoughts && (
-                <button
-                  onClick={clearPatientThoughts}
-                  className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                >
-                  ✅ Seduta completata (svuota)
-                </button>
-              )}
-            </div>
-            {!patientThoughts ? (
-              <p className="text-gray-500 text-sm">Il paziente non ha ancora scritto pensieri per la prossima seduta.</p>
-            ) : (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="whitespace-pre-wrap text-gray-800">{patientThoughts}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Messaggi sugli appuntamenti */}
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <span>📨</span> Messaggi del paziente sugli appuntamenti
-            </h3>
-            {appointmentMessages.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessun messaggio ricevuto.</p>
-            ) : (
-              <div className="space-y-3">
-                {appointmentMessages.map(msg => (
-                  <div 
-                    key={msg.id} 
-                    className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-300 bg-gray-50' : 'border-orange-500 bg-orange-50'}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs text-gray-600">
-                        {new Date(msg.created_at).toLocaleString('it-IT')}
-                      </div>
-                      {!msg.read_by_therapist && (
-                        <button
-                          onClick={() => markMessageAsRead(msg.id)}
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Segna come letto
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-gray-800">{msg.message}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Diario del paziente */}
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <span>📔</span> Diario del paziente
-            </h3>
-            {patientNotes.length === 0 ? (
-              <p className="text-gray-500 text-sm">Il paziente non ha ancora scritto note nel diario.</p>
-            ) : (
-              <div className="space-y-4">
-                {patientNotes.map(note => (
-                  <div key={note.id} className="border-l-4 border-emerald-500 pl-4 py-3 bg-gray-50 rounded">
-                    <div className="text-sm font-medium text-gray-600 mb-1">
-                      {new Date(note.note_date).toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </div>
-                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
-      )}
-
-      {activeTab === 'piano' && (
-        <div className="space-y-6">
-          <div className="flex justify-end">
-            {editMode ? (
-              <>
-                <button onClick={savePlan} className="bg-green-600 text-white px-4 py-2 rounded mr-2 hover:bg-green-700">💾 Salva</button>
-                <button onClick={() => setEditMode(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Annulla</button>
-              </>
-            ) : (
-              <button onClick={() => setEditMode(true)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">✏️ Modifica</button>
-            )}
-          </div>
-
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">🎯 VALUTAZIONE (Anamnesi e psicodiagnosi)</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block font-medium mb-2">Anamnesi:</label>
-                {editMode ? (
-                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={anamnesi} onChange={e => setAnamnesi(e.target.value)} />
-                ) : (
-                  <p className="text-gray-700 whitespace-pre-wrap">{anamnesi || 'Nessuna informazione'}</p>
-                )}
-              </div>
-              <div>
-                <label className="block font-medium mb-2">Valutazione psicodiagnostica:</label>
-                {editMode ? (
-                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={valutazionePsico} onChange={e => setValutazionePsico(e.target.value)} />
-                ) : (
-                  <p className="text-gray-700 whitespace-pre-wrap">{valutazionePsico || 'Nessuna informazione'}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">📝 FORMULAZIONE DEL CASO</h3>
-            {editMode ? (
-              <textarea className="w-full border rounded p-3 min-h-[120px]" value={formulazioneCaso} onChange={e => setFormulazioneCaso(e.target.value)} />
-            ) : (
-              <p className="text-gray-700 whitespace-pre-wrap">{formulazioneCaso || 'Nessuna informazione'}</p>
-            )}
-          </div>
-
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">🎯 CONTRATTO TERAPEUTICO E OBIETTIVI</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block font-medium mb-2">Obiettivi generali:</label>
-                {editMode ? (
-                  <textarea 
-                    className="w-full border rounded p-3 min-h-[100px]" 
-                    value={obiettiviGenerali.join('\n')} 
-                    onChange={e => setObiettiviGenerali(e.target.value.split('\n').filter(o => o.trim()))} 
-                    placeholder="Inserisci un obiettivo per riga"
-                  />
-                ) : (
-                  obiettiviGenerali.length === 0 ? (
-                    <p className="text-gray-500">Nessun obiettivo generale</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {obiettiviGenerali.map((o, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <input 
-                            type="checkbox" 
-                            className="mt-1 w-5 h-5 text-blue-600 rounded"
-                            onChange={(e) => {
-                              // TODO: Salvare stato checkbox nel DB
-                              console.log('Obiettivo', i, 'checked:', e.target.checked);
-                            }}
-                          />
-                          <span>{o}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                )}
-              </div>
-              <div>
-                <label className="block font-medium mb-2">Obiettivi specifici:</label>
-                {editMode ? (
-                  <textarea 
-                    className="w-full border rounded p-3 min-h-[100px]" 
-                    value={obiettiviSpecifici.join('\n')} 
-                    onChange={e => setObiettiviSpecifici(e.target.value.split('\n').filter(o => o.trim()))} 
-                    placeholder="Inserisci un obiettivo per riga"
-                  />
-                ) : (
-                  obiettiviSpecifici.length === 0 ? (
-                    <p className="text-gray-500">Nessun obiettivo specifico</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {obiettiviSpecifici.map((o, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <input 
-                            type="checkbox" 
-                            className="mt-1 w-5 h-5 text-blue-600 rounded"
-                            onChange={(e) => {
-                              // TODO: Salvare stato checkbox nel DB
-                              console.log('Obiettivo specifico', i, 'checked:', e.target.checked);
-                            }}
-                          />
-                          <span>{o}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">💪 ESERCIZI</h3>
-            {editMode ? (
-              <textarea 
-                className="w-full border rounded p-3 min-h-[120px]" 
-                value={esercizi.join('\n')} 
-                onChange={e => setEsercizi(e.target.value.split('\n').filter(e => e.trim()))} 
-                placeholder="Inserisci un esercizio per riga"
-              />
-            ) : (
-              esercizi.length === 0 ? (
-                <p className="text-gray-500">Nessun esercizio</p>
-              ) : (
-                <ul className="space-y-2">
-                  {esercizi.map((ex, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <input 
-                        type="checkbox" 
-                        className="mt-1 w-5 h-5 text-blue-600 rounded"
-                        onChange={(e) => {
-                          // TODO: Salvare stato checkbox nel DB
-                          console.log('Esercizio', i, 'checked:', e.target.checked);
-                        }}
-                      />
-                      <span>{ex}</span>
-                    </li>
-                  ))}
-                </ul>
-              )
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'sedute' && (
-        <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">📝 Sedute e Riassunti IA</h3>
-              <Link 
-                href={`/app/therapist/sedute/nuovo?patientId=${id}`}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                + Nuova Nota
-              </Link>
-            </div>
-            {sessionNotes.length === 0 ? (
-              <p className="text-gray-500">Nessuna seduta registrata</p>
-            ) : (
-              <div className="space-y-3">
-                {sessionNotes.map(note => (
-                  <Link
-                    key={note.id}
-                    href={`/app/therapist/sedute/${note.id}`}
-                    className="block border rounded p-4 hover:bg-gray-50 transition"
-                  >
-                    <div className="font-medium">📅 {new Date(note.session_date).toLocaleDateString('it-IT')}</div>
-                    {note.ai_summary && <div className="text-sm text-gray-600 mt-1">🤖 Riassunto IA disponibile</div>}
-                    {note.notes && (
-                      <div className="text-sm text-gray-600 mt-2 line-clamp-2">
-                        {note.notes.substring(0, 100)}...
-                      </div>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">📅 Prossimi Appuntamenti</h3>
-            {appointments.length === 0 ? (
-              <p className="text-gray-500">Nessun appuntamento programmato</p>
-            ) : (
-              <div className="space-y-2">
-                {appointments.map(apt => (
-                  <div key={apt.id} className="border rounded p-3">
-                    {new Date(apt.starts_at).toLocaleString('it-IT')} - {apt.title}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'questionari' && (
-        <div className="bg-white border rounded-lg p-6">
-          <h3 className="font-bold text-lg mb-3">📊 Questionari Realizzati</h3>
-          {gad7Results.length === 0 ? (
-            <p className="text-gray-500">Nessun questionario compilato</p>
-          ) : (
-            <div className="space-y-3">
-              {gad7Results.map(result => (
-                <div key={result.id} className="border rounded p-4 flex items-center justify-between">
-                  <div>
-                    <span className="font-medium">GAD-7</span> | Score: {result.total} | 
-                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                      result.severity === 'minima' ? 'bg-green-100 text-green-700' :
-                      result.severity === 'lieve' ? 'bg-blue-100 text-blue-700' :
-                      result.severity === 'moderata' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {result.severity}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {new Date(result.created_at).toLocaleDateString('it-IT')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+          <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">
