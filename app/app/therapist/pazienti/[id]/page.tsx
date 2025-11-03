@@ -62,6 +62,23 @@ type AppointmentMessage = {
   read_by_therapist: boolean;
 };
 
+type ObjectiveCompletion = {
+  id: string;
+  objective_index: number;
+  objective_text: string;
+  completed: boolean;
+  objective_type: string;
+  completed_at: string | null;
+};
+
+type ExerciseCompletion = {
+  id: string;
+  exercise_index: number;
+  exercise_text: string;
+  completed: boolean;
+  completed_at: string | null;
+};
+
 export default function PatientPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -74,11 +91,12 @@ export default function PatientPage() {
   const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
   const [patientThoughts, setPatientThoughts] = useState<string>('');
   const [appointmentMessages, setAppointmentMessages] = useState<AppointmentMessage[]>([]);
+  const [objectivesCompletion, setObjectivesCompletion] = useState<ObjectiveCompletion[]>([]);
+  const [exercisesCompletion, setExercisesCompletion] = useState<ExerciseCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'piano' | 'sedute' | 'questionari' | 'area-paziente'>('piano');
   const [editMode, setEditMode] = useState(false);
 
-  // Form states
   const [anamnesi, setAnamnesi] = useState('');
   const [valutazionePsico, setValutazionePsico] = useState('');
   const [formulazioneCaso, setFormulazioneCaso] = useState('');
@@ -99,18 +117,10 @@ export default function PatientPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: patientData } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
       setPatient(patientData);
 
-      const { data: planData } = await supabase
-        .from('therapy_plan')
-        .select('*')
-        .eq('patient_id', id)
-        .maybeSingle();
+      const { data: planData } = await supabase.from('therapy_plan').select('*').eq('patient_id', id).maybeSingle();
       
       if (planData) {
         setTherapyPlan(planData);
@@ -122,56 +132,29 @@ export default function PatientPage() {
         setEsercizi(planData.esercizi || []);
       }
 
-      const { data: notesData } = await supabase
-        .from('session_notes')
-        .select('*')
-        .eq('patient_id', id)
-        .order('session_date', { ascending: false })
-        .limit(5);
+      const { data: notesData } = await supabase.from('session_notes').select('*').eq('patient_id', id).order('session_date', { ascending: false }).limit(5);
       setSessionNotes(notesData || []);
 
-      const { data: gad7Data } = await supabase
-        .from('gad7_results')
-        .select('id, total, severity, created_at')
-        .eq('patient_id', id)
-        .order('created_at', { ascending: false });
+      const { data: gad7Data } = await supabase.from('gad7_results').select('id, total, severity, created_at').eq('patient_id', id).order('created_at', { ascending: false });
       setGad7Results(gad7Data || []);
 
-      const { data: apptsData } = await supabase
-        .from('appointments')
-        .select('id, title, starts_at')
-        .eq('patient_id', id)
-        .gte('starts_at', new Date().toISOString())
-        .order('starts_at', { ascending: true })
-        .limit(3);
+      const { data: apptsData } = await supabase.from('appointments').select('id, title, starts_at').eq('patient_id', id).gte('starts_at', new Date().toISOString()).order('starts_at', { ascending: true }).limit(3);
       setAppointments(apptsData || []);
 
-      // Carica pensieri del paziente
-      const { data: thoughtsData } = await supabase
-        .from('patient_session_thoughts')
-        .select('content')
-        .eq('patient_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: thoughtsData } = await supabase.from('patient_session_thoughts').select('content').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
       setPatientThoughts(thoughtsData?.content || '');
 
-      // Carica note diario paziente
-      const { data: diaryData } = await supabase
-        .from('patient_notes')
-        .select('*')
-        .eq('patient_id', id)
-        .order('note_date', { ascending: false })
-        .limit(10);
+      const { data: diaryData } = await supabase.from('patient_notes').select('*').eq('patient_id', id).order('note_date', { ascending: false }).limit(10);
       setPatientNotes(diaryData || []);
 
-      // Carica messaggi appuntamenti
-      const { data: messagesData } = await supabase
-        .from('appointment_messages')
-        .select('*')
-        .eq('patient_id', id)
-        .order('created_at', { ascending: false });
+      const { data: messagesData } = await supabase.from('appointment_messages').select('*').eq('patient_id', id).order('created_at', { ascending: false });
       setAppointmentMessages(messagesData || []);
+
+      const { data: objData } = await supabase.from('objectives_completion').select('*').eq('patient_id', id);
+      setObjectivesCompletion(objData || []);
+
+      const { data: exData } = await supabase.from('exercises_completion').select('*').eq('patient_id', id);
+      setExercisesCompletion(exData || []);
 
     } catch (e) {
       console.error('Errore:', e);
@@ -202,6 +185,9 @@ export default function PatientPage() {
         await supabase.from('therapy_plan').insert(planData);
       }
 
+      await syncObjectivesCompletion();
+      await syncExercisesCompletion();
+
       alert('✅ Piano salvato!');
       setEditMode(false);
       loadData();
@@ -210,17 +196,48 @@ export default function PatientPage() {
     }
   }
 
+  async function syncObjectivesCompletion() {
+    await supabase.from('objectives_completion').delete().eq('patient_id', id);
+    const generalObjs = obiettiviGenerali.map((text, index) => ({ patient_id: id, objective_type: 'generale', objective_index: index, objective_text: text, completed: false }));
+    const specificObjs = obiettiviSpecifici.map((text, index) => ({ patient_id: id, objective_type: 'specifico', objective_index: index, objective_text: text, completed: false }));
+    if (generalObjs.length > 0 || specificObjs.length > 0) {
+      await supabase.from('objectives_completion').insert([...generalObjs, ...specificObjs]);
+    }
+  }
+
+  async function syncExercisesCompletion() {
+    await supabase.from('exercises_completion').delete().eq('patient_id', id);
+    const exs = esercizi.map((text, index) => ({ patient_id: id, exercise_index: index, exercise_text: text, completed: false }));
+    if (exs.length > 0) {
+      await supabase.from('exercises_completion').insert(exs);
+    }
+  }
+
+  async function toggleObjectiveCompletion(objId: string, currentCompleted: boolean) {
+    try {
+      const { error } = await supabase.from('objectives_completion').update({ completed: !currentCompleted, completed_at: !currentCompleted ? new Date().toISOString() : null }).eq('id', objId);
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
+  }
+
+  async function toggleExerciseCompletion(exId: string, currentCompleted: boolean) {
+    try {
+      const { error } = await supabase.from('exercises_completion').update({ completed: !currentCompleted, completed_at: !currentCompleted ? new Date().toISOString() : null }).eq('id', exId);
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
+  }
+
   async function clearPatientThoughts() {
     if (!confirm('Vuoi svuotare i pensieri del paziente? (Seduta completata)')) return;
-    
     try {
-      const { error } = await supabase
-        .from('patient_session_thoughts')
-        .delete()
-        .eq('patient_id', id);
-
+      const { error } = await supabase.from('patient_session_thoughts').delete().eq('patient_id', id);
       if (error) throw error;
-
       alert('✅ Pensieri svuotati!');
       loadData();
     } catch (e: any) {
@@ -230,11 +247,7 @@ export default function PatientPage() {
 
   async function markMessageAsRead(messageId: string) {
     try {
-      const { error } = await supabase
-        .from('appointment_messages')
-        .update({ read_by_therapist: true })
-        .eq('id', messageId);
-
+      const { error } = await supabase.from('appointment_messages').update({ read_by_therapist: true }).eq('id', messageId);
       if (error) throw error;
       loadData();
     } catch (e: any) {
@@ -248,11 +261,7 @@ export default function PatientPage() {
       return;
     }
     try {
-      const res = await fetch('/api/invite-patient', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: patient.email, patientId: id })
-      });
+      const res = await fetch('/api/invite-patient', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: patient.email, patientId: id }) });
       if (!res.ok) throw new Error('Errore invio');
       alert('✅ Email inviata!');
     } catch (e: any) {
@@ -260,8 +269,18 @@ export default function PatientPage() {
     }
   }
 
+  function getObjectiveCompletion(type: string, index: number) {
+    return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
+  }
+
+  function getExerciseCompletion(index: number) {
+    return exercisesCompletion.find(e => e.exercise_index === index);
+  }
+
   if (loading) return <div className="max-w-6xl mx-auto p-6">Caricamento...</div>;
   if (!patient) return <div className="max-w-6xl mx-auto p-6">Paziente non trovato</div>;
+
+  const unreadMessages = appointmentMessages.filter(m => !m.read_by_therapist).length;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -287,29 +306,23 @@ export default function PatientPage() {
         <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Piano Terapeutico</button>
         <button onClick={() => setActiveTab('area-paziente')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'area-paziente' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
           👤 Area Paziente
-          {(patientThoughts || appointmentMessages.some(m => !m.read_by_therapist)) && (
-            <span className="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">!</span>
+          {(patientThoughts || unreadMessages > 0) && (
+            <span className="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadMessages}</span>
           )}
         </button>
         <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Sedute & IA</button>
         <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Questionari</button>
       </div>
 
-      {/* TAB: Area Paziente */}
       {activeTab === 'area-paziente' && (
         <div className="space-y-6">
-          
-          {/* Pensieri per la prossima seduta */}
           <div className="bg-white border rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <span>💭</span> Pensieri del paziente per la prossima seduta
               </h3>
               {patientThoughts && (
-                <button
-                  onClick={clearPatientThoughts}
-                  className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                >
+                <button onClick={clearPatientThoughts} className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
                   ✅ Seduta completata (svuota)
                 </button>
               )}
@@ -323,30 +336,24 @@ export default function PatientPage() {
             )}
           </div>
 
-          {/* Messaggi sugli appuntamenti */}
           <div className="bg-white border rounded-lg p-6 shadow-sm">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
               <span>📨</span> Messaggi del paziente sugli appuntamenti
+              {unreadMessages > 0 && (
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{unreadMessages} nuovi</span>
+              )}
             </h3>
             {appointmentMessages.length === 0 ? (
               <p className="text-gray-500 text-sm">Nessun messaggio ricevuto.</p>
             ) : (
               <div className="space-y-3">
                 {appointmentMessages.map(msg => (
-                  <div 
-                    key={msg.id} 
-                    className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-300 bg-gray-50' : 'border-orange-500 bg-orange-50'}`}
-                  >
+                  <div key={msg.id} className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-300 bg-gray-50' : 'border-orange-500 bg-orange-50'}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs text-gray-600">
-                        {new Date(msg.created_at).toLocaleString('it-IT')}
-                      </div>
+                      <div className="text-xs text-gray-600">{new Date(msg.created_at).toLocaleString('it-IT')}</div>
                       {!msg.read_by_therapist && (
-                        <button
-                          onClick={() => markMessageAsRead(msg.id)}
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Segna come letto
+                        <button onClick={() => markMessageAsRead(msg.id)} className="text-xs text-blue-600 hover:text-blue-700">
+                          ✓ Segna come letto
                         </button>
                       )}
                     </div>
@@ -357,7 +364,6 @@ export default function PatientPage() {
             )}
           </div>
 
-          {/* Diario del paziente */}
           <div className="bg-white border rounded-lg p-6 shadow-sm">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
               <span>📔</span> Diario del paziente
@@ -377,7 +383,6 @@ export default function PatientPage() {
               </div>
             )}
           </div>
-
         </div>
       )}
 
@@ -431,30 +436,21 @@ export default function PatientPage() {
               <div>
                 <label className="block font-medium mb-2">Obiettivi generali:</label>
                 {editMode ? (
-                  <textarea 
-                    className="w-full border rounded p-3 min-h-[100px]" 
-                    value={obiettiviGenerali.join('\n')} 
-                    onChange={e => setObiettiviGenerali(e.target.value.split('\n').filter(o => o.trim()))} 
-                    placeholder="Inserisci un obiettivo per riga"
-                  />
+                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={obiettiviGenerali.join('\n')} onChange={e => setObiettiviGenerali(e.target.value.split('\n').filter(o => o.trim()))} placeholder="Inserisci un obiettivo per riga" />
                 ) : (
                   obiettiviGenerali.length === 0 ? (
                     <p className="text-gray-500">Nessun obiettivo generale</p>
                   ) : (
                     <ul className="space-y-2">
-                      {obiettiviGenerali.map((o, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <input 
-                            type="checkbox" 
-                            className="mt-1 w-5 h-5 text-blue-600 rounded"
-                            onChange={(e) => {
-                              // TODO: Salvare stato checkbox nel DB
-                              console.log('Obiettivo', i, 'checked:', e.target.checked);
-                            }}
-                          />
-                          <span>{o}</span>
-                        </li>
-                      ))}
+                      {obiettiviGenerali.map((o, i) => {
+                        const completion = getObjectiveCompletion('generale', i);
+                        return (
+                          <li key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+                            <input type="checkbox" checked={completion?.completed || false} onChange={() => completion && toggleObjectiveCompletion(completion.id, completion.completed)} className="mt-1 w-5 h-5 text-blue-600 rounded" />
+                            <span className={completion?.completed ? 'line-through text-gray-400' : ''}>{o}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )
                 )}
@@ -462,30 +458,21 @@ export default function PatientPage() {
               <div>
                 <label className="block font-medium mb-2">Obiettivi specifici:</label>
                 {editMode ? (
-                  <textarea 
-                    className="w-full border rounded p-3 min-h-[100px]" 
-                    value={obiettiviSpecifici.join('\n')} 
-                    onChange={e => setObiettiviSpecifici(e.target.value.split('\n').filter(o => o.trim()))} 
-                    placeholder="Inserisci un obiettivo per riga"
-                  />
+                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={obiettiviSpecifici.join('\n')} onChange={e => setObiettiviSpecifici(e.target.value.split('\n').filter(o => o.trim()))} placeholder="Inserisci un obiettivo per riga" />
                 ) : (
                   obiettiviSpecifici.length === 0 ? (
                     <p className="text-gray-500">Nessun obiettivo specifico</p>
                   ) : (
                     <ul className="space-y-2">
-                      {obiettiviSpecifici.map((o, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <input 
-                            type="checkbox" 
-                            className="mt-1 w-5 h-5 text-blue-600 rounded"
-                            onChange={(e) => {
-                              // TODO: Salvare stato checkbox nel DB
-                              console.log('Obiettivo specifico', i, 'checked:', e.target.checked);
-                            }}
-                          />
-                          <span>{o}</span>
-                        </li>
-                      ))}
+                      {obiettiviSpecifici.map((o, i) => {
+                        const completion = getObjectiveCompletion('specifico', i);
+                        return (
+                          <li key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+                            <input type="checkbox" checked={completion?.completed || false} onChange={() => completion && toggleObjectiveCompletion(completion.id, completion.completed)} className="mt-1 w-5 h-5 text-blue-600 rounded" />
+                            <span className={completion?.completed ? 'line-through text-gray-400' : ''}>{o}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )
                 )}
@@ -496,30 +483,24 @@ export default function PatientPage() {
           <div className="bg-white border rounded-lg p-6">
             <h3 className="font-bold text-lg mb-3">💪 ESERCIZI</h3>
             {editMode ? (
-              <textarea 
-                className="w-full border rounded p-3 min-h-[120px]" 
-                value={esercizi.join('\n')} 
-                onChange={e => setEsercizi(e.target.value.split('\n').filter(e => e.trim()))} 
-                placeholder="Inserisci un esercizio per riga"
-              />
+              <textarea className="w-full border rounded p-3 min-h-[120px]" value={esercizi.join('\n')} onChange={e => setEsercizi(e.target.value.split('\n').filter(e => e.trim()))} placeholder="Inserisci un esercizio per riga" />
             ) : (
               esercizi.length === 0 ? (
                 <p className="text-gray-500">Nessun esercizio</p>
               ) : (
                 <ul className="space-y-2">
-                  {esercizi.map((ex, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <input 
-                        type="checkbox" 
-                        className="mt-1 w-5 h-5 text-blue-600 rounded"
-                        onChange={(e) => {
-                          // TODO: Salvare stato checkbox nel DB
-                          console.log('Esercizio', i, 'checked:', e.target.checked);
-                        }}
-                      />
-                      <span>{ex}</span>
-                    </li>
-                  ))}
+                  {esercizi.map((ex, i) => {
+                    const completion = getExerciseCompletion(i);
+                    return (
+                      <li key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+                        <input type="checkbox" checked={completion?.completed || false} onChange={() => completion && toggleExerciseCompletion(completion.id, completion.completed)} className="mt-1 w-5 h-5 text-emerald-600 rounded" />
+                        <span className={completion?.completed ? 'line-through text-gray-400' : ''}>{ex}</span>
+                        {completion?.completed && completion.completed_at && (
+                          <span className="text-xs text-gray-500 ml-auto">✓ {new Date(completion.completed_at).toLocaleDateString('it-IT')}</span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )
             )}
@@ -532,29 +513,18 @@ export default function PatientPage() {
           <div className="bg-white border rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">📝 Sedute e Riassunti IA</h3>
-              <Link 
-                href={`/app/therapist/sedute/nuovo?patientId=${id}`}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                + Nuova Nota
-              </Link>
+              <Link href={`/app/therapist/sedute/nuovo?patientId=${id}`} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">+ Nuova Nota</Link>
             </div>
             {sessionNotes.length === 0 ? (
               <p className="text-gray-500">Nessuna seduta registrata</p>
             ) : (
               <div className="space-y-3">
                 {sessionNotes.map(note => (
-                  <Link
-                    key={note.id}
-                    href={`/app/therapist/sedute/${note.id}`}
-                    className="block border rounded p-4 hover:bg-gray-50 transition"
-                  >
+                  <Link key={note.id} href={`/app/therapist/sedute/${note.id}`} className="block border rounded p-4 hover:bg-gray-50 transition">
                     <div className="font-medium">📅 {new Date(note.session_date).toLocaleDateString('it-IT')}</div>
                     {note.ai_summary && <div className="text-sm text-gray-600 mt-1">🤖 Riassunto IA disponibile</div>}
                     {note.notes && (
-                      <div className="text-sm text-gray-600 mt-2 line-clamp-2">
-                        {note.notes.substring(0, 100)}...
-                      </div>
+                      <div className="text-sm text-gray-600 mt-2 line-clamp-2">{note.notes.substring(0, 100)}...</div>
                     )}
                   </Link>
                 ))}
@@ -569,9 +539,7 @@ export default function PatientPage() {
             ) : (
               <div className="space-y-2">
                 {appointments.map(apt => (
-                  <div key={apt.id} className="border rounded p-3">
-                    {new Date(apt.starts_at).toLocaleString('it-IT')} - {apt.title}
-                  </div>
+                  <div key={apt.id} className="border rounded p-3">{new Date(apt.starts_at).toLocaleString('it-IT')} - {apt.title}</div>
                 ))}
               </div>
             )}
@@ -590,18 +558,11 @@ export default function PatientPage() {
                 <div key={result.id} className="border rounded p-4 flex items-center justify-between">
                   <div>
                     <span className="font-medium">GAD-7</span> | Score: {result.total} | 
-                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                      result.severity === 'minima' ? 'bg-green-100 text-green-700' :
-                      result.severity === 'lieve' ? 'bg-blue-100 text-blue-700' :
-                      result.severity === 'moderata' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
+                    <span className={`ml-2 px-2 py-1 rounded text-xs ${result.severity === 'minima' ? 'bg-green-100 text-green-700' : result.severity === 'lieve' ? 'bg-blue-100 text-blue-700' : result.severity === 'moderata' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                       {result.severity}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {new Date(result.created_at).toLocaleDateString('it-IT')}
-                  </div>
+                  <div className="text-sm text-gray-600">{new Date(result.created_at).toLocaleDateString('it-IT')}</div>
                 </div>
               ))}
             </div>
