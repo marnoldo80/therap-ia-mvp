@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+import AISuggestionsModal from '@/components/AISuggestionsModal';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,6 +80,13 @@ type ExerciseCompletion = {
   completed_at: string | null;
 };
 
+type Suggestions = {
+  obiettivi_generali: string[];
+  obiettivi_specifici: string[];
+  esercizi: string[];
+  note: string;
+};
+
 export default function PatientPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -103,7 +111,11 @@ export default function PatientPage() {
   const [obiettiviGenerali, setObiettiviGenerali] = useState<string[]>([]);
   const [obiettiviSpecifici, setObiettiviSpecifici] = useState<string[]>([]);
   const [esercizi, setEsercizi] = useState<string[]>([]);
-
+  
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<Suggestions | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  
   useEffect(() => {
     if (!id) return;
     loadData();
@@ -269,6 +281,39 @@ export default function PatientPage() {
     }
   }
 
+  async function getSuggestions() {
+    setAiLoading(true);
+    setShowAIModal(true);
+    setAiSuggestions(null);
+
+    try {
+      const res = await fetch('/api/suggest-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: id }),
+      });
+
+      if (!res.ok) throw new Error('Errore generazione suggerimenti');
+
+      const data = await res.json();
+      setAiSuggestions(data.suggestions);
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+      setShowAIModal(false);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function applySuggestions(suggestions: Suggestions) {
+    setObiettiviGenerali(suggestions.obiettivi_generali);
+    setObiettiviSpecifici(suggestions.obiettivi_specifici);
+    setEsercizi(suggestions.esercizi);
+    setShowAIModal(false);
+    setEditMode(true);
+    alert('✅ Suggerimenti applicati! Rivedi e salva il piano.');
+  }
+  
   function getObjectiveCompletion(type: string, index: number) {
     return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
   }
