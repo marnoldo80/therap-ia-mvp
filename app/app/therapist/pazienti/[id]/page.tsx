@@ -433,7 +433,15 @@ export default function PatientPage() {
 
       {activeTab === 'piano' && (
         <div className="space-y-6">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {!editMode && (
+              <button 
+                onClick={getSuggestions} 
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded hover:from-purple-700 hover:to-blue-700 flex items-center gap-2"
+              >
+                ✨ Suggerisci con IA
+              </button>
+            )}
             {editMode ? (
               <>
                 <button onClick={savePlan} className="bg-green-600 text-white px-4 py-2 rounded mr-2 hover:bg-green-700">💾 Salva</button>
@@ -614,6 +622,14 @@ export default function PatientPage() {
           )}
         </div>
       )}
+   <AISuggestionsModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        suggestions={aiSuggestions}
+        onApply={applySuggestions}
+        isLoading={aiLoading}
+      />
     </div>
   );
 }
+  
