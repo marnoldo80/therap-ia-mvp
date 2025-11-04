@@ -89,7 +89,7 @@ export default function Page() {
       const { data: p, error: pe } = await supabase
         .from('patients')
         .select('id, display_name, email, phone, address, fiscal_code, goals, issues')
-        .eq('patient_user_id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (pe || !p) {
