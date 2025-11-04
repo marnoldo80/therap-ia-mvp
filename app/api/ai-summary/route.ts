@@ -54,8 +54,16 @@ Sii conciso ma completo. Usa linguaggio clinico professionale.`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Errore Groq:', errorText);
-      return NextResponse.json({ error: 'Errore generazione riassunto' }, { status: 500 });
+      console.error('Errore Groq completo:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return NextResponse.json({ 
+        error: 'Errore generazione riassunto', 
+        details: errorText,
+        status: response.status 
+      }, { status: 500 });
     }
 
     const data = await response.json();
