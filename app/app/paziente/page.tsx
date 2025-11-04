@@ -139,13 +139,18 @@ export default function Page() {
         .order('objective_index', { ascending: true });
       setObjectivesCompletion(objData || []);
 
-      const { data: exData } = await supabase
-        .from('exercises_completion')
-        .select('*')
-        .eq('patient_id', p.id)
-        .order('exercise_index', { ascending: true });
-      setExercisesCompletion(exData || []);
+     const { data: exData, error: exError } = await supabase
+  .from('exercises_completion')
+  .select('*')
+  .eq('patient_id', p.id)
+  .order('exercise_index', { ascending: true });
 
+console.log('PATIENT ID:', p.id);
+console.log('EXERCISES DATA:', exData);
+console.log('EXERCISES ERROR:', exError);
+console.log('EXERCISES LENGTH:', exData?.length);
+
+setExercisesCompletion(exData || []);
       setLoading(false);
     } catch (e: any) {
       setErr(e?.message || 'Errore sconosciuto');
