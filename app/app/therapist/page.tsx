@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import AlertsWidget from '@/components/AlertsWidget';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
