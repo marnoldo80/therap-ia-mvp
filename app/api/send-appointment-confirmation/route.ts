@@ -27,16 +27,23 @@ export async function POST(request: NextRequest) {
         ends_at,
         location,
         notes,
-        patients!appointments_patient_id_fkey(display_name, email),
-        therapists!appointments_therapist_user_id_fkey(display_name)
+        therapist_user_id,
+        patients!appointments_patient_id_fkey(display_name, email)
       `)
       .eq('id', appointmentId)
       .single();
 
     if (error) throw error;
 
+    // Recupera info terapeuta separatamente
+    const { data: therapist } = await supabase
+      .from('therapists')
+      .select('display_name')
+      .eq('user_id', appointment.therapist_user_id)
+      .single();
+
     const patient = Array.isArray(appointment.patients) ? appointment.patients[0] : appointment.patients;
-    const therapist = Array.isArray(appointment.therapists) ? appointment.therapists[0] : appointment.therapists;
+
 
     if (!patient?.email) {
       return NextResponse.json({ error: 'Email paziente non trovata' }, { status: 400 });
