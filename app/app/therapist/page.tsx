@@ -9,6 +9,19 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+function AlertsWidgetWrapper() {
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id);
+    });
+  }, []);
+
+  if (!userId) return null;
+  return <AlertsWidget therapistId={userId} />;
+}
+
 export default function Page() {
   const [err, setErr] = useState<string|null>(null);
   const [therapist, setTherapist] = useState<{ display_name: string|null; address: string|null; vat_number: string|null; }|null>(null);
@@ -145,11 +158,9 @@ export default function Page() {
         </div>
       </div>
 
-      {!loading && therapist && (
-        <AlertsWidget therapistId={supabase.auth.getUser().then(r => r.data.user?.id || '')} />
-      )}
-      
       {loading && <div className="text-center py-8 text-gray-500">Caricamento...</div>}
+
+      {!loading && <AlertsWidgetWrapper />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="bg-white border rounded-lg p-6 shadow-sm">
