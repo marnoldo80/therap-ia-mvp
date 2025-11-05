@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import ChatWidget from '@/components/ChatWidget';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -599,7 +600,12 @@ setExercisesCompletion(exData || []);
           </p>
         </div>
       )}
-
+      {patient && (
+        <ChatWidget 
+          patientId={patient.id} 
+          patientName={patient.display_name || 'Paziente'}
+        />
+      )}
     </div>
   );
 }
