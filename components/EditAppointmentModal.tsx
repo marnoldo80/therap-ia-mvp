@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type Appointment = {
   id: string;
@@ -23,15 +23,29 @@ export default function EditAppointmentModal({
   appointment,
   onSuccess 
 }: EditAppointmentModalProps) {
-  const [title, setTitle] = useState(appointment?.title || '');
-  const [startsAt, setStartsAt] = useState(
-    appointment?.starts_at ? new Date(appointment.starts_at).toISOString().slice(0, 16) : ''
-  );
+  const [title, setTitle] = useState('');
+  const [startsAt, setStartsAt] = useState('');
   const [duration, setDuration] = useState(60);
-  const [location, setLocation] = useState(appointment?.location || '');
-  const [notes, setNotes] = useState(appointment?.notes || '');
+  const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Inizializza campi quando cambia appointment
+  useEffect(() => {
+    if (appointment) {
+      setTitle(appointment.title || '');
+      setStartsAt(new Date(appointment.starts_at).toISOString().slice(0, 16));
+      setLocation(appointment.location || '');
+      setNotes(appointment.notes || '');
+      
+      // Calcola durata
+      const start = new Date(appointment.starts_at);
+      const end = new Date(appointment.ends_at);
+      const durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
+      setDuration(durationMin);
+    }
+  }, [appointment]);
 
   if (!isOpen || !appointment) return null;
 
