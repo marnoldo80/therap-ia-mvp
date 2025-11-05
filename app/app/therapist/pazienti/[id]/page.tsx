@@ -115,6 +115,7 @@ export default function PatientPage() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<Suggestions | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [generatingAssessment, setGeneratingAssessment] = useState(false);
   
   useEffect(() => {
     if (!id) return;
