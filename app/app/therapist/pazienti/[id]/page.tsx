@@ -315,6 +315,40 @@ export default function PatientPage() {
     alert('✅ Suggerimenti applicati! Rivedi e salva il piano.');
   }
   
+  async function generateAssessment() {
+    if (!confirm('Generare la valutazione clinica dalle sedute registrate? Questo sovrascriverà i campi vuoti.')) {
+      return;
+    }
+
+    setGeneratingAssessment(true);
+    try {
+      const res = await fetch('/api/generate-assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: id }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Errore generazione');
+      }
+
+      const data = await res.json();
+      const { assessment } = data;
+
+      setAnamnesi(assessment.anamnesi);
+      setValutazionePsico(assessment.valutazione_psicodiagnostica);
+      setFormulazioneCaso(assessment.formulazione_caso);
+      setEditMode(true);
+
+      alert('✅ Valutazione generata! Rivedi e salva.');
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    } finally {
+      setGeneratingAssessment(false);
+    }
+  }
+  
   function getObjectiveCompletion(type: string, index: number) {
     return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
   }
