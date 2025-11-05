@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await audioFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Chiama Deepgram API
-    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&language=it', {
+    // Chiama Deepgram API con diarization
+    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&language=it&diarize=true', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
@@ -29,9 +29,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Errore trascrizione' }, { status: 500 });
     }
 
-    const response = await fetch(
-    'https://api.deepgram.com/v1/listen?model=nova-2&language=it&diarize=true',
-    );
     const data = await response.json();
     const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
 
