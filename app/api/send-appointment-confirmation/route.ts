@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         ends_at,
         location,
         notes,
-        patients!appointments_patient_fkey(display_name, email),
+        patients!appointments_patient_id_fkey(display_name, email),
         therapists!appointments_therapist_user_id_fkey(display_name)
       `)
       .eq('id', appointmentId)
