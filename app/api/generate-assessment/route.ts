@@ -119,7 +119,11 @@ Rispondi SOLO con il JSON, senza altro testo.`
       return NextResponse.json({ assessment });
     } catch (parseError) {
       console.error('Errore parsing JSON:', aiResponse);
-      return NextResponse.json({ error: 'Formato risposta IA non valido' }, { status: 500 });
+      // Ritorna la risposta grezza per debug
+      return NextResponse.json({ 
+        error: 'Formato risposta IA non valido',
+        rawResponse: aiResponse.substring(0, 500)
+      }, { status: 500 });
     }
 
   } catch (error: any) {
