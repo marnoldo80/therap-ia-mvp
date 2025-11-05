@@ -488,7 +488,25 @@ export default function PatientPage() {
           </div>
 
           <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">🎯 VALUTAZIONE (Anamnesi e psicodiagnosi)</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">🎯 VALUTAZIONE (Anamnesi e psicodiagnosi)</h3>
+              {!editMode && (!anamnesi || !valutazionePsico || !formulazioneCaso) && (
+                <button
+                  onClick={generateAssessment}
+                  disabled={generatingAssessment}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded hover:from-emerald-700 hover:to-teal-700 text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {generatingAssessment ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Generazione...
+                    </>
+                  ) : (
+                    <>🤖 Genera da Sedute</>
+                  )}
+                </button>
+              )}
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block font-medium mb-2">Anamnesi:</label>
