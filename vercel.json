@@ -4,17 +4,3 @@
     "schedule": "0 10 * * *"
   }]
 }
-```
-
-Questo dice a Vercel di eseguire `/api/send-reminders` automaticamente ogni giorno alle 10:00.
-
----
-
-**Struttura finale**:
-```
-therap-ia-mvp/
-├── app/
-├── components/
-├── package.json
-├── vercel.json  ← CREA QUESTO FILE QUI
-└── ...
