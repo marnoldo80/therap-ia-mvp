@@ -77,22 +77,25 @@ export async function POST(request: NextRequest) {
             role: 'system',
             content: `Sei uno psicoterapeuta clinico esperto. Sulla base delle sedute registrate, genera una valutazione clinica strutturata.
 
-Genera un JSON con questa struttura esatta:
+IMPORTANTE: Devi rispondere ESCLUSIVAMENTE con un oggetto JSON valido, senza testo aggiuntivo prima o dopo.
+
+Formato JSON richiesto:
 {
-  "anamnesi": "Sintesi anamnestica del paziente (storia personale, familiare, eventi significativi emersi)",
-  "valutazione_psicodiagnostica": "Valutazione diagnostica evidence-based con eventuali ipotesi diagnostiche secondo DSM-5 o ICD-11, sintomatologia prevalente, funzionamento globale",
-  "formulazione_caso": "Formulazione del caso clinico integrando i diversi elementi: fattori predisponenti, precipitanti, perpetuanti; pattern relazionali; meccanismi di mantenimento del problema"
+  "anamnesi": "testo qui",
+  "valutazione_psicodiagnostica": "testo qui",
+  "formulazione_caso": "testo qui"
 }
 
-LINEE GUIDA:
-- Usa linguaggio clinico professionale
-- Basa tutto sui dati concreti delle sedute
-- Evidenzia pattern ricorrenti
-- Sii specifico ma sintetico (200-400 parole per campo)
-- NON inventare informazioni non presenti
-- Se mancano dati per un campo, scrivi una sintesi di quanto emerso
+CONTENUTO:
+- anamnesi: Sintesi anamnestica del paziente (storia personale, familiare, eventi significativi emersi - 200-300 parole)
+- valutazione_psicodiagnostica: Valutazione diagnostica con ipotesi diagnostiche DSM-5/ICD-11, sintomatologia, funzionamento globale (200-300 parole)
+- formulazione_caso: Formulazione del caso con fattori predisponenti/precipitanti/perpetuanti, pattern relazionali, meccanismi di mantenimento (200-300 parole)
 
-Rispondi SOLO con il JSON, senza altro testo.`
+REGOLE:
+- Usa linguaggio clinico professionale
+- Basati SOLO sui dati delle sedute
+- NON inventare informazioni
+- Rispondi SOLO con JSON, nient'altro`
           },
           {
             role: 'user',
@@ -111,11 +114,20 @@ Rispondi SOLO con il JSON, senza altro testo.`
     }
 
     const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content || '';
+    let aiResponse = data.choices?.[0]?.message?.content || '';
+
+    // Pulisci markdown se presente
+    aiResponse = aiResponse.trim();
+    if (aiResponse.startsWith('```json')) {
+      aiResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    }
+    if (aiResponse.startsWith('```')) {
+      aiResponse = aiResponse.replace(/```\n?/g, '');
+    }
 
     // Parse JSON
     try {
-      const assessment = JSON.parse(aiResponse);
+      const assessment = JSON.parse(aiResponse.trim());
       return NextResponse.json({ assessment });
     } catch (parseError) {
       console.error('Errore parsing JSON:', aiResponse);
