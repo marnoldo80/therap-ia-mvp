@@ -145,6 +145,10 @@ export default function Page() {
         </div>
       </div>
 
+      {!loading && therapist && (
+        <AlertsWidget therapistId={supabase.auth.getUser().then(r => r.data.user?.id || '')} />
+      )}
+      
       {loading && <div className="text-center py-8 text-gray-500">Caricamento...</div>}
 
       <div className="grid lg:grid-cols-2 gap-6">
