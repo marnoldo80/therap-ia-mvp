@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import EditAppointmentModal from '@/components/EditAppointmentModal';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,8 @@ type Appointment = {
   starts_at: string;
   ends_at: string;
   status: string;
+  location: string | null;
+  notes: string | null;
   patient_id: string | null;
   patients?: { display_name: string | null } | { display_name: string | null }[] | null;
 };
@@ -48,6 +51,8 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     loadAppointments();
@@ -63,7 +68,7 @@ export default function AppointmentsPage() {
 
       let query = supabase
         .from('appointments')
-        .select('id, title, starts_at, ends_at, status, patient_id, patients!appointments_patient_id_fkey(display_name)')
+        .select('id, title, starts_at, ends_at, status, location, notes, patient_id, patients!appointments_patient_id_fkey(display_name)')
         .eq('therapist_user_id', user.id)
         .order('starts_at', { ascending: filter !== 'past' });
 
@@ -84,16 +89,9 @@ export default function AppointmentsPage() {
     }
   }
 
-  async function deleteAppointment(id: string) {
-    if (!confirm('Eliminare questo appuntamento?')) return;
-
-    try {
-      const { error } = await supabase.from('appointments').delete().eq('id', id);
-      if (error) throw error;
-      loadAppointments();
-    } catch (e: any) {
-      alert('Errore: ' + e?.message);
-    }
+  function handleEditClick(apt: Appointment) {
+    setEditingAppointment(apt);
+    setShowEditModal(true);
   }
 
   function getAppointmentsForDay(date: Date) {
@@ -143,17 +141,37 @@ export default function AppointmentsPage() {
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg">{apt.title}</h3>
                   {getPatientName(apt.patients) && <p className="text-sm text-gray-600">Paziente: {getPatientName(apt.patients)}</p>}
-                  <div className="text-sm text-gray-600 mt-2">📅 {new Date(apt.starts_at).toLocaleString('it-IT')} → {new Date(apt.ends_at).toLocaleTimeString('it-IT')}</div>
-                  <div className="mt-2"><span className={`text-xs px-2 py-1 rounded ${apt.status === 'confermato' ? 'bg-green-100 text-green-700' : apt.status === 'da_confermare' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{apt.status}</span></div>
+                  <div className="text-sm text-gray-600 mt-2">
+                    📅 {new Date(apt.starts_at).toLocaleString('it-IT')} → {new Date(apt.ends_at).toLocaleTimeString('it-IT')}
+                  </div>
+                  {apt.location && (
+                    <div className="text-sm text-gray-600 mt-1">📍 {apt.location}</div>
+                  )}
+                  <div className="mt-2">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      apt.status === 'scheduled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {apt.status}
+                    </span>
+                  </div>
                 </div>
-                <button onClick={() => deleteAppointment(apt.id)} className="text-red-600 hover:text-red-800 text-sm">Elimina</button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleEditClick(apt)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ✏️ Modifica
+                  </button>
+                </div>
               </div>
             </div>
           ))}
           {appointments.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
               <p className="text-lg">Nessun appuntamento trovato</p>
-              <Link href="/app/therapist/appuntamenti/nuovo" className="text-blue-600 hover:underline mt-2 inline-block">Crea il primo appuntamento</Link>
+              <Link href="/app/therapist/appuntamenti/nuovo" className="text-blue-600 hover:underline mt-2 inline-block">
+                Crea il primo appuntamento
+              </Link>
             </div>
           )}
         </div>
@@ -162,11 +180,15 @@ export default function AppointmentsPage() {
       {view === 'calendar' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between bg-white border rounded-lg p-4">
-            <button onClick={() => setWeekOffset(weekOffset - 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">← Settimana Precedente</button>
+            <button onClick={() => setWeekOffset(weekOffset - 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+              ← Settimana Precedente
+            </button>
             <div className="font-semibold text-lg">
               {weekDays[0].toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })} - {weekDays[6].toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
-            <button onClick={() => setWeekOffset(weekOffset + 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Settimana Successiva →</button>
+            <button onClick={() => setWeekOffset(weekOffset + 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+              Settimana Successiva →
+            </button>
           </div>
 
           <div className="bg-white border rounded-lg overflow-x-auto">
@@ -195,10 +217,18 @@ export default function AppointmentsPage() {
                       return (
                         <td key={dayIndex} className="p-1 align-top">
                           {dayAppts.map(apt => (
-                            <div key={apt.id} className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded">
-                              <div className="font-medium">{new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+                            <div 
+                              key={apt.id} 
+                              onClick={() => handleEditClick(apt)}
+                              className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded cursor-pointer hover:bg-blue-200 transition"
+                            >
+                              <div className="font-medium">
+                                {new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
                               <div className="truncate">{apt.title}</div>
-                              {getPatientName(apt.patients) && <div className="text-gray-600 truncate">{getPatientName(apt.patients)}</div>}
+                              {getPatientName(apt.patients) && (
+                                <div className="text-gray-600 truncate">{getPatientName(apt.patients)}</div>
+                              )}
                             </div>
                           ))}
                         </td>
@@ -211,6 +241,13 @@ export default function AppointmentsPage() {
           </div>
         </div>
       )}
+
+      <EditAppointmentModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        appointment={editingAppointment}
+        onSuccess={loadAppointments}
+      />
     </div>
   );
 }
