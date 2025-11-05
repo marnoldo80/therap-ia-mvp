@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Errore trascrizione' }, { status: 500 });
     }
 
+    const response = await fetch(
+    'https://api.deepgram.com/v1/listen?model=nova-2&language=it&diarize=true',
+    );
     const data = await response.json();
     const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
 
