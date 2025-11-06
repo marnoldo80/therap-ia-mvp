@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import AlertsWidget from '@/components/AlertsWidget';
+import CalendarPicker from '@/components/CalendarPicker';
+import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +32,9 @@ export default function Page() {
   const [totalPatients, setTotalPatients] = useState(0);
   const [weekAppts, setWeekAppts] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -104,6 +109,16 @@ export default function Page() {
     return rel.display_name || '';
   }
 
+  function handleDateTimeSelected(dateTime: string) {
+    setSelectedDateTime(dateTime);
+    setShowCalendarPicker(false);
+    setShowQuickModal(true);
+  }
+
+  function reloadAppointments() {
+    window.location.reload();
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
@@ -131,13 +146,13 @@ export default function Page() {
           <div className="text-4xl mb-2">👤</div>
           <div>Nuovo Paziente</div>
         </Link>
-        <Link 
-          href="/app/therapist/appuntamenti/nuovo"
+        <button
+          onClick={() => setShowCalendarPicker(true)}
           className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
         >
           <div className="text-4xl mb-2">📅</div>
           <div>Nuovo Appuntamento</div>
-        </Link>
+        </button>
         <Link 
           href="/app/therapist/questionari"
           className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
@@ -228,6 +243,19 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      <CalendarPicker
+        isOpen={showCalendarPicker}
+        onClose={() => setShowCalendarPicker(false)}
+        onSelectDateTime={handleDateTimeSelected}
+      />
+
+      <QuickAppointmentModal
+        isOpen={showQuickModal}
+        onClose={() => setShowQuickModal(false)}
+        prefilledDateTime={selectedDateTime}
+        onSuccess={reloadAppointments}
+      />
     </div>
   );
 }
