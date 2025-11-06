@@ -443,11 +443,16 @@ export default function PatientPage() {
                   <div key={msg.id} className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-300 bg-gray-50' : 'border-orange-500 bg-orange-50'}`}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-xs text-gray-600">{new Date(msg.created_at).toLocaleString('it-IT')}</div>
-                      {!msg.read_by_therapist && (
-                        <button onClick={() => markMessageAsRead(msg.id)} className="text-xs text-blue-600 hover:text-blue-700">
-                          ✓ Segna come letto
+                      <div className="flex gap-2">
+                        {!msg.read_by_therapist && (
+                          <button onClick={() => markMessageAsRead(msg.id)} className="text-xs text-blue-600 hover:text-blue-700">
+                            ✓ Segna come letto
+                          </button>
+                        )}
+                        <button onClick={() => deleteMessage(msg.id)} className="text-xs text-red-600 hover:text-red-700">
+                          🗑️ Elimina
                         </button>
-                      )}
+                      </div>
                     </div>
                     <p className="text-gray-800">{msg.message}</p>
                   </div>
