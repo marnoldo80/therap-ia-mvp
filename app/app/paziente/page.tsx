@@ -235,25 +235,36 @@ setExercisesCompletion(exData || []);
   }
 
   async function sendAppointmentMessage(appointmentId: string) {
-    const message = appointmentMessages[appointmentId];
-    if (!message?.trim()) {
-      alert('Scrivi un messaggio prima di inviare');
-      return;
-    }
-    try {
-      const { error } = await supabase.from('appointment_messages').insert({
-        appointment_id: appointmentId,
-        patient_id: patient?.id,
-        message: message,
-        created_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      alert('✅ Messaggio inviato al terapeuta!');
-      setAppointmentMessages({ ...appointmentMessages, [appointmentId]: '' });
-    } catch (e: any) {
-      alert('Errore: ' + e.message);
-    }
+  if (!patient?.id) {
+    alert('Errore: profilo paziente non trovato');
+    return;
   }
+  
+  const message = appointmentMessages[appointmentId];
+  if (!message?.trim()) {
+    alert('Scrivi un messaggio prima di inviare');
+    return;
+  }
+  
+  try {
+    const { error } = await supabase.from('appointment_messages').insert({
+      appointment_id: appointmentId,
+      patient_id: patient.id,
+      message: message
+    });
+    
+    if (error) {
+      console.error('Errore inserimento messaggio:', error);
+      throw error;
+    }
+    
+    alert('✅ Messaggio inviato al terapeuta!');
+    setAppointmentMessages({ ...appointmentMessages, [appointmentId]: '' });
+  } catch (e: any) {
+    alert('Errore: ' + e.message);
+    console.error('Errore completo:', e);
+  }
+}
 
   async function toggleObjective(objId: string, currentCompleted: boolean) {
     try {
