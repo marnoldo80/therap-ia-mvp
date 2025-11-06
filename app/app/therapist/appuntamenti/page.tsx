@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import EditAppointmentModal from '@/components/EditAppointmentModal';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
+import CalendarPicker from '@/components/CalendarPicker';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,6 +57,7 @@ export default function AppointmentsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [quickModalDateTime, setQuickModalDateTime] = useState<string | null>(null);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
 
   useEffect(() => {
     loadAppointments();
@@ -104,6 +106,12 @@ export default function AppointmentsPage() {
     setShowQuickModal(true);
   }
 
+  function handleDateTimeSelected(dateTime: string) {
+    setQuickModalDateTime(dateTime);
+    setShowCalendarPicker(false);
+    setShowQuickModal(true);
+  }
+
   function getAppointmentsForDay(date: Date) {
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
@@ -123,9 +131,12 @@ export default function AppointmentsPage() {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Appuntamenti</h1>
-        <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button 
+          onClick={() => setShowCalendarPicker(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
           + Nuovo Appuntamento
-        </Link>
+        </button>
       </div>
 
       {err && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div>}
@@ -264,6 +275,12 @@ export default function AppointmentsPage() {
         onClose={() => setShowEditModal(false)}
         appointment={editingAppointment}
         onSuccess={loadAppointments}
+      />
+
+      <CalendarPicker
+        isOpen={showCalendarPicker}
+        onClose={() => setShowCalendarPicker(false)}
+        onSelectDateTime={handleDateTimeSelected}
       />
 
       <QuickAppointmentModal
