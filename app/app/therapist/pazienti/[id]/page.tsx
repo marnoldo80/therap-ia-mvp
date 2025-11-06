@@ -6,6 +6,8 @@ import Link from 'next/link';
 import AISuggestionsModal from '@/components/AISuggestionsModal';
 import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
+import QuickAppointmentModal from '@/components/QuickAppointmentModal';
+import SessionRatesForm from '@/components/SessionRatesForm';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -371,6 +373,30 @@ export default function PatientPage() {
     setShowCalendarPicker(false);
     setShowQuickModal(true);
   }
+
+  async function generateConsentPDF() {
+  try {
+    const res = await fetch('/api/generate-consent-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patientId: id })
+    });
+
+    if (!res.ok) throw new Error('Errore generazione PDF');
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consenso_informato_${patient?.display_name?.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (e: any) {
+    alert('Errore: ' + e.message);
+  }
+}
   
   function getObjectiveCompletion(type: string, index: number) {
     return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
@@ -406,6 +432,12 @@ export default function PatientPage() {
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             📅 Nuovo appuntamento
+          </button>
+          <button
+            onClick={generateConsentPDF}
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+          >
+            📄 Genera Consenso PDF
           </button>
         </div>
       </div>
@@ -496,6 +528,18 @@ export default function PatientPage() {
               </div>
             )}
           </div>
+          <SessionRatesForm
+            patientId={id}
+            initialData={{
+              session_duration_individual: (patient as any).session_duration_individual || 45,
+              session_duration_couple: (patient as any).session_duration_couple || 60,
+              session_duration_family: (patient as any).session_duration_family || 75,
+              rate_individual: (patient as any).rate_individual || 90,
+              rate_couple: (patient as any).rate_couple || 130,
+              rate_family: (patient as any).rate_family || 150
+            }}
+            onSave={loadData}
+          />
         </div>
       )}
 
