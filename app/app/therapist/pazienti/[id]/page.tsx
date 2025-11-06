@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import AISuggestionsModal from '@/components/AISuggestionsModal';
+import CalendarPicker from '@/components/CalendarPicker';
+import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -117,6 +119,10 @@ export default function PatientPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [generatingAssessment, setGeneratingAssessment] = useState(false);
   
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
+  
   useEffect(() => {
     if (!id) return;
     loadData();
@@ -160,15 +166,7 @@ export default function PatientPage() {
       const { data: diaryData } = await supabase.from('patient_notes').select('*').eq('patient_id', id).order('note_date', { ascending: false }).limit(10);
       setPatientNotes(diaryData || []);
 
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('appointment_messages')
-        .select('*')
-        .eq('patient_id', id)
-        .order('created_at', { ascending: false });
-
-      console.log('LOADING MESSAGES FOR PATIENT:', id);
-      console.log('MESSAGES DATA:', messagesData);
-      console.log('MESSAGES ERROR:', messagesError);
+      const { data: messagesData } = await supabase.from('appointment_messages').select('*').eq('patient_id', id).order('created_at', { ascending: false });
       setAppointmentMessages(messagesData || []);
 
       const { data: objData } = await supabase.from('objectives_completion').select('*').eq('patient_id', id);
@@ -265,7 +263,7 @@ export default function PatientPage() {
       alert('Errore: ' + e.message);
     }
   }
- 
+
   async function markMessageAsRead(messageId: string) {
     try {
       const { error } = await supabase.from('appointment_messages').update({ read_by_therapist: true }).eq('id', messageId);
@@ -275,20 +273,17 @@ export default function PatientPage() {
       console.error('Errore:', e);
     }
   }
-  
+
   async function deleteMessage(messageId: string) {
-  if (!confirm('Eliminare questo messaggio?')) return;
-  try {
-    const { error } = await supabase
-      .from('appointment_messages')
-      .delete()
-      .eq('id', messageId);
-    if (error) throw error;
-    loadData();
-  } catch (e: any) {
-    alert('Errore: ' + e.message);
+    if (!confirm('Eliminare questo messaggio?')) return;
+    try {
+      const { error } = await supabase.from('appointment_messages').delete().eq('id', messageId);
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
   }
-}
 
   async function invitePatient() {
     if (!patient?.email) {
@@ -370,6 +365,12 @@ export default function PatientPage() {
       setGeneratingAssessment(false);
     }
   }
+
+  function handleDateTimeSelected(dateTime: string) {
+    setSelectedDateTime(dateTime);
+    setShowCalendarPicker(false);
+    setShowQuickModal(true);
+  }
   
   function getObjectiveCompletion(type: string, index: number) {
     return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
@@ -400,7 +401,12 @@ export default function PatientPage() {
         </div>
         <div className="flex gap-3 mt-4">
           <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">🔐 Invita paziente</button>
-          <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">📅 Nuovo appuntamento</Link>
+          <button 
+            onClick={() => setShowCalendarPicker(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            📅 Nuovo appuntamento
+          </button>
         </div>
       </div>
 
@@ -702,14 +708,27 @@ export default function PatientPage() {
           )}
         </div>
       )}
-   <AISuggestionsModal
+
+      <AISuggestionsModal
         isOpen={showAIModal}
         onClose={() => setShowAIModal(false)}
         suggestions={aiSuggestions}
         onApply={applySuggestions}
         isLoading={aiLoading}
       />
+
+      <CalendarPicker
+        isOpen={showCalendarPicker}
+        onClose={() => setShowCalendarPicker(false)}
+        onSelectDateTime={handleDateTimeSelected}
+      />
+
+      <QuickAppointmentModal
+        isOpen={showQuickModal}
+        onClose={() => setShowQuickModal(false)}
+        prefilledDateTime={selectedDateTime}
+        onSuccess={loadData}
+      />
     </div>
   );
 }
-  
