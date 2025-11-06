@@ -6,7 +6,6 @@ import Link from 'next/link';
 import AISuggestionsModal from '@/components/AISuggestionsModal';
 import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
-import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 import SessionRatesForm from '@/components/SessionRatesForm';
 
 const supabase = createClient(
