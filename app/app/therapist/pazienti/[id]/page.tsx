@@ -160,7 +160,15 @@ export default function PatientPage() {
       const { data: diaryData } = await supabase.from('patient_notes').select('*').eq('patient_id', id).order('note_date', { ascending: false }).limit(10);
       setPatientNotes(diaryData || []);
 
-      const { data: messagesData } = await supabase.from('appointment_messages').select('*').eq('patient_id', id).order('created_at', { ascending: false });
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('appointment_messages')
+        .select('*')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+
+      console.log('LOADING MESSAGES FOR PATIENT:', id);
+      console.log('MESSAGES DATA:', messagesData);
+      console.log('MESSAGES ERROR:', messagesError);
       setAppointmentMessages(messagesData || []);
 
       const { data: objData } = await supabase.from('objectives_completion').select('*').eq('patient_id', id);
