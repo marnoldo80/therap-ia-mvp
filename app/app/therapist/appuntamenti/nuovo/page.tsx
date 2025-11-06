@@ -56,17 +56,32 @@ export default function NewAppointmentPage() {
       const start = new Date(`${date}T${hour}:${minute}`);
       const end = new Date(start.getTime() + parseInt(duration) * 60000);
 
-      const { error } = await supabase.from('appointments').insert({
+      const { data: newAppointment, error } = await supabase.from('appointments').insert({
         therapist_user_id: user.id,
         patient_id: patientId || null,
         title,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
         status: 'scheduled'
-      });
+      }).select().single();
 
       if (error) throw error;
 
+      // Invia email conferma al paziente se presente
+      if (patientId && newAppointment) {
+        try {
+          await fetch('/api/send-appointment-confirmation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appointmentId: newAppointment.id })
+          });
+        } catch (emailError) {
+          console.error('Errore invio email:', emailError);
+          // Non bloccare il flusso se email fallisce
+        }
+      }
+
+      alert('✅ Appuntamento creato' + (patientId ? ' e email inviata al paziente!' : '!'));
       router.push('/app/therapist/appuntamenti');
     } catch (e: any) {
       setErr(e?.message || 'Errore');

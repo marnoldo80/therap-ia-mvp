@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import AudioRecorder from '@/components/AudioRecorder';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +21,8 @@ function NuovaNotaForm() {
   const [patientId, setPatientId] = useState(patientIdFromUrl || '');
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [transcript, setTranscript] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
   const [themes, setThemes] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -64,6 +67,7 @@ function NuovaNotaForm() {
         therapist_user_id: user.id,
         session_date: sessionDate,
         notes,
+        ai_summary: aiSummary || null,
         themes: themesArray
       });
 
@@ -78,9 +82,19 @@ function NuovaNotaForm() {
     }
   }
 
+  const handleTranscriptComplete = (transcriptText: string) => {
+    setTranscript(transcriptText);
+    // Aggiungi trascrizione alle note
+    setNotes(prev => prev + (prev ? '\n\n' : '') + '📝 TRASCRIZIONE:\n' + transcriptText);
+  };
+
+  const handleSummaryComplete = (summary: string) => {
+    setAiSummary(summary);
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-     <div className="mb-4 flex gap-4">
+      <div className="mb-4 flex gap-4">
         <Link href="/app/therapist" className="text-blue-600 hover:underline">
           ← Dashboard
         </Link>
@@ -94,6 +108,12 @@ function NuovaNotaForm() {
       <h1 className="text-3xl font-bold">Nuova Nota Seduta</h1>
 
       {err && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div>}
+
+      {/* RECORDER AUDIO */}
+      <AudioRecorder 
+        onTranscriptComplete={handleTranscriptComplete}
+        onSummaryComplete={handleSummaryComplete}
+      />
 
       <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6 space-y-4">
         <div>
@@ -131,9 +151,22 @@ function NuovaNotaForm() {
             className="w-full border rounded px-3 py-2 min-h-[200px]"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Descrivi cosa è emerso durante la seduta, tecniche utilizzate, progressi..."
+            placeholder="Descrivi cosa è emerso durante la seduta, tecniche utilizzate, progressi...&#10;&#10;💡 Usa il recorder sopra per generare automaticamente note e riassunto"
           />
         </div>
+
+        {/* RIASSUNTO IA */}
+        {aiSummary && (
+          <div>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+              ✨ Riassunto IA Generato
+              <span className="text-xs text-gray-500 font-normal">(salvato automaticamente)</span>
+            </label>
+            <div className="w-full border rounded px-4 py-3 bg-gradient-to-br from-purple-50 to-blue-50 whitespace-pre-wrap text-sm">
+              {aiSummary}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium mb-2">Temi principali (uno per riga)</label>
@@ -153,7 +186,7 @@ function NuovaNotaForm() {
           >
             {loading ? 'Salvataggio...' : '💾 Salva Nota'}
           </button>
-        <Link
+          <Link
             href={patientId ? `/app/therapist/pazienti/${patientId}` : '/app/therapist'}
             className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
           >

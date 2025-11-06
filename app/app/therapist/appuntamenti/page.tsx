@@ -2,6 +2,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import EditAppointmentModal from '@/components/EditAppointmentModal';
+import QuickAppointmentModal from '@/components/QuickAppointmentModal';
+import CalendarPicker from '@/components/CalendarPicker';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +17,8 @@ type Appointment = {
   starts_at: string;
   ends_at: string;
   status: string;
+  location: string | null;
+  notes: string | null;
   patient_id: string | null;
   patients?: { display_name: string | null } | { display_name: string | null }[] | null;
 };
@@ -48,6 +53,11 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [quickModalDateTime, setQuickModalDateTime] = useState<string | null>(null);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
 
   useEffect(() => {
     loadAppointments();
@@ -63,7 +73,7 @@ export default function AppointmentsPage() {
 
       let query = supabase
         .from('appointments')
-        .select('id, title, starts_at, ends_at, status, patient_id, patients!appointments_patient_id_fkey(display_name)')
+        .select('id, title, starts_at, ends_at, status, location, notes, patient_id, patients!appointments_patient_id_fkey(display_name)')
         .eq('therapist_user_id', user.id)
         .order('starts_at', { ascending: filter !== 'past' });
 
@@ -84,16 +94,22 @@ export default function AppointmentsPage() {
     }
   }
 
-  async function deleteAppointment(id: string) {
-    if (!confirm('Eliminare questo appuntamento?')) return;
+  function handleEditClick(apt: Appointment) {
+    setEditingAppointment(apt);
+    setShowEditModal(true);
+  }
 
-    try {
-      const { error } = await supabase.from('appointments').delete().eq('id', id);
-      if (error) throw error;
-      loadAppointments();
-    } catch (e: any) {
-      alert('Errore: ' + e?.message);
-    }
+  function handleCellClick(day: Date, hour: number) {
+    const clickedDateTime = new Date(day);
+    clickedDateTime.setHours(hour, 0, 0, 0);
+    setQuickModalDateTime(clickedDateTime.toISOString());
+    setShowQuickModal(true);
+  }
+
+  function handleDateTimeSelected(dateTime: string) {
+    setQuickModalDateTime(dateTime);
+    setShowCalendarPicker(false);
+    setShowQuickModal(true);
   }
 
   function getAppointmentsForDay(date: Date) {
@@ -109,15 +125,18 @@ export default function AppointmentsPage() {
   }
 
   const weekDays = getWeekDays(weekOffset);
-  const hours = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 - 22:00
+  const hours = Array.from({ length: 15 }, (_, i) => i + 8);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Appuntamenti</h1>
-        <Link href="/app/therapist/appuntamenti/nuovo" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button 
+          onClick={() => setShowCalendarPicker(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
           + Nuovo Appuntamento
-        </Link>
+        </button>
       </div>
 
       {err && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">{err}</div>}
@@ -143,17 +162,37 @@ export default function AppointmentsPage() {
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg">{apt.title}</h3>
                   {getPatientName(apt.patients) && <p className="text-sm text-gray-600">Paziente: {getPatientName(apt.patients)}</p>}
-                  <div className="text-sm text-gray-600 mt-2">📅 {new Date(apt.starts_at).toLocaleString('it-IT')} → {new Date(apt.ends_at).toLocaleTimeString('it-IT')}</div>
-                  <div className="mt-2"><span className={`text-xs px-2 py-1 rounded ${apt.status === 'confermato' ? 'bg-green-100 text-green-700' : apt.status === 'da_confermare' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{apt.status}</span></div>
+                  <div className="text-sm text-gray-600 mt-2">
+                    📅 {new Date(apt.starts_at).toLocaleString('it-IT')} → {new Date(apt.ends_at).toLocaleTimeString('it-IT')}
+                  </div>
+                  {apt.location && (
+                    <div className="text-sm text-gray-600 mt-1">📍 {apt.location}</div>
+                  )}
+                  <div className="mt-2">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      apt.status === 'scheduled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {apt.status}
+                    </span>
+                  </div>
                 </div>
-                <button onClick={() => deleteAppointment(apt.id)} className="text-red-600 hover:text-red-800 text-sm">Elimina</button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleEditClick(apt)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ✏️ Modifica
+                  </button>
+                </div>
               </div>
             </div>
           ))}
           {appointments.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
               <p className="text-lg">Nessun appuntamento trovato</p>
-              <Link href="/app/therapist/appuntamenti/nuovo" className="text-blue-600 hover:underline mt-2 inline-block">Crea il primo appuntamento</Link>
+              <Link href="/app/therapist/appuntamenti/nuovo" className="text-blue-600 hover:underline mt-2 inline-block">
+                Crea il primo appuntamento
+              </Link>
             </div>
           )}
         </div>
@@ -162,11 +201,15 @@ export default function AppointmentsPage() {
       {view === 'calendar' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between bg-white border rounded-lg p-4">
-            <button onClick={() => setWeekOffset(weekOffset - 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">← Settimana Precedente</button>
+            <button onClick={() => setWeekOffset(weekOffset - 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+              ← Settimana Precedente
+            </button>
             <div className="font-semibold text-lg">
               {weekDays[0].toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })} - {weekDays[6].toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
-            <button onClick={() => setWeekOffset(weekOffset + 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Settimana Successiva →</button>
+            <button onClick={() => setWeekOffset(weekOffset + 1)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+              Settimana Successiva →
+            </button>
           </div>
 
           <div className="bg-white border rounded-lg overflow-x-auto">
@@ -193,12 +236,27 @@ export default function AppointmentsPage() {
                       });
 
                       return (
-                        <td key={dayIndex} className="p-1 align-top">
+                        <td 
+                          key={dayIndex} 
+                          className="p-1 align-top cursor-pointer hover:bg-blue-50 transition"
+                          onClick={() => handleCellClick(day, hour)}
+                        >
                           {dayAppts.map(apt => (
-                            <div key={apt.id} className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded">
-                              <div className="font-medium">{new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+                            <div 
+                              key={apt.id} 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(apt);
+                              }}
+                              className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded cursor-pointer hover:bg-blue-200 transition"
+                            >
+                              <div className="font-medium">
+                                {new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
                               <div className="truncate">{apt.title}</div>
-                              {getPatientName(apt.patients) && <div className="text-gray-600 truncate">{getPatientName(apt.patients)}</div>}
+                              {getPatientName(apt.patients) && (
+                                <div className="text-gray-600 truncate">{getPatientName(apt.patients)}</div>
+                              )}
                             </div>
                           ))}
                         </td>
@@ -211,6 +269,26 @@ export default function AppointmentsPage() {
           </div>
         </div>
       )}
+
+      <EditAppointmentModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        appointment={editingAppointment}
+        onSuccess={loadAppointments}
+      />
+
+      <CalendarPicker
+        isOpen={showCalendarPicker}
+        onClose={() => setShowCalendarPicker(false)}
+        onSelectDateTime={handleDateTimeSelected}
+      />
+
+      <QuickAppointmentModal
+        isOpen={showQuickModal}
+        onClose={() => setShowQuickModal(false)}
+        prefilledDateTime={quickModalDateTime}
+        onSuccess={loadAppointments}
+      />
     </div>
   );
 }

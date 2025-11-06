@@ -1,10 +1,30 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getSupabaseBrowserClient } from '@/lib/supabase-client';
+import { createClient } from '@supabase/supabase-js';
+import AlertsWidget from '@/components/AlertsWidget';
+import CalendarPicker from '@/components/CalendarPicker';
+import QuickAppointmentModal from '@/components/QuickAppointmentModal';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+function AlertsWidgetWrapper() {
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id);
+    });
+  }, []);
+
+  if (!userId) return null;
+  return <AlertsWidget therapistId={userId} />;
+}
 
 export default function Page() {
-  const supabase = getSupabaseBrowserClient();
   const [err, setErr] = useState<string|null>(null);
   const [therapist, setTherapist] = useState<{ display_name: string|null; address: string|null; vat_number: string|null; }|null>(null);
   const [allPatients, setAllPatients] = useState<any[]>([]);
@@ -12,18 +32,20 @@ export default function Page() {
   const [totalPatients, setTotalPatients] = useState(0);
   const [weekAppts, setWeekAppts] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      setErr(null); setLoading(true);
+      setErr(null); 
+      setLoading(true);
       
-      // Attendi 500ms per la sessione
       await new Promise(r => setTimeout(r, 500));
       
       const { data:{ user } } = await supabase.auth.getUser();
       if (!user) { setErr('Non autenticato'); setLoading(false); return; }
 
-      // Profilo
       {
         const { data, error } = await supabase
           .from('therapists')
@@ -34,7 +56,6 @@ export default function Page() {
         setTherapist(data || null);
       }
 
-      // Statistiche
       {
         const { count } = await supabase
           .from('patients')
@@ -56,7 +77,6 @@ export default function Page() {
         setWeekAppts(apptCount || 0);
       }
 
-      // Tutti i pazienti
       {
         const { data, error } = await supabase
           .from('patients')
@@ -67,7 +87,6 @@ export default function Page() {
         setAllPatients(data || []);
       }
 
-      // Prossimi appuntamenti
       {
         const { data, error } = await supabase
           .from('appointments')
@@ -90,6 +109,16 @@ export default function Page() {
     return rel.display_name || '';
   }
 
+  function handleDateTimeSelected(dateTime: string) {
+    setSelectedDateTime(dateTime);
+    setShowCalendarPicker(false);
+    setShowQuickModal(true);
+  }
+
+  function reloadAppointments() {
+    window.location.reload();
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
@@ -109,7 +138,6 @@ export default function Page() {
 
       {err && <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-700">{err}</div>}
 
-      {/* Azioni rapide */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link 
           href="/app/therapist/pazienti/nuovo"
@@ -118,13 +146,13 @@ export default function Page() {
           <div className="text-4xl mb-2">👤</div>
           <div>Nuovo Paziente</div>
         </Link>
-        <Link 
-          href="/app/therapist/appuntamenti/nuovo"
+        <button
+          onClick={() => setShowCalendarPicker(true)}
           className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
         >
           <div className="text-4xl mb-2">📅</div>
           <div>Nuovo Appuntamento</div>
-        </Link>
+        </button>
         <Link 
           href="/app/therapist/questionari"
           className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
@@ -134,7 +162,6 @@ export default function Page() {
         </Link>
       </div>
 
-      {/* Statistiche */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="text-gray-500 text-sm font-medium">Pazienti totali</div>
@@ -148,9 +175,9 @@ export default function Page() {
 
       {loading && <div className="text-center py-8 text-gray-500">Caricamento...</div>}
 
-      {/* Contenuto principale */}
+      {!loading && <AlertsWidgetWrapper />}
+
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Prossimi appuntamenti */}
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Prossimi appuntamenti</h2>
@@ -185,7 +212,6 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Lista pazienti */}
         <div className="bg-white border rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">I tuoi pazienti</h2>
@@ -217,6 +243,19 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      <CalendarPicker
+        isOpen={showCalendarPicker}
+        onClose={() => setShowCalendarPicker(false)}
+        onSelectDateTime={handleDateTimeSelected}
+      />
+
+      <QuickAppointmentModal
+        isOpen={showQuickModal}
+        onClose={() => setShowQuickModal(false)}
+        prefilledDateTime={selectedDateTime}
+        onSuccess={reloadAppointments}
+      />
     </div>
   );
 }
