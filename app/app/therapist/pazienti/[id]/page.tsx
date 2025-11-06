@@ -265,7 +265,17 @@ export default function PatientPage() {
       alert('Errore: ' + e.message);
     }
   }
-
+ 
+  async function markMessageAsRead(messageId: string) {
+    try {
+      const { error } = await supabase.from('appointment_messages').update({ read_by_therapist: true }).eq('id', messageId);
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      console.error('Errore:', e);
+    }
+  }
+  
   async function deleteMessage(messageId: string) {
   if (!confirm('Eliminare questo messaggio?')) return;
   try {
