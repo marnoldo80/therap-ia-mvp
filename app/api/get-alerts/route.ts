@@ -152,8 +152,29 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // 5. APPUNTAMENTI MANCATI (opzionale, se hai campo "status: cancelled")
-      // TODO: Implementare quando aggiungi gestione appuntamenti cancellati
+      // 5. MESSAGGI APPUNTAMENTI NON LETTI
+      const { data: unreadMessages } = await supabase
+        .from('appointment_messages')
+        .select('id, created_at, message')
+        .eq('patient_id', patient.id)
+        .eq('read_by_therapist', false)
+        .order('created_at', { ascending: false });
+
+      if (unreadMessages && unreadMessages.length > 0) {
+        const oldestUnread = unreadMessages[unreadMessages.length - 1];
+        const daysAgo = Math.floor((now.getTime() - new Date(oldestUnread.created_at).getTime()) / (1000 * 60 * 60 * 24));
+        
+        alerts.push({
+          id: `messages-${patient.id}`,
+          type: 'appointment',
+          severity: daysAgo >= 2 ? 'high' : 'medium',
+          patientId: patient.id,
+          patientName: patient.display_name || 'Senza nome',
+          message: `${unreadMessages.length} messaggi non letti sugli appuntamenti`,
+          daysAgo,
+          createdAt: oldestUnread.created_at
+        });
+      }
     }
 
     // Ordina per severità e data
