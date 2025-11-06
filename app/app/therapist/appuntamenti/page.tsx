@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import EditAppointmentModal from '@/components/EditAppointmentModal';
+import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +54,8 @@ export default function AppointmentsPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [quickModalDateTime, setQuickModalDateTime] = useState<string | null>(null);
 
   useEffect(() => {
     loadAppointments();
@@ -94,6 +97,13 @@ export default function AppointmentsPage() {
     setShowEditModal(true);
   }
 
+  function handleCellClick(day: Date, hour: number) {
+    const clickedDateTime = new Date(day);
+    clickedDateTime.setHours(hour, 0, 0, 0);
+    setQuickModalDateTime(clickedDateTime.toISOString());
+    setShowQuickModal(true);
+  }
+
   function getAppointmentsForDay(date: Date) {
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
@@ -107,7 +117,7 @@ export default function AppointmentsPage() {
   }
 
   const weekDays = getWeekDays(weekOffset);
-  const hours = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 - 22:00
+  const hours = Array.from({ length: 15 }, (_, i) => i + 8);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -215,11 +225,18 @@ export default function AppointmentsPage() {
                       });
 
                       return (
-                        <td key={dayIndex} className="p-1 align-top">
+                        <td 
+                          key={dayIndex} 
+                          className="p-1 align-top cursor-pointer hover:bg-blue-50 transition"
+                          onClick={() => handleCellClick(day, hour)}
+                        >
                           {dayAppts.map(apt => (
                             <div 
                               key={apt.id} 
-                              onClick={() => handleEditClick(apt)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(apt);
+                              }}
                               className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded cursor-pointer hover:bg-blue-200 transition"
                             >
                               <div className="font-medium">
@@ -246,6 +263,13 @@ export default function AppointmentsPage() {
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         appointment={editingAppointment}
+        onSuccess={loadAppointments}
+      />
+
+      <QuickAppointmentModal
+        isOpen={showQuickModal}
+        onClose={() => setShowQuickModal(false)}
+        prefilledDateTime={quickModalDateTime}
         onSuccess={loadAppointments}
       />
     </div>
