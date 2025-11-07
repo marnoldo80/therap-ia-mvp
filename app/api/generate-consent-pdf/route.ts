@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
+import { CONSENT_TEXT } from '@/lib/consent-text';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -71,8 +72,7 @@ export async function POST(request: NextRequest) {
     doc.text('PER PRESTAZIONI PSICOTERAPEUTICHE', 105, 36, { align: 'center' });
 
     // Contenuto (nuovo)
-import { CONSENT_TEXT } from '@/lib/consent-text';
-
+    
 doc.setFontSize(11);
 doc.setFont('helvetica', 'normal');
 
