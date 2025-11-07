@@ -93,11 +93,12 @@ addText(consentFullText);
 
     
     // Firme
-    addText('Data: ____________________', true);
+    addText('Data: ____________________');
     y += 10;
-    addText('Firma del Paziente: ____________________________', true);
+    addText('Firma del Paziente: ____________________________');
     y += 10;
-    addText('Firma del Terapeuta: ____________________________', true);
+    addText('Firma del Terapeuta: ____________________________');
+
 
     // Genera PDF come buffer
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
