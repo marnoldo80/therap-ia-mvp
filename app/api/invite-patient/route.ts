@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing email/patientId" }, { status: 400 });
     }
 
-    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/consenso?patientId=${patientId}`;
+    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/cambia-password`;
     let link: string | null = null;
 
     // Genera link di invito
