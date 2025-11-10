@@ -2,11 +2,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function NewPatientPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
   
   // Campi esistenti
   const [displayName, setDisplayName] = useState("");
@@ -69,31 +73,6 @@ export default function NewPatientPage() {
       }, 1000);
     } catch (e:any) {
       setErr(e?.message || "Errore creazione paziente");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function invitePatient(patientId: string) {
-    if (!email) {
-      setErr("Email richiesta per invio invito");
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const res = await fetch("/api/invite-patient", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, patientId })
-      });
-      
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-      
-      setMsg("Invito inviato con successo!");
-    } catch (e:any) {
-      setErr("Errore invio: " + e.message);
     } finally {
       setLoading(false);
     }
