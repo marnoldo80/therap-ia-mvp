@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { patientId } = await request.json();
+    const { patientId, tesseraSanitariaConsent } = await request.json();
 
     if (!patientId) {
       return NextResponse.json({ error: 'Patient ID mancante' }, { status: 400 });
@@ -63,55 +63,32 @@ export async function POST(request: NextRequest) {
 
     // Genera PDF
     const doc = new jsPDF();
-    
-    // Titolo
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('CONSENSO INFORMATO E PATTUIZIONE DEL COMPENSO', 105, 20, { align: 'center' });
     doc.text('ALL\'ATTO DEL CONFERIMENTO DELL\'INCARICO PROFESSIONALE', 105, 28, { align: 'center' });
     doc.text('PER PRESTAZIONI PSICOTERAPEUTICHE', 105, 36, { align: 'center' });
 
-    // Contenuto (nuovo)
-    
-doc.setFontSize(11);
-doc.setFont('helvetica', 'normal');
+    // Corpo testo
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
 
-let y = 50;
-const lineHeight = 7;
-const margin = 20;
-const maxWidth = 170;
+    let y = 50;
+    const lineHeight = 7;
+    const margin = 20;
+    const maxWidth = 170;
 
-const addText = (text: string) => {
-  const lines = doc.splitTextToSize(text, maxWidth);
-  doc.text(lines, margin, y);
-  y += lines.length * lineHeight;
-  if (y > 270) { doc.addPage(); y = 20; }
-};
+    const addText = (text: string) => {
+      const lines = doc.splitTextToSize(text, maxWidth);
+      doc.text(lines, margin, y);
+      y += lines.length * lineHeight;
+      if (y > 270) { doc.addPage(); y = 20; }
+    };
 
-const consentFullText = CONSENT_TEXT(therapist, patient);
-addText(consentFullText);
+    const consentFullText = CONSENT_TEXT(therapist, patient);
+    addText(consentFullText);
 
-    
-    // Firme
-    addText('Data: ____________________');
     y += 10;
-    addText('Firma del Paziente: ____________________________');
-    y += 10;
-    addText('Firma del Terapeuta: ____________________________');
 
-
-    // Genera PDF come buffer
-    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
-    
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="consenso_informato_${patient.display_name?.replace(/\s+/g, '_')}.pdf"`
-      }
-    });
-
-  } catch (error: any) {
-    console.error('Errore generazione PDF:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+    // Scelta tessera sanitaria
+    const choice
