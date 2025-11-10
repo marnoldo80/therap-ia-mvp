@@ -82,9 +82,10 @@ export default function Client() {
       console.log('⏳ Attendo 2 secondi...');
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // 6. Redirect finale
-      console.log('✅ Redirect a /app/paziente');
-      window.location.href = '/app/paziente';
+      // 6. Refresh sessione e redirect
+      console.log('✅ Aggiorno sessione e redirect...');
+      await supabase.auth.refreshSession();
+      router.push('/app/paziente');
       
     } catch (e: any) {
       console.error('❌ Errore:', e);
