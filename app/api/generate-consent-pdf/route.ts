@@ -39,12 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 });
     }
 
-    // Recupera dati terapeuta
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
-    }
-
+    // Recupera dati terapeuta dal paziente
     const { data: therapist, error: therapistError } = await supabase
       .from('therapists')
       .select(`
@@ -54,7 +49,7 @@ export async function POST(request: NextRequest) {
         address,
         insurance_policy
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', (await supabase.from('patients').select('therapist_user_id').eq('id', patientId).single()).data?.therapist_user_id)
       .single();
 
     if (therapistError || !therapist) {
