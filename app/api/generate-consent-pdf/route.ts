@@ -90,5 +90,13 @@ export async function POST(request: NextRequest) {
 
     y += 10;
 
-    // Scelta tessera sanitaria
-    const choice
+   // Scelta tessera sanitaria
+const choiceText: string = tesseraSanitariaConsent === true
+  ? '☑ Autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria'
+  : '☑ Non autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria';
+
+addText('Scelta trasmissione dati fiscali (solo per prestazioni sanitarie):');
+addText(choiceText);
+
+y += 10;
+
