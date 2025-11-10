@@ -47,21 +47,15 @@ export default function NewPatientPage() {
       if (!u?.user) throw new Error("Sessione non valida.");
 
       const { data, error } = await supabase
-        .from("patients")
-        .insert({
-          display_name: displayName || null,
-          email: email || null,
-          phone: phone || null,
-          issues: issues || null,
-          goals: goals || null,
-          birth_date: birthDate || null,
-          fiscal_code: fiscalCode || null,
-          address: address || null,
-          city: city || null,
-          postal_code: postalCode || null,
-          province: province || null,
-          therapist_user_id: u.user.id,
-        })
+  .from("patients")
+  .insert({
+    display_name: displayName || null,
+    email: email || null,
+    phone: phone || null,
+    issues: issues || null,
+    goals: goals || null,
+    therapist_user_id: u.user.id,
+  })
         .select("id")
         .single();
 
