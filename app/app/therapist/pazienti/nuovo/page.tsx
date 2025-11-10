@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export default function NewPatientPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabaseBrowserClient();
   
   // Campi esistenti
   const [displayName, setDisplayName] = useState("");
