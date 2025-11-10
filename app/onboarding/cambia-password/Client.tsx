@@ -83,9 +83,8 @@ export default function Client() {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // 6. Redirect finale
-      console.log('✅ COLLEGAMENTO COMPLETATO! Controlla i log sopra.');
-      console.log('🚀 Ora dovresti poter andare manualmente su /app/paziente');
-      // window.location.href = '/app/paziente'; // COMMENTATO PER DEBUG
+      console.log('✅ Redirect a /app/paziente');
+      window.location.href = '/app/paziente';
       
     } catch (e: any) {
       console.error('❌ Errore:', e);
