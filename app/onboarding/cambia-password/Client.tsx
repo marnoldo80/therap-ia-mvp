@@ -82,9 +82,19 @@ export default function Client() {
       console.log('⏳ Attendo 2 secondi...');
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // 6. Refresh sessione e redirect
-      console.log('✅ Aggiorno sessione e redirect...');
-      await supabase.auth.refreshSession();
+      // 6. Fai login esplicito con email/password
+      console.log('🔑 Faccio login esplicito...');
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: email!,
+        password: password,
+      });
+      
+      if (loginError) {
+        console.error('❌ Errore login:', loginError);
+        throw new Error('Password impostata ma login fallito: ' + loginError.message);
+      }
+      
+      console.log('✅ Login completato, redirect...');
       router.push('/app/paziente');
       
     } catch (e: any) {
