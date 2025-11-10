@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
         session_duration_family,
         rate_individual,
         rate_couple,
-        rate_family
+        rate_family,
+        therapist_user_id
       `)
       .eq('id', patientId)
       .single();
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 });
     }
 
-    // Recupera dati terapeuta dal paziente
+    // Recupera dati terapeuta tramite paziente
     const { data: therapist, error: therapistError } = await supabase
       .from('therapists')
       .select(`
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
         address,
         insurance_policy
       `)
-      .eq('user_id', (await supabase.from('patients').select('therapist_user_id').eq('id', patientId).single()).data?.therapist_user_id)
+      .eq('user_id', patient.therapist_user_id)
       .single();
-
+    
     if (therapistError || !therapist) {
       return NextResponse.json({ error: 'Dati terapeuta non trovati' }, { status: 404 });
     }
