@@ -82,7 +82,10 @@ export async function POST(request: NextRequest) {
       const lines = doc.splitTextToSize(text, maxWidth);
       doc.text(lines, margin, y);
       y += lines.length * lineHeight;
-      if (y > 270) { doc.addPage(); y = 20; }
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
     };
 
     const consentFullText = CONSENT_TEXT(therapist, patient);
@@ -90,13 +93,34 @@ export async function POST(request: NextRequest) {
 
     y += 10;
 
-   // Scelta tessera sanitaria
-const choiceText: string = tesseraSanitariaConsent === true
-  ? '☑ Autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria'
-  : '☑ Non autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria';
+    // Scelta tessera sanitaria
+    const choiceText: string = tesseraSanitariaConsent === true
+      ? '☑ Autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria'
+      : '☑ Non autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria';
 
-addText('Scelta trasmissione dati fiscali (solo per prestazioni sanitarie):');
-addText(choiceText);
+    addText('Scelta trasmissione dati fiscali (solo per prestazioni sanitarie):');
+    addText(choiceText);
 
-y += 10;
+    y += 10;
 
+    // Firme
+    addText('Data: ____________________');
+    y += 10;
+    addText('Firma del Paziente: ____________________________');
+    y += 10;
+    addText('Firma del Terapeuta: ____________________________');
+
+    // Genera PDF come buffer
+    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="consenso_informato_${patient.display_name?.replace(/\s+/g, '_')}.pdf"`
+      }
+    });
+  } catch (error: any) {
+    console.error('Errore generazione PDF:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
