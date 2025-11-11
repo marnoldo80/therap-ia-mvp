@@ -7,6 +7,7 @@ import AISuggestionsModal from '@/components/AISuggestionsModal';
 import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 import SessionRatesForm from '@/components/SessionRatesForm';
+import { useRouter } from 'next/navigation';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -123,6 +124,7 @@ export default function PatientPage() {
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
+  const router = useRouter();
   
   useEffect(() => {
     if (!id) return;
