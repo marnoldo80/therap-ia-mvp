@@ -20,7 +20,15 @@ type Patient = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  birth_date: string | null;
+  birth_place: string | null;
   fiscal_code: string | null;
+  session_duration_individual: number;
+  session_duration_couple: number;
+  session_duration_family: number;
+  rate_individual: number;
+  rate_couple: number;
+  rate_family: number;
 };
 
 type TherapyPlan = {
@@ -375,30 +383,6 @@ export default function PatientPage() {
     setShowQuickModal(true);
   }
 
-  async function generateConsentPDF() {
-  try {
-    const res = await fetch('/api/generate-consent-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patientId: id })
-    });
-
-    if (!res.ok) throw new Error('Errore generazione PDF');
-
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `consenso_informato_${patient?.display_name?.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (e: any) {
-    alert('Errore: ' + e.message);
-  }
-}
-  
   function getObjectiveCompletion(type: string, index: number) {
     return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
   }
@@ -425,6 +409,8 @@ export default function PatientPage() {
           <div>📱 {patient.phone || 'Nessun telefono'}</div>
           <div>📍 {patient.address || 'Nessun indirizzo'}</div>
           <div>🆔 {patient.fiscal_code || 'Nessun codice fiscale'}</div>
+          <div>📅 Nato/a: {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('it-IT') : 'Non specificato'}</div>
+          <div>🌍 Luogo di nascita: {patient.birth_place || 'Non specificato'}</div>
         </div>
         <div className="flex gap-3 mt-4">
           <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">🔐 Invita paziente</button>
@@ -532,12 +518,12 @@ export default function PatientPage() {
           <SessionRatesForm
             patientId={id}
             initialData={{
-              session_duration_individual: (patient as any).session_duration_individual || 45,
-              session_duration_couple: (patient as any).session_duration_couple || 60,
-              session_duration_family: (patient as any).session_duration_family || 75,
-              rate_individual: (patient as any).rate_individual || 90,
-              rate_couple: (patient as any).rate_couple || 130,
-              rate_family: (patient as any).rate_family || 150
+              session_duration_individual: patient.session_duration_individual || 45,
+              session_duration_couple: patient.session_duration_couple || 60,
+              session_duration_family: patient.session_duration_family || 75,
+              rate_individual: patient.rate_individual || 90,
+              rate_couple: patient.rate_couple || 130,
+              rate_family: patient.rate_family || 150
             }}
             onSave={loadData}
           />
