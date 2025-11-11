@@ -233,7 +233,7 @@ export default function ConsentPage() {
               <div>Residente in: <strong>{patient?.city || '_____'}</strong></div>
               <div>Via: <strong>{patient?.address || '_____'}</strong></div>
               <div>Cap: <strong>{patient?.postal_code || '_____'}</strong></div>
-              <div>Telefono: <strong>_____</strong></div>
+              <div>Telefono: <strong>{patient?.phone || '_____'}</strong></div>
               <div>Mail: <strong>{patient?.email || '_____'}</strong></div>
               <div>Codice Fiscale: <strong>{patient?.fiscal_code || '_____'}</strong></div>
               <div>Medico Mmg: <strong>_____</strong></div>
