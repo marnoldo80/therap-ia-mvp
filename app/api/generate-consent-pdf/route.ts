@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (patientError || !patient) {
-      return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 });
+      console.error('Errore paziente:', patientError);
+      return NextResponse.json({ error: 'Paziente non trovato: ' + patientError?.message }, { status: 404 });
     }
 
     // Recupera dati terapeuta con nuovi campi
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (therapistError || !therapist) {
-      return NextResponse.json({ error: 'Dati terapeuta non trovati' }, { status: 404 });
+      console.error('Errore terapeuta:', therapistError);
+      return NextResponse.json({ error: 'Dati terapeuta non trovati: ' + therapistError?.message }, { status: 404 });
     }
 
     // Genera PDF
