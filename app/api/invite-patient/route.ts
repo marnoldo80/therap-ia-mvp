@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/cambia-password`;
     let link: string | null = null;
 
-   // Prima crea l'utente in Supabase Auth
+    // Prima crea l'utente in Supabase Auth
     const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       email_confirm: false,
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     // Genera link di conferma email
     const { data: confirmData, error: confirmErr } = await supabaseAdmin.auth.admin.generateLink({
-      type: "signup",
+      type: "invite",
       email,
       options: { redirectTo }
     });
