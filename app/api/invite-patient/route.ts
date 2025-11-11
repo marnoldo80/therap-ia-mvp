@@ -21,15 +21,15 @@ export async function POST(req: Request) {
     const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/cambia-password`;
     let link: string | null = null;
 
-    // Genera link di invito
-    const { data: invData, error: invErr } = await supabaseAdmin.auth.admin.generateLink({
-      type: "invite",
+    // Genera link di reset password
+    const { data: resetData, error: resetErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
       email,
       options: { redirectTo }
     });
 
-    if (invErr) throw invErr;
-    link = invData?.properties?.action_link ?? null;
+    if (resetErr) throw resetErr;
+    link = resetData?.properties?.action_link ?? null;
     if (!link) throw new Error("Nessun link generato.");
 
     // Aggiorna email nel record paziente
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     // Invia email
     const from = process.env.RESEND_FROM!;
-    const subject = "Benvenuto su Therap-IA - Accedi alla tua area paziente";
+    const subject = "Therap-IA - Imposta la tua password";
     
     const htmlContent = `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
             <a href="${link}" 
                style="display: inline-block; background: #111827; color: white; padding: 16px 32px; 
                       text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-              🚀 Crea la mia password
+             🔐 Imposta la mia password
             </a>
           </div>
 
