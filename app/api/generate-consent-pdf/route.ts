@@ -11,7 +11,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const { patientId, tesseraSanitariaConsent } = await request.json();
-
+    
     if (!patientId) {
       return NextResponse.json({ error: 'Patient ID mancante' }, { status: 400 });
     }
@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
         birth_place,
         address,
         fiscal_code,
+        city,
+        postal_code,
+        province,
         session_duration_individual,
         session_duration_couple,
         session_duration_family,
@@ -40,14 +43,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 });
     }
 
-    // Recupera dati terapeuta tramite paziente
+    // Recupera dati terapeuta con nuovi campi
     const { data: therapist, error: therapistError } = await supabase
       .from('therapists')
       .select(`
-        display_name,
+        full_name,
+        tax_code,
+        address,
+        city,
+        postal_code,
+        province,
+        vat_number,
         registration_number,
         therapeutic_orientation,
-        address,
         insurance_policy
       `)
       .eq('user_id', patient.therapist_user_id)
@@ -68,7 +76,6 @@ export async function POST(request: NextRequest) {
     // Corpo testo
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-
     let y = 50;
     const lineHeight = 7;
     const margin = 20;
@@ -86,17 +93,15 @@ export async function POST(request: NextRequest) {
 
     const consentFullText = CONSENT_TEXT(therapist, patient);
     addText(consentFullText);
-
     y += 10;
 
     // Scelta tessera sanitaria
     const choiceText: string = tesseraSanitariaConsent === true
       ? '☑ Autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria'
       : '☑ Non autorizzo la trasmissione dei dati al Sistema Tessera Sanitaria';
-
+    
     addText('Scelta trasmissione dati fiscali (solo per prestazioni sanitarie):');
     addText(choiceText);
-
     y += 10;
 
     // Firme
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     // Genera PDF come buffer
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
-
+    
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
