@@ -36,7 +36,8 @@ export async function POST(req: Request) {
     // Aggiorna paziente con user_id (campo esistente)
     await supabaseAdmin.from("patients").update({ 
       email,
-      user_id: userData.user.id 
+      patient_user_id: userData.user.id,
+      user_id: userData.user.id
     }).eq("id", patientId);
 
     // Email bella come prima
