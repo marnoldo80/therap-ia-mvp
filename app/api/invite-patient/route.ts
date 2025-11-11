@@ -21,15 +21,29 @@ export async function POST(req: Request) {
     const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/cambia-password`;
     let link: string | null = null;
 
-    // Genera link di reset password
-    const { data: resetData, error: resetErr } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
+   // Prima crea l'utente in Supabase Auth
+    const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: false,
+      user_metadata: { 
+        patient_id: patientId,
+        role: 'patient' 
+      }
+    });
+
+    if (createErr && !createErr.message.includes('already been registered')) {
+      throw createErr;
+    }
+
+    // Genera link di conferma email
+    const { data: confirmData, error: confirmErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "signup",
       email,
       options: { redirectTo }
     });
 
-    if (resetErr) throw resetErr;
-    link = resetData?.properties?.action_link ?? null;
+    if (confirmErr) throw confirmErr;
+    link = confirmData?.properties?.action_link ?? null;
     if (!link) throw new Error("Nessun link generato.");
 
     // Aggiorna email nel record paziente
