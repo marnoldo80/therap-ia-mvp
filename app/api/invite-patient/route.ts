@@ -20,6 +20,7 @@ export async function POST(req: Request) {
 
     // Genera password temporanea
     const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+    let userId = '';
     
     // Crea l'utente direttamente con password
     const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
@@ -33,22 +34,33 @@ export async function POST(req: Request) {
     });
 
     if (createErr) {
-      // Se utente esiste già, aggiorna solo la password
+      // Se utente esiste già, cerca l'ID esistente
       if (createErr.message.includes('already been registered')) {
-        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
-          userData?.user?.id || '',
-          { password: tempPassword }
-        );
-        if (updateErr) throw updateErr;
+        const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+        const foundUser = existingUser.users.find(u => u.email === email);
+        
+        if (foundUser) {
+          userId = foundUser.id;
+          // Aggiorna solo la password
+          const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
+            userId,
+            { password: tempPassword }
+          );
+          if (updateErr) throw updateErr;
+        } else {
+          throw createErr;
+        }
       } else {
         throw createErr;
       }
+    } else {
+      userId = userData.user.id;
     }
 
     // Aggiorna record paziente
     await supabaseAdmin.from("patients").update({ 
       email,
-      patient_user_id: userData?.user?.id 
+      patient_user_id: userId 
     }).eq("id", patientId);
 
     // Invia email con credenziali
@@ -76,7 +88,7 @@ export async function POST(req: Request) {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.NEXT_PUBLIC_SITE_URL}/login" 
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL}/login/paziente" 
                style="display: inline-block; background: #111827; color: white; padding: 16px 32px; 
                       text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
              🚀 Accedi alla mia area
