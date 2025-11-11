@@ -31,6 +31,7 @@ export default function NewPatientPage() {
   const [msg, setMsg] = useState<string|null>(null);
   const [err, setErr] = useState<string|null>(null);
   const [loading, setLoading] = useState(false);
+  const [medico, setMedico] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -157,6 +158,16 @@ export default function NewPatientPage() {
           />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium mb-1">Medico Mmg</label>
+          <input 
+            className="w-full rounded border px-3 py-2" 
+            value={medico} 
+            onChange={e=>setMedico(e.target.value)}
+            placeholder="Dr. Mario Rossi" 
+          />
+        </div>
+        
         <div>
           <label className="block text-sm font-medium mb-1">Indirizzo</label>
           <input 
