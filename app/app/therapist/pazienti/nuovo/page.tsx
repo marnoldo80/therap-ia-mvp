@@ -21,6 +21,7 @@ export default function NewPatientPage() {
   
   // Nuovi campi necessari per consenso
   const [birthDate, setBirthDate] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
   const [fiscalCode, setFiscalCode] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -47,15 +48,22 @@ export default function NewPatientPage() {
       if (!u?.user) throw new Error("Sessione non valida.");
 
       const { data, error } = await supabase
-  .from("patients")
-  .insert({
-    display_name: displayName || null,
-    email: email || null,
-    phone: phone || null,
-    issues: issues || null,
-    goals: goals || null,
-    therapist_user_id: u.user.id,
-  })
+        .from("patients")
+        .insert({
+          display_name: displayName || null,
+          email: email || null,
+          phone: phone || null,
+          issues: issues || null,
+          goals: goals || null,
+          birth_date: birthDate || null,
+          birth_place: birthPlace || null,
+          fiscal_code: fiscalCode || null,
+          address: address || null,
+          city: city || null,
+          postal_code: postalCode || null,
+          province: province || null,
+          therapist_user_id: u.user.id,
+        })
         .select("id")
         .single();
 
@@ -104,6 +112,16 @@ export default function NewPatientPage() {
               onChange={e=>setBirthDate(e.target.value)} 
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Luogo di nascita</label>
+          <input 
+            className="w-full rounded border px-3 py-2" 
+            value={birthPlace} 
+            onChange={e=>setBirthPlace(e.target.value)}
+            placeholder="Roma" 
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
