@@ -18,26 +18,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing email/patientId" }, { status: 400 });
     }
 
-    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/onboarding/cambia-password`;
-    let link: string | null = null;
-
-    // Genera link di reset password
-    const { data: resetData, error: resetErr } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
+    // Genera password temporanea
+    const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+    
+    // Crea l'utente direttamente con password
+    const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
-      options: { redirectTo }
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { 
+        patient_id: patientId,
+        role: 'patient' 
+      }
     });
 
-    if (resetErr) throw resetErr;
-    link = resetData?.properties?.action_link ?? null;
-    if (!link) throw new Error("Nessun link generato.");
+    if (createErr) {
+      // Se utente esiste già, aggiorna solo la password
+      if (createErr.message.includes('already been registered')) {
+        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
+          userData?.user?.id || '',
+          { password: tempPassword }
+        );
+        if (updateErr) throw updateErr;
+      } else {
+        throw createErr;
+      }
+    }
 
-    // Aggiorna email nel record paziente
-    await supabaseAdmin.from("patients").update({ email }).eq("id", patientId);
+    // Aggiorna record paziente
+    await supabaseAdmin.from("patients").update({ 
+      email,
+      patient_user_id: userData?.user?.id 
+    }).eq("id", patientId);
 
-    // Invia email
+    // Invia email con credenziali
     const from = process.env.RESEND_FROM!;
-    const subject = "Therap-IA - Imposta la tua password";
+    const subject = "Therap-IA - Le tue credenziali di accesso";
     
     const htmlContent = `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -50,8 +66,28 @@ export async function POST(req: Request) {
           <h2 style="color: #111827; font-size: 24px; margin: 0 0 20px 0;">Ciao! 👋</h2>
           
           <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
-            Il tuo terapeuta ti ha creato un account su <strong>Therap-IA</strong>, la piattaforma per seguire il tuo percorso terapeutico.
+            Il tuo terapeuta ti ha creato un account su <strong>Therap-IA</strong>. Ecco le tue credenziali di accesso:
           </p>
+          
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <p style="color: #166534; font-weight: 600; margin: 0 0 10px 0;">🔐 Le tue credenziali:</p>
+            <p style="color: #166534; margin: 5px 0;"><strong>Email:</strong> ${email}</p>
+            <p style="color: #166534; margin: 5px 0;"><strong>Password temporanea:</strong> ${tempPassword}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL}/login" 
+               style="display: inline-block; background: #111827; color: white; padding: 16px 32px; 
+                      text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+             🚀 Accedi alla mia area
+            </a>
+          </div>
+
+          <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+              ⚠️ <strong>Importante:</strong> Cambia la password dopo il primo accesso per sicurezza.
+            </p>
+          </div>
           
           <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; margin: 20px 0;">
             <p style="color: #166534; font-weight: 600; margin: 0 0 10px 0;">📋 Cosa puoi fare nella tua area:</p>
@@ -61,48 +97,6 @@ export async function POST(req: Request) {
               <li>Compilare questionari</li>
               <li>Comunicare con il terapeuta</li>
             </ul>
-          </div>
-          
-          <p style="color: #4b5563; line-height: 1.6; margin: 20px 0;">
-            <strong>Per iniziare, segui questi semplici passi:</strong>
-          </p>
-          
-          <ol style="color: #4b5563; line-height: 1.8; margin: 0 0 30px 20px;">
-            <li>Clicca sul pulsante qui sotto</li>
-            <li>Crea la tua password sicura (minimo 8 caratteri)</li>
-            <li>Accedi alla tua area personale</li>
-          </ol>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${link}" 
-               style="display: inline-block; background: #111827; color: white; padding: 16px 32px; 
-                      text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-             🔐 Imposta la mia password
-            </a>
-          </div>
-
-          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #1e40af; margin: 0; font-size: 14px;">
-              💡 <strong>Dopo aver impostato la password, potrai sempre rientrare su:</strong><br>
-              <a href="${process.env.NEXT_PUBLIC_SITE_URL}/login" style="color: #2563eb; text-decoration: none;">
-                ${process.env.NEXT_PUBLIC_SITE_URL}/login
-              </a>
-            </p>
-          </div>
-          
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
-              Se il pulsante non funziona, copia e incolla questo link nel browser:
-            </p>
-            <p style="color: #3b82f6; font-size: 12px; word-break: break-all; margin: 0;">
-              ${link}
-            </p>
-          </div>
-          
-          <div style="margin-top: 30px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
-            <p style="color: #92400e; font-size: 14px; margin: 0;">
-              ⚠️ <strong>Importante:</strong> Questo link funziona una sola volta e scade dopo 24 ore.
-            </p>
           </div>
         </div>
         
@@ -121,7 +115,7 @@ export async function POST(req: Request) {
     
     if (r.error) throw new Error(r.error.message);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, message: "Credenziali inviate via email" });
     
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Errore" }, { status: 500 });
