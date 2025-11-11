@@ -1,14 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import Link from 'next/link';
 import AISuggestionsModal from '@/components/AISuggestionsModal';
 import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 import SessionRatesForm from '@/components/SessionRatesForm';
 
-const supabase = createClient(
+const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
