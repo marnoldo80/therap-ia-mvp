@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -10,6 +10,7 @@ const supabase = createClient(
 );
 
 function LoginPazienteContent() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -40,8 +41,11 @@ function LoginPazienteContent() {
         throw new Error('Account non riconosciuto come paziente');
       }
 
-      await new Promise(r => setTimeout(r, 1000));
-      window.location.href = '/app/paziente';
+      // Attendi che la sessione sia salvata correttamente
+      await new Promise(r => setTimeout(r, 2000));
+      
+      // Usa router.push per mantenere la sessione
+      router.push('/app/paziente');
       
     } catch (err: any) {
       setError(err.message || 'Errore durante l\'autenticazione');
