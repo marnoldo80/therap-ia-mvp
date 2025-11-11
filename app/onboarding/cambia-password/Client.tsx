@@ -12,7 +12,7 @@ export default function Client() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token_hash = searchParams.get('token_hash') || searchParams.get('token') || '';
-  const typeParam = (searchParams.get('type') || 'magiclink').toLowerCase();
+  const typeParam = (searchParams.get('type') || 'recovery').toLowerCase();
   
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,11 +29,12 @@ export default function Client() {
       // 1. Verifica il token se presente
       if (token_hash) {
         console.log('🔑 Verifico token_hash...');
-        const supported = ['invite', 'signup', 'magiclink', 'recovery'];
-        const type = (supported.includes(typeParam) ? typeParam : 'magiclink') as
-          | 'invite' | 'signup' | 'magiclink' | 'recovery';
         
-        const { error: vErr } = await supabase.auth.verifyOtp({ token_hash, type: 'invite' });
+        const { data: sessionData, error: vErr } = await supabase.auth.verifyOtp({ 
+          token_hash, 
+          type: 'recovery'
+        });
+        
         if (vErr) {
           console.error('❌ Errore verifica token:', vErr);
           throw vErr;
