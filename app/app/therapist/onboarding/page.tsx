@@ -19,6 +19,10 @@ export default function Page() {
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [therapeuticOrientation, setTherapeuticOrientation] = useState("Costruttivista");
   const [insurancePolicy, setInsurancePolicy] = useState("");
+  const [taxCode, setTaxCode] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [province, setProvince] = useState("");
   const [hasCode, setHasCode] = useState(false);
 
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function Page() {
 
       const { data: rows, error } = await supabase
         .from("therapists")
-        .select("full_name, address, vat_number, customer_code, registration_number, therapeutic_orientation, insurance_policy")
+        .select("full_name, address, vat_number, customer_code, registration_number, therapeutic_orientation, insurance_policy, tax_code, city, postal_code, province")
         .eq("user_id", user.id)
         .single();
 
@@ -51,6 +55,10 @@ export default function Page() {
         setRegistrationNumber(rows.registration_number || "");
         setTherapeuticOrientation(rows.therapeutic_orientation || "Costruttivista");
         setInsurancePolicy(rows.insurance_policy || "");
+        setTaxCode(rows.tax_code || "");
+        setCity(rows.city || "");
+        setPostalCode(rows.postal_code || "");
+        setProvince(rows.province || "");
         setHasCode(!!rows.customer_code);
       }
 
@@ -76,6 +84,10 @@ export default function Page() {
           registration_number: registrationNumber,
           therapeutic_orientation: therapeuticOrientation,
           insurance_policy: insurancePolicy,
+          tax_code: taxCode,
+          city: city,
+          postal_code: postalCode,
+          province: province,
           onboarding_completed: true,
         })
         .eq("user_id", user.id);
@@ -125,6 +137,21 @@ export default function Page() {
 
         <div>
           <label className="block text-sm font-medium mb-1">
+            Codice Fiscale *
+          </label>
+          <input
+            type="text"
+            value={taxCode}
+            onChange={(e) => setTaxCode(e.target.value.toUpperCase())}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Es: BRTLSS80A01H501Z"
+            maxLength={16}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
             Indirizzo studio *
           </label>
           <input
@@ -133,8 +160,51 @@ export default function Page() {
             onChange={(e) => setAddress(e.target.value)}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Es: Via Angeli 33/c, Rovigo"
+            placeholder="Es: Via Angeli 33/c"
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Città *
+            </label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Es: Rovigo"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              CAP *
+            </label>
+            <input
+              type="text"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Es: 45100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Provincia *
+            </label>
+            <input
+              type="text"
+              value={province}
+              onChange={(e) => setProvince(e.target.value.toUpperCase())}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Es: RO"
+              maxLength={2}
+            />
+          </div>
         </div>
 
         <div>
