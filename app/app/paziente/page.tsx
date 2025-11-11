@@ -91,10 +91,11 @@ export default function Page() {
         return;
       }
 
+      // CAMBIATO: ora cerca con patient_user_id invece di user_id
       const { data: p, error: pe } = await supabase
         .from('patients')
         .select('id, display_name, email, phone, address, fiscal_code, birth_date, birth_place, goals, issues')
-        .eq('user_id', user.id)
+        .eq('patient_user_id', user.id)
         .single();
 
       if (pe || !p) {
@@ -146,18 +147,13 @@ export default function Page() {
         .order('objective_index', { ascending: true });
       setObjectivesCompletion(objData || []);
 
-     const { data: exData, error: exError } = await supabase
-  .from('exercises_completion')
-  .select('*')
-  .eq('patient_id', p.id)
-  .order('exercise_index', { ascending: true });
+      const { data: exData } = await supabase
+        .from('exercises_completion')
+        .select('*')
+        .eq('patient_id', p.id)
+        .order('exercise_index', { ascending: true });
+      setExercisesCompletion(exData || []);
 
-console.log('PATIENT ID:', p.id);
-console.log('EXERCISES DATA:', exData);
-console.log('EXERCISES ERROR:', exError);
-console.log('EXERCISES LENGTH:', exData?.length);
-
-setExercisesCompletion(exData || []);
       setLoading(false);
     } catch (e: any) {
       setErr(e?.message || 'Errore sconosciuto');
@@ -243,36 +239,36 @@ setExercisesCompletion(exData || []);
   }
 
   async function sendAppointmentMessage(appointmentId: string) {
-  if (!patient?.id) {
-    alert('Errore: profilo paziente non trovato');
-    return;
-  }
-  
-  const message = appointmentMessages[appointmentId];
-  if (!message?.trim()) {
-    alert('Scrivi un messaggio prima di inviare');
-    return;
-  }
-  
-  try {
-    const { error } = await supabase.from('appointment_messages').insert({
-      appointment_id: appointmentId,
-      patient_id: patient.id,
-      message: message
-    });
-    
-    if (error) {
-      console.error('Errore inserimento messaggio:', error);
-      throw error;
+    if (!patient?.id) {
+      alert('Errore: profilo paziente non trovato');
+      return;
     }
     
-    alert('✅ Messaggio inviato al terapeuta!');
-    setAppointmentMessages({ ...appointmentMessages, [appointmentId]: '' });
-  } catch (e: any) {
-    alert('Errore: ' + e.message);
-    console.error('Errore completo:', e);
+    const message = appointmentMessages[appointmentId];
+    if (!message?.trim()) {
+      alert('Scrivi un messaggio prima di inviare');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.from('appointment_messages').insert({
+        appointment_id: appointmentId,
+        patient_id: patient.id,
+        message: message
+      });
+      
+      if (error) {
+        console.error('Errore inserimento messaggio:', error);
+        throw error;
+      }
+      
+      alert('✅ Messaggio inviato al terapeuta!');
+      setAppointmentMessages({ ...appointmentMessages, [appointmentId]: '' });
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+      console.error('Errore completo:', e);
+    }
   }
-}
 
   async function toggleObjective(objId: string, currentCompleted: boolean) {
     try {
