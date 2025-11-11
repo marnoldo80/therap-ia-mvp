@@ -64,6 +64,7 @@ export default function NewPatientPage() {
           postal_code: postalCode || null,
           province: province || null,
           therapist_user_id: u.user.id,
+          medico_mmg: medico || null,
         })
         .select("id")
         .single();
