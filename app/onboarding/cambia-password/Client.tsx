@@ -33,7 +33,7 @@ export default function Client() {
         const type = (supported.includes(typeParam) ? typeParam : 'magiclink') as
           | 'invite' | 'signup' | 'magiclink' | 'recovery';
         
-        const { error: vErr } = await supabase.auth.verifyOtp({ token_hash, type });
+        const { error: vErr } = await supabase.auth.verifyOtp({ token_hash, type: 'signup' });
         if (vErr) {
           console.error('❌ Errore verifica token:', vErr);
           throw vErr;
