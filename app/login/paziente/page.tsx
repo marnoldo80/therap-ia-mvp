@@ -28,11 +28,11 @@ function LoginPazienteContent() {
 
       if (loginError) throw loginError;
 
-      // Verifica che sia un paziente
+      // Verifica che sia un paziente usando patient_user_id
       const { data: patient } = await supabase
         .from('patients')
         .select('id')
-        .eq('user_id', loginData.user.id)
+        .eq('patient_user_id', loginData.user.id)
         .single();
 
       if (!patient) {
@@ -111,7 +111,7 @@ function LoginPazienteContent() {
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>Prima volta?</strong> Se il tuo terapeuta ti ha inviato un'email di invito, clicca sul link nella mail per creare la tua password.
+            <strong>Prima volta?</strong> Usa le credenziali che il tuo terapeuta ti ha inviato via email.
           </p>
         </div>
       </div>
