@@ -13,6 +13,7 @@ type Patient = {
   id: string;
   display_name: string | null;
   email: string | null;
+  phone: string | null;
   birth_date: string | null;
   birth_place: string | null;
   address: string | null;
