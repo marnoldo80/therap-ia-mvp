@@ -433,15 +433,116 @@ export default function PatientPage() {
       </div>
 
       <div className="bg-white border rounded-lg p-6">
-        <h1 className="text-3xl font-bold mb-4">{patient.display_name || 'Senza nome'}</h1>
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-          <div>📧 {patient.email || 'Nessuna email'}</div>
-          <div>📱 {patient.phone || 'Nessun telefono'}</div>
-          <div>📍 {patient.address || 'Nessun indirizzo'}</div>
-          <div>🆔 {patient.fiscal_code || 'Nessun codice fiscale'}</div>
-          <div>📅 Nato/a: {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('it-IT') : 'Non specificato'}</div>
-          <div>🌍 Luogo di nascita: {patient.birth_place || 'Non specificato'}</div>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold">{patient.display_name || 'Senza nome'}</h1>
+          {editPatientMode ? (
+            <div className="flex gap-2">
+              <button 
+                onClick={savePatientData}
+                disabled={savingPatient}
+                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+              >
+                {savingPatient ? 'Salvando...' : '💾 Salva'}
+              </button>
+              <button 
+                onClick={() => setEditPatientMode(false)}
+                className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+              >
+                Annulla
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setEditPatientMode(true)}
+              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+            >
+              ✏️ Modifica dati
+            </button>
+          )}
         </div>
+
+        {editPatientMode ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nome e Cognome</label>
+                <input 
+                  className="w-full rounded border px-3 py-2 text-sm" 
+                  value={editPatientData.display_name || ''} 
+                  onChange={e => setEditPatientData({...editPatientData, display_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input 
+                  type="email"
+                  className="w-full rounded border px-3 py-2 text-sm" 
+                  value={editPatientData.email || ''} 
+                  onChange={e => setEditPatientData({...editPatientData, email: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Telefono</label>
+                <input 
+                  className="w-full rounded border px-3 py-2 text-sm" 
+                  value={editPatientData.phone || ''} 
+                  onChange={e => setEditPatientData({...editPatientData, phone: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Data di nascita</label>
+                <input 
+                  type="date"
+                  className="w-full rounded border px-3 py-2 text-sm" 
+                  value={editPatientData.birth_date || ''} 
+                  onChange={e => setEditPatientData({...editPatientData, birth_date: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Luogo di nascita</label>
+                <input 
+                  className="w-full rounded border px-3 py-2 text-sm" 
+                  value={editPatientData.birth_place || ''} 
+                  onChange={e => setEditPatientData({...editPatientData, birth_place: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Codice Fiscale</label>
+                <input 
+                  className="w-full rounded border px-3 py-2 text-sm" 
+                  value={editPatientData.fiscal_code || ''} 
+                  onChange={e => setEditPatientData({...editPatientData, fiscal_code: e.target.value.toUpperCase()})}
+                  maxLength={16}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Indirizzo</label>
+              <input 
+                className="w-full rounded border px-3 py-2 text-sm" 
+                value={editPatientData.address || ''} 
+                onChange={e => setEditPatientData({...editPatientData, address: e.target.value})}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div>📧 {patient.email || 'Nessuna email'}</div>
+            <div>📱 {patient.phone || 'Nessun telefono'}</div>
+            <div>📍 {patient.address || 'Nessun indirizzo'}</div>
+            <div>🆔 {patient.fiscal_code || 'Nessun codice fiscale'}</div>
+            <div>📅 Nato/a: {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('it-IT') : 'Non specificato'}</div>
+            <div>🌍 Luogo di nascita: {patient.birth_place || 'Non specificato'}</div>
+          </div>
+        )}
+        
         <div className="flex gap-3 mt-4">
           <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">🔐 Invita paziente</button>
           <button 
