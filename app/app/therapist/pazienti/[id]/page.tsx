@@ -433,10 +433,10 @@ export default function PatientPage() {
             📅 Nuovo appuntamento
           </button>
           <button
-            onClick={generateConsentPDF}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+             onClick={() => router.push(`/app/therapist/consenso/${id}`)}
+             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
           >
-            📄 Genera Consenso PDF
+            📄 Genera Consenso
           </button>
         </div>
       </div>
