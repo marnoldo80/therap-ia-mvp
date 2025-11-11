@@ -143,6 +143,12 @@ export default function PatientPage() {
     loadData();
   }, [id]);
 
+  useEffect(() => {
+    if (patient) {
+      setEditPatientData(patient);
+    }
+    }, [patient]);
+  
   async function loadData() {
     setLoading(true);
     try {
@@ -387,6 +393,26 @@ export default function PatientPage() {
     setShowQuickModal(true);
   }
 
+  async function savePatientData() {
+    setSavingPatient(true);
+    try {
+      const { error } = await supabase
+        .from('patients')
+        .update(editPatientData)
+        .eq('id', id);
+
+      if (error) throw error;
+  
+      alert('✅ Dati paziente salvati!');
+      setEditPatientMode(false);
+      loadData();
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    } finally {
+      setSavingPatient(false);
+    }
+  }
+  
   function getObjectiveCompletion(type: string, index: number) {
     return objectivesCompletion.find(o => o.objective_type === type && o.objective_index === index);
   }
