@@ -85,7 +85,9 @@ export default function Page() {
       await new Promise(r => setTimeout(r, 500));
       
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 DEBUG - User autenticato:', user?.id, user?.email);
       if (!user) {
+        console.log('❌ DEBUG - Nessun utente trovato!');
         setErr('Sessione non valida');
         setLoading(false);
         return;
@@ -97,6 +99,7 @@ export default function Page() {
         .select('id, display_name, email, phone, address, fiscal_code, birth_date, birth_place, goals, issues')
         .eq('patient_user_id', user.id)
         .single();
+      console.log('🔍 DEBUG - Query patients:', { data: p, error: pe, searched_user_id: user.id });
 
       if (pe || !p) {
         setErr('Profilo paziente non trovato');
