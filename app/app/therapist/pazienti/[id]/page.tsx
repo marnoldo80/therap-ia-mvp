@@ -133,6 +133,10 @@ export default function PatientPage() {
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
   const router = useRouter();
+
+  const [editPatientMode, setEditPatientMode] = useState(false);
+  const [editPatientData, setEditPatientData] = useState<any>({});
+  const [savingPatient, setSavingPatient] = useState(false);
   
   useEffect(() => {
     if (!id) return;
