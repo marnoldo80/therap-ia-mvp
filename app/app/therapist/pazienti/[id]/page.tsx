@@ -210,6 +210,13 @@ export default function PatientPage() {
       const { data: exData } = await supabase.from('exercises_completion').select('*').eq('patient_id', id);
       setExercisesCompletion(exData || []);
 
+      const { data: consentsData } = await supabase
+        .from('consent_documents')
+        .select('*')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+      setConsentDocuments(consentsData || []);
+      
     } catch (e) {
       console.error('Errore:', e);
     } finally {
