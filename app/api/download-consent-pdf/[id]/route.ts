@@ -9,10 +9,10 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const consentId = params.id;
+    const { id: consentId } = await params;
 
     // Recupera il consenso con dati paziente e terapeuta
     const { data: consent, error } = await supabase
