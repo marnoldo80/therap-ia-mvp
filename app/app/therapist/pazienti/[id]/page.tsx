@@ -92,6 +92,19 @@ type ExerciseCompletion = {
   completed_at: string | null;
 };
 
+type ConsentDocument = {
+  id: string;
+  therapist_signature: string;
+  therapist_signature_type: string;
+  patient_signature: string | null;
+  patient_signature_type: string | null;
+  tessera_sanitaria_consent: boolean;
+  status: string;
+  created_at: string;
+  therapist_signed_at: string;
+  patient_signed_at: string | null;
+};
+
 type Suggestions = {
   obiettivi_generali: string[];
   obiettivi_specifici: string[];
@@ -137,6 +150,7 @@ export default function PatientPage() {
   const [editPatientMode, setEditPatientMode] = useState(false);
   const [editPatientData, setEditPatientData] = useState<any>({});
   const [savingPatient, setSavingPatient] = useState(false);
+  const [consentDocuments, setConsentDocuments] = useState<ConsentDocument[]>([]);
   
   useEffect(() => {
     if (!id) return;
