@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import ImagePreview from '@/components/ImagePreview';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,6 +65,9 @@ function ContentCreatorInner() {
   const [editedContent, setEditedContent] = useState('');
   const [editedHashtags, setEditedHashtags] = useState<string[]>([]);
   
+  // Canvas/Image state
+  const [showImagePreview, setShowImagePreview] = useState(true);
+  
   // Saving
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,47 +118,47 @@ function ContentCreatorInner() {
   };
 
   async function generateContent() {
-  if (!topic.trim()) {
-    setError('Inserisci un topic per il contenuto');
-    return;
-  }
-
-  setIsGenerating(true);
-  setError(null);
-
-  try {
-    const response = await fetch('/api/social/generate-content', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        platform: selectedPlatform,
-        category: selectedCategory,
-        topic: topic,
-        customPrompt: customPrompt
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Errore HTTP: ${response.status}`);
+    if (!topic.trim()) {
+      setError('Inserisci un topic per il contenuto');
+      return;
     }
 
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/social/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: selectedPlatform,
+          category: selectedCategory,
+          topic: topic,
+          customPrompt: customPrompt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Errore HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setGeneratedContent(data.content);
+      setEditedContent(data.content.content);
+      setEditedHashtags(data.content.hashtags || []);
+      setStep(3);
+
+    } catch (e: any) {
+      setError(e.message || 'Errore nella generazione del contenuto');
+    } finally {
+      setIsGenerating(false);
     }
-
-    setGeneratedContent(data.content);
-    setEditedContent(data.content.content);
-    setEditedHashtags(data.content.hashtags || []);
-    setStep(3);
-
-  } catch (e: any) {
-    setError(e.message || 'Errore nella generazione del contenuto');
-  } finally {
-    setIsGenerating(false);
   }
-}
 
   async function savePost(status: 'draft' | 'ready') {
     setIsSaving(true);
@@ -190,7 +194,7 @@ function ContentCreatorInner() {
   const platformConfig = getPlatformConfig(selectedPlatform);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-6xl mx-auto p-6 space-y-8">
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
@@ -351,17 +355,27 @@ function ContentCreatorInner() {
         </div>
       )}
 
-      {/* Step 3: Review & Edit */}
+      {/* Step 3: Review & Edit WITH CANVAS */}
       {step === 3 && generatedContent && (
         <div className="space-y-6">
           
-          {/* Preview */}
+          {/* Preview Header */}
           <div className={`bg-gradient-to-r ${platformConfig.color} rounded-lg p-6 text-white`}>
-            <h2 className="text-xl font-semibold mb-2">✨ Contenuto Generato</h2>
-            <p className="opacity-90">Puoi modificare il testo e gli hashtag prima di salvare</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">✨ Contenuto Generato</h2>
+                <p className="opacity-90">Modifica il testo e genera l'immagine per i social</p>
+              </div>
+              <button
+                onClick={() => setShowImagePreview(!showImagePreview)}
+                className="bg-white/20 px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+              >
+                {showImagePreview ? '📝 Solo Testo' : '🖼️ Mostra Immagine'}
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`grid gap-6 ${showImagePreview ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
             
             {/* Edit Content */}
             <div className="bg-white border rounded-lg p-6">
@@ -422,58 +436,74 @@ function ContentCreatorInner() {
               </div>
             </div>
 
-            {/* Preview */}
-            <div className="bg-white border rounded-lg p-6">
-              <h3 className="font-semibold mb-4">👁️ Anteprima {platformConfig.name}</h3>
-              <div className="border rounded-lg p-4 bg-gray-50 min-h-[400px]">
-                
-                {/* Instagram Preview */}
-                {selectedPlatform === 'instagram' && (
-                  <div className="max-w-sm mx-auto bg-white rounded-lg border shadow-sm">
-                    <div className="p-3 border-b flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full"></div>
-                      <div>
-                        <p className="font-semibold text-sm">dr.cognome</p>
-                        <p className="text-xs text-gray-600">Psicoterapeuta</p>
+            {/* Image Preview with Canvas */}
+            {showImagePreview && (
+              <div className="space-y-6">
+                <ImagePreview
+                  content={{
+                    title: generatedContent.title,
+                    content: editedContent,
+                    hashtags: editedHashtags
+                  }}
+                  platform={selectedPlatform}
+                />
+              </div>
+            )}
+
+            {/* Social Preview (when image is hidden) */}
+            {!showImagePreview && (
+              <div className="bg-white border rounded-lg p-6">
+                <h3 className="font-semibold mb-4">👁️ Anteprima {platformConfig.name}</h3>
+                <div className="border rounded-lg p-4 bg-gray-50 min-h-[400px]">
+                  
+                  {/* Instagram Preview */}
+                  {selectedPlatform === 'instagram' && (
+                    <div className="max-w-sm mx-auto bg-white rounded-lg border shadow-sm">
+                      <div className="p-3 border-b flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full"></div>
+                        <div>
+                          <p className="font-semibold text-sm">dr.cognome</p>
+                          <p className="text-xs text-gray-600">Psicoterapeuta</p>
+                        </div>
+                      </div>
+                      
+                      <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500">
+                        <span className="text-4xl">🧠</span>
+                      </div>
+                      
+                      <div className="p-3">
+                        <p className="text-sm whitespace-pre-wrap">{editedContent}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {editedHashtags.slice(0, 5).map((tag, i) => (
+                            <span key={i} className="text-xs text-blue-600">#{tag}</span>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500">
-                      <span className="text-4xl">🧠</span>
-                    </div>
-                    
-                    <div className="p-3">
-                      <p className="text-sm whitespace-pre-wrap">{editedContent}</p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {editedHashtags.slice(0, 5).map((tag, i) => (
+                  )}
+
+                  {/* Other platforms preview */}
+                  {selectedPlatform !== 'instagram' && (
+                    <div className="bg-white rounded-lg border shadow-sm p-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="text-2xl">{platformConfig.icon}</span>
+                        <div>
+                          <p className="font-semibold">Dr. Cognome - Psicoterapeuta</p>
+                          <p className="text-xs text-gray-600">{platformConfig.name}</p>
+                        </div>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap mb-3">{editedContent}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {editedHashtags.map((tag, i) => (
                           <span key={i} className="text-xs text-blue-600">#{tag}</span>
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Other platforms preview */}
-                {selectedPlatform !== 'instagram' && (
-                  <div className="bg-white rounded-lg border shadow-sm p-4">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-2xl">{platformConfig.icon}</span>
-                      <div>
-                        <p className="font-semibold">Dr. Cognome - Psicoterapeuta</p>
-                        <p className="text-xs text-gray-600">{platformConfig.name}</p>
-                      </div>
-                    </div>
-                    <p className="text-sm whitespace-pre-wrap mb-3">{editedContent}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {editedHashtags.map((tag, i) => (
-                        <span key={i} className="text-xs text-blue-600">#{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Actions */}
