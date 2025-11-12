@@ -114,36 +114,47 @@ function ContentCreatorInner() {
   };
 
   async function generateContent() {
-    if (!topic.trim()) {
-      setError('Inserisci un topic per il contenuto');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      // Simuliamo la chiamata API per ora (senza l'API vera)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Contenuto mock generato
-      const mockContent: GeneratedContent = {
-        title: `${selectedCategory === 'educational' ? '🧠 ' : selectedCategory === 'awareness' ? '💡 ' : selectedCategory === 'personal' ? '🌱 ' : '📢 '}Post su ${topic}`,
-        content: `Questo è un post ${CATEGORIES[selectedCategory].title.toLowerCase()} su "${topic}".\n\n✅ Contenuto educativo e professionale\n🎯 Mirato per ${getPlatformConfig(selectedPlatform).name}\n💡 Basato su evidenze scientifiche\n\n${selectedCategory === 'educational' ? 'Cosa ne pensi? Condividi la tua esperienza nei commenti!' : selectedCategory === 'awareness' ? 'Ricorda: chiedere aiuto è un segno di forza, non di debolezza.' : selectedCategory === 'personal' ? 'Questa è la mia esperienza personale. Qual è la tua?' : 'Per maggiori informazioni, non esitare a contattarmi.'}`,
-        hashtags: ['psicologia', 'benessere', 'salutementale', selectedCategory, selectedPlatform]
-      };
-
-      setGeneratedContent(mockContent);
-      setEditedContent(mockContent.content);
-      setEditedHashtags(mockContent.hashtags);
-      setStep(3);
-
-    } catch (e: any) {
-      setError('Errore nella generazione del contenuto. Per ora stiamo usando contenuti mock.');
-    } finally {
-      setIsGenerating(false);
-    }
+  if (!topic.trim()) {
+    setError('Inserisci un topic per il contenuto');
+    return;
   }
+
+  setIsGenerating(true);
+  setError(null);
+
+  try {
+    const response = await fetch('/api/social/generate-content', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        platform: selectedPlatform,
+        category: selectedCategory,
+        topic: topic,
+        customPrompt: customPrompt
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Errore HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    setGeneratedContent(data.content);
+    setEditedContent(data.content.content);
+    setEditedHashtags(data.content.hashtags || []);
+    setStep(3);
+
+  } catch (e: any) {
+    setError(e.message || 'Errore nella generazione del contenuto');
+  } finally {
+    setIsGenerating(false);
+  }
+}
 
   async function savePost(status: 'draft' | 'ready') {
     setIsSaving(true);
