@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 import AlertsWidget from '@/components/AlertsWidget';
 import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
-import AssistantTips from '@/components/AssistantTips';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -244,11 +243,7 @@ export default function Page() {
           </div>
         </div>
       </div>
-
-      <div className="lg:col-span-2">
-        <AssistantTips />
-      </div>
-      
+     
       <CalendarPicker
         isOpen={showCalendarPicker}
         onClose={() => setShowCalendarPicker(false)}
