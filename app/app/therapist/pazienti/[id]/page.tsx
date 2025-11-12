@@ -327,6 +327,29 @@ export default function PatientPage() {
     }
   }
 
+  async function downloadConsentPDF(consentId: string) {
+  try {
+    const response = await fetch(`/api/download-consent-pdf/${consentId}`);
+    if (!response.ok) throw new Error('Errore download');
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consenso_${patient?.display_name?.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (e: any) {
+    alert('Errore: ' + e.message);
+  }
+}
+
+function viewConsent(consentId: string) {
+  window.open(`/consent/view/${consentId}`, '_blank');
+}
+  
   async function invitePatient() {
     if (!patient?.email) {
       alert('Il paziente non ha email');
