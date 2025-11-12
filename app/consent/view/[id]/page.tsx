@@ -8,48 +8,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type ConsentData = {
-  id: string;
-  therapist_signature: string;
-  therapist_signature_type: string;
-  patient_signature: string | null;
-  patient_signature_type: string | null;
-  tessera_sanitaria_consent: boolean;
-  status: string;
-  created_at: string;
-  therapist_signed_at: string;
-  patient_signed_at: string | null;
-  patients: {
-    display_name: string;
-    birth_date: string;
-    birth_place: string;
-    address: string;
-    city: string;
-    postal_code: string;
-    province: string;
-    fiscal_code: string;
-    email: string;
-    phone: string;
-    session_duration_individual: number;
-    session_duration_couple: number;
-    session_duration_family: number;
-    rate_individual: number;
-    rate_couple: number;
-    rate_family: number;
-  };
-  therapists: {
-    full_name: string;
-    address: string;
-    city: string;
-    registration_number: string;
-    therapeutic_orientation: string;
-    insurance_policy: string;
-  };
-};
-
 export default function ViewConsentPage() {
   const params = useParams();
-  const [consent, setConsent] = useState<ConsentData | null>(null);
+  const [consent, setConsent] = useState<any>(null);
+  const [patient, setPatient] = useState<any>(null);
+  const [therapist, setTherapist] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,46 +34,48 @@ export default function ViewConsentPage() {
       setError(null);
       
       try {
-        const { data, error } = await supabase
+        // Query consenso
+        const { data: consentData, error: consentError } = await supabase
           .from('consent_documents')
-          .select(`
-            *,
-            patients!inner (
-              display_name,
-              birth_date,
-              birth_place,
-              address,
-              city,
-              postal_code,
-              province,
-              fiscal_code,
-              email,
-              phone,
-              session_duration_individual,
-              session_duration_couple,
-              session_duration_family,
-              rate_individual,
-              rate_couple,
-              rate_family
-            ),
-            therapists!inner (
-              full_name,
-              address,
-              city,
-              registration_number,
-              therapeutic_orientation,
-              insurance_policy
-            )
-          `)
+          .select('*')
           .eq('id', consentId)
           .single();
 
-        if (error || !data) {
+        if (consentError || !consentData) {
           setError('Consenso non trovato');
           return;
         }
 
-        setConsent(data);
+        setConsent(consentData);
+
+        // Query paziente
+        const { data: patientData, error: patientError } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('id', consentData.patient_id)
+          .single();
+
+        if (patientError || !patientData) {
+          setError('Dati paziente non trovati');
+          return;
+        }
+
+        setPatient(patientData);
+
+        // Query terapeuta
+        const { data: therapistData, error: therapistError } = await supabase
+          .from('therapists')
+          .select('*')
+          .eq('user_id', patientData.therapist_user_id)
+          .single();
+
+        if (therapistError || !therapistData) {
+          setError('Dati terapeuta non trovati');
+          return;
+        }
+
+        setTherapist(therapistData);
+
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -129,18 +94,16 @@ export default function ViewConsentPage() {
     );
   }
 
-  if (error || !consent) {
+  if (error || !consent || !patient || !therapist) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700">
-          <p><strong>Errore:</strong> {error || 'Consenso non trovato'}</p>
+          <p><strong>Errore:</strong> {error || 'Dati non trovati'}</p>
         </div>
       </div>
     );
   }
 
-  const patient = consent.patients;
-  const therapist = consent.therapists;
   const therapistFullAddress = therapist?.address || '_____';
   const patientFullAddress = `${patient?.address || '_____'} ${patient?.postal_code || '_____'} ${patient?.city || '_____'} (${patient?.province || '__'})`;
 
