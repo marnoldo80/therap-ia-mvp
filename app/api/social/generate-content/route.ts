@@ -11,137 +11,144 @@ export async function POST(request: NextRequest) {
     // Prompt specializzati per piattaforma e categoria
     const prompts = {
       instagram: {
-        educational: `Crea un post Instagram educativo per psicoterapeuti su "${topic}". 
+        educational: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post educativo su "${topic}".
 
 LINEE GUIDA:
 - Max 2200 caratteri
-- Tone professionale ma accessibile 
-- Usa emoji per leggibilità
-- Aggiungi domanda per engagement
-- Basato su evidenze scientifiche
-- Struttura: Hook + contenuto educativo + call-to-action
+- Tone professionale ma accessibile al pubblico generale
+- Usa emoji per rendere più leggibile
+- Struttura: Hook coinvolgente + contenuto educativo + domanda per engagement + call-to-action
+- Basa il contenuto su evidenze scientifiche
+- Linguaggio italiano naturale
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo accattivante con emoji",
-  "content": "Contenuto completo del post con paragrafi ed emoji",
+  "content": "Contenuto completo del post con emoji e paragrafi",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
-        awareness: `Scrivi un post Instagram di sensibilizzazione su "${topic}" per psicologo.
+        awareness: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post di sensibilizzazione su "${topic}".
 
 LINEE GUIDA:
 - Linguaggio empatico e non giudicante
-- Obiettivo: ridurre stigma, aumentare consapevolezza
+- Obiettivo: ridurre stigma e aumentare consapevolezza
 - Tone supportivo e incoraggiante
 - Max 2200 caratteri
-- Include emoji appropriati
-- Incoraggia a cercare aiuto se necessario
+- Usa emoji appropriati
+- Include delicatamente segni/sintomi se appropriato
+- Incoraggia a cercare aiuto professionale
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo empatico con emoji",
-  "content": "Post di sensibilizzazione",
+  "content": "Post di sensibilizzazione con emoji",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
-        personal: `Crea un post Instagram personale per psicoterapeuta su "${topic}".
+        personal: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post personale su "${topic}".
 
 LINEE GUIDA:
-- Mostra lato umano mantenendo professionalità
+- Mostra il lato umano mantenendo professionalità
 - Storytelling coinvolgente e autentico
 - Max 2200 caratteri
 - Tone caldo, genuino ma rispettoso
 - Connetti esperienza personale a insight professionali
+- Usa emoji per rendere più personale
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo personale con emoji",
-  "content": "Storytelling professionale",
+  "content": "Storytelling professionale con emoji",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
-        promotional: `Scrivi un post Instagram promozionale per psicoterapeuta su "${topic}".
+        promotional: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post promozionale su "${topic}".
 
 LINEE GUIDA:
-- Tone professionale, non commerciale aggressivo
-- Focus su valore per il paziente
+- Tone professionale, evita approccio commerciale aggressivo
+- Focus sul valore per il paziente
 - Max 2200 caratteri
-- Include credibilità
-- Call-to-action delicato
+- Include credibilità e competenze
+- Call-to-action delicato e appropriato
+- Usa emoji per professionalità friendly
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo professionale con emoji",
-  "content": "Presentazione servizio",
+  "content": "Presentazione servizio con emoji",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`
       },
 
       facebook: {
-        educational: `Crea un post Facebook educativo per psicoterapeuti su "${topic}".
+        educational: `Sei un esperto di comunicazione per psicologi su Facebook. Crea un post educativo su "${topic}".
 
 LINEE GUIDA:
 - Max 4000 caratteri (Facebook permette più testo)
 - Tone professionale ma conversazionale
-- Struttura: Introduzione + contenuto dettagliato + discussione
+- Struttura: Introduzione + contenuto dettagliato + domande per discussione
 - Incoraggia commenti e condivisioni
-- Può includere paragrafi più lunghi
+- Può includere paragrafi più lunghi e approfonditi
+- Usa emoji con moderazione
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
-  "title": "Titolo per Facebook",
-  "content": "Contenuto esteso per community",
+  "title": "Titolo per community Facebook",
+  "content": "Contenuto esteso per community con emoji",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`,
 
-        awareness: `Scrivi un post Facebook di sensibilizzazione su "${topic}".
+        awareness: `Sei un esperto di comunicazione per psicologi su Facebook. Crea un post di sensibilizzazione su "${topic}".
 
 LINEE GUIDA:
 - Community building, discussione aperta
 - Linguaggio inclusivo e supportivo
 - Max 4000 caratteri
-- Incoraggia condivisione esperienze appropriate
-- Crea senso di comunità
+- Incoraggia condivisione di esperienze appropriate
+- Crea senso di comunità e supporto reciproco
+- Usa emoji per empatia
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
-  "title": "Titolo community",
+  "title": "Titolo community con emoji",
   "content": "Post di sensibilizzazione community-oriented",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`
       },
 
       linkedin: {
-        educational: `Crea un post LinkedIn professionale su "${topic}" per psicoterapeuta.
+        educational: `Sei un esperto di comunicazione per psicologi su LinkedIn. Crea un post professionale su "${topic}".
 
 LINEE GUIDA:
 - Max 3000 caratteri
 - Tone autorevole e professionale
-- Include insight settoriali
-- Networking con colleghi
-- Aggiungi valore professionale
+- Include insight settoriali e best practices
+- Adatto per networking con colleghi
+- Aggiungi valore al network professionale
+- Evita emoji eccessive, mantieni professionalità
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo professionale LinkedIn",
   "content": "Insight professionale dettagliato",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`,
 
-        professional: `Scrivi un articolo LinkedIn professionale su "${topic}".
+        professional: `Sei un esperto di comunicazione per psicologi su LinkedIn. Crea un articolo thought leadership su "${topic}".
 
 LINEE GUIDA:
-- Thought leadership nel settore
-- Evidenze scientifiche e best practices
+- Thought leadership nel settore psicologia
+- Include evidenze scientifiche e best practices
 - Max 3000 caratteri
 - Tone esperto ma accessibile
-- Call-to-action per networking
+- Call-to-action per networking professionale
+- Focus su competenze e innovazione
 
-FORMATO RISPOSTA (solo JSON valido, niente altro testo):
+FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo thought leadership",
-  "content": "Articolo professionale autorevole", 
+  "content": "Articolo professionale autorevole",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`
       }
@@ -161,39 +168,51 @@ FORMATO RISPOSTA (solo JSON valido, niente altro testo):
       return NextResponse.json({ error: 'Prompt non trovato per questa configurazione' }, { status: 400 });
     }
 
-    // Chiamata all'API di Anthropic
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    // Chiamata a Groq API con Llama (stesso sistema che già usi)
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 1500,
+        model: 'llama-3.3-70b-versatile',
         messages: [
+          {
+            role: 'system',
+            content: 'Sei un esperto copywriter specializzato in comunicazione digitale per psicologi e psicoterapeuti. Crei contenuti professionali, etici e coinvolgenti per social media. Rispondi SEMPRE e SOLO con JSON valido, senza testo aggiuntivo.'
+          },
           {
             role: 'user',
             content: selectedPrompt
           }
-        ]
-      })
+        ],
+        temperature: 0.7, // Più creativo del riassunto clinico
+        max_tokens: 1500,
+      }),
     });
 
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      console.error('Anthropic API Error:', anthropicResponse.status, errorText);
-      throw new Error(`Anthropic API error: ${anthropicResponse.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Errore Groq API:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return NextResponse.json({ 
+        error: 'Errore generazione contenuto social', 
+        details: errorText,
+        status: response.status 
+      }, { status: 500 });
     }
 
-    const anthropicData = await anthropicResponse.json();
-    const responseText = anthropicData.content[0].text;
+    const data = await response.json();
+    const responseText = data.choices?.[0]?.message?.content || '';
 
     // Prova a parsare come JSON
     let content;
     try {
-      // Pulisce eventuali backticks o markdown
+      // Pulisce eventuali backticks o markdown che Llama potrebbe aggiungere
       const cleanedResponse = responseText
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
@@ -233,7 +252,7 @@ FORMATO RISPOSTA (solo JSON valido, niente altro testo):
     });
 
   } catch (error: any) {
-    console.error('Errore generazione contenuto:', error);
+    console.error('Errore generazione contenuto social:', error);
     return NextResponse.json({ 
       error: 'Errore nella generazione del contenuto: ' + error.message 
     }, { status: 500 });
@@ -252,7 +271,7 @@ function generateFallbackHashtags(topic: string, category: string, platform: str
 
   const platformHashtags = {
     instagram: ['mentalhealthawareness', 'psychology'],
-    facebook: ['community', 'supporto'],
+    facebook: ['community', 'supportomutuo'],
     linkedin: ['psicologiaclinica', 'professionisti']
   };
 
@@ -269,6 +288,10 @@ function generateImagePrompt(topic: string, category: string): string {
     awareness: `Illustrazione empatica su ${topic}, palette pastello, atmosfera rassicurante, stile moderno inclusivo`,
     personal: `Immagine evocativa per riflessione su ${topic}, mood contemplativo, colori caldi, stile artistico ma professionale`,
     promotional: `Design professionale per servizi di ${topic}, colori corporate (blu/grigio), stile business healthcare`
+  };
+
+  return prompts[category as keyof typeof prompts] || prompts.educational;
+}
   };
 
   return prompts[category as keyof typeof prompts] || prompts.educational;
