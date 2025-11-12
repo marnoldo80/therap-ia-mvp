@@ -49,17 +49,42 @@ type ConsentData = {
 
 export default function ViewConsentPage() {
   const params = useParams();
-  const consentId = params?.id as string;
+  const [consentId, setConsentId] = useState<string>('');
   const [consent, setConsent] = useState<ConsentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!consentId) return;
-    loadData();
+    async function loadParams() {
+      if (!params?.id) return;
+      
+      // In Next.js 15, params potrebbe essere async o sync
+      let id: string;
+      if (typeof params.id === 'string') {
+        id = params.id;
+      } else {
+        // Se è Promise, await
+        id = await params.id;
+      }
+      
+      setConsentId(id);
+    }
+    
+    loadParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (consentId) {
+      loadData();
+    }
   }, [consentId]);
 
   async function loadData() {
+    if (!consentId) return;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
       const { data, error } = await supabase
         .from('consent_documents')
