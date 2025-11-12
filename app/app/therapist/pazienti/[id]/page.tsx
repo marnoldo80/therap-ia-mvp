@@ -705,6 +705,111 @@ function viewConsent(consentId: string) {
         </div>
       )}
 
+      <div className="bg-white border rounded-lg p-6 shadow-sm">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <span>📄</span> Consensi Firmati ({consentDocuments.length})
+            </h3>
+            {consentDocuments.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nessun consenso firmato trovato.</p>
+            ) : (
+              <div className="space-y-4">
+                {consentDocuments.map(consent => (
+                  <div key={consent.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold">📋 Consenso Informato</h4>
+                        <p className="text-sm text-gray-600">
+                          Creato il {new Date(consent.created_at).toLocaleDateString('it-IT')}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => viewConsent(consent.id)}
+                          className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                        >
+                          👁️ Visualizza
+                        </button>
+                        {consent.status === 'completed' && (
+                          <button
+                            onClick={() => downloadConsentPDF(consent.id)}
+                            className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                          >
+                            📥 Scarica PDF
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">Firma Terapeuta:</span>
+                        <span className="flex items-center gap-1">
+                          <span className="text-green-600">✅</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(consent.therapist_signed_at).toLocaleDateString('it-IT')}
+                          </span>
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">Firma Paziente:</span>
+                        {consent.patient_signature ? (
+                          <span className="flex items-center gap-1">
+                            <span className="text-green-600">✅</span>
+                            <span className="text-xs text-gray-500">
+                              {consent.patient_signed_at && new Date(consent.patient_signed_at).toLocaleDateString('it-IT')}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <span className="text-orange-500">⏳</span>
+                            <span className="text-xs text-orange-600">In attesa</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">Tessera Sanitaria:</span>
+                        <span className={consent.tessera_sanitaria_consent ? 'text-green-600' : 'text-red-600'}>
+                          {consent.tessera_sanitaria_consent ? '✅ Autorizzata' : '❌ Non autorizzata'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          consent.status === 'completed' 
+                            ? 'bg-green-100 text-green-700' 
+                            : consent.status === 'therapist_signed'
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {consent.status === 'completed' ? '✅ Completato' : 
+                           consent.status === 'therapist_signed' ? '⏳ In attesa paziente' : 
+                           '📝 Bozza'}
+                        </span>
+                        
+                        {consent.status === 'therapist_signed' && (
+                          <button
+                            onClick={() => {
+                              const link = `${window.location.origin}/consent/patient/${consent.id}`;
+                              navigator.clipboard.writeText(link);
+                              alert('✅ Link copiato negli appunti! Condividilo con il paziente.');
+                            }}
+                            className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700"
+                          >
+                            📋 Copia link paziente
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+      
       {activeTab === 'piano' && (
         <div className="space-y-6">
           <div className="flex justify-end gap-2">
