@@ -101,7 +101,7 @@ const CanvasRenderer = forwardRef<HTMLDivElement, CanvasRendererProps>(
             height: `${dimensions.height}px`,
             backgroundColor: template.color_scheme.background,
             fontFamily: template.fonts.body,
-            transform: 'scale(0.8)', // Ridimensiona per preview
+            transform: 'scale(0.6)', // Ridimensiona per preview
             transformOrigin: 'top left',
             overflow: 'hidden'
           }}
