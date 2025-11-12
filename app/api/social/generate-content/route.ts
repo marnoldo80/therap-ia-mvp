@@ -187,7 +187,7 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
             content: selectedPrompt
           }
         ],
-        temperature: 0.7, // Più creativo del riassunto clinico
+        temperature: 0.7,
         max_tokens: 1500,
       }),
     });
@@ -216,8 +216,8 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
       const cleanedResponse = responseText
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
-        .replace(/^[^{]*/, '')  // Rimuove testo prima del JSON
-        .replace(/[^}]*$/, '}') // Assicura che finisca con }
+        .replace(/^[^{]*/, '')
+        .replace(/[^}]*$/, '}')
         .trim();
       
       content = JSON.parse(cleanedResponse);
@@ -288,10 +288,6 @@ function generateImagePrompt(topic: string, category: string): string {
     awareness: `Illustrazione empatica su ${topic}, palette pastello, atmosfera rassicurante, stile moderno inclusivo`,
     personal: `Immagine evocativa per riflessione su ${topic}, mood contemplativo, colori caldi, stile artistico ma professionale`,
     promotional: `Design professionale per servizi di ${topic}, colori corporate (blu/grigio), stile business healthcare`
-  };
-
-  return prompts[category as keyof typeof prompts] || prompts.educational;
-}
   };
 
   return prompts[category as keyof typeof prompts] || prompts.educational;
