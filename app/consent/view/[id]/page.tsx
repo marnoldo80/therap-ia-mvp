@@ -49,89 +49,77 @@ type ConsentData = {
 
 export default function ViewConsentPage() {
   const params = useParams();
-  const [consentId, setConsentId] = useState<string>('');
   const [consent, setConsent] = useState<ConsentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadParams() {
+    async function loadData() {
       if (!params?.id) return;
       
-      // In Next.js 15, params potrebbe essere async o sync
-      let id: string;
-      if (typeof params.id === 'string') {
-        id = params.id;
+      // Gestisci params.id che può essere string o string[]
+      let consentId: string;
+      if (Array.isArray(params.id)) {
+        consentId = params.id[0];
       } else {
-        // Se è Promise, await
-        id = await params.id;
+        consentId = params.id;
       }
       
-      setConsentId(id);
-    }
-    
-    loadParams();
-  }, [params]);
+      if (!consentId) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const { data, error } = await supabase
+          .from('consent_documents')
+          .select(`
+            *,
+            patients!inner (
+              display_name,
+              birth_date,
+              birth_place,
+              address,
+              city,
+              postal_code,
+              province,
+              fiscal_code,
+              email,
+              phone,
+              session_duration_individual,
+              session_duration_couple,
+              session_duration_family,
+              rate_individual,
+              rate_couple,
+              rate_family
+            ),
+            therapists!inner (
+              full_name,
+              address,
+              city,
+              registration_number,
+              therapeutic_orientation,
+              insurance_policy
+            )
+          `)
+          .eq('id', consentId)
+          .single();
 
-  useEffect(() => {
-    if (consentId) {
-      loadData();
-    }
-  }, [consentId]);
+        if (error || !data) {
+          setError('Consenso non trovato');
+          return;
+        }
 
-  async function loadData() {
-    if (!consentId) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data, error } = await supabase
-        .from('consent_documents')
-        .select(`
-          *,
-          patients!inner (
-            display_name,
-            birth_date,
-            birth_place,
-            address,
-            city,
-            postal_code,
-            province,
-            fiscal_code,
-            email,
-            phone,
-            session_duration_individual,
-            session_duration_couple,
-            session_duration_family,
-            rate_individual,
-            rate_couple,
-            rate_family
-          ),
-          therapists!inner (
-            full_name,
-            address,
-            city,
-            registration_number,
-            therapeutic_orientation,
-            insurance_policy
-          )
-        `)
-        .eq('id', consentId)
-        .single();
-
-      if (error || !data) {
-        setError('Consenso non trovato');
-        return;
+        setConsent(data);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
       }
-
-      setConsent(data);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
     }
-  }
+    
+    loadData();
+  }, [params]);
 
   if (loading) {
     return (
