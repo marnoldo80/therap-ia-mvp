@@ -245,6 +245,10 @@ export default function Page() {
         </div>
       </div>
 
+      <div className="lg:col-span-2">
+        <AssistantTips />
+      </div>
+      
       <CalendarPicker
         isOpen={showCalendarPicker}
         onClose={() => setShowCalendarPicker(false)}
