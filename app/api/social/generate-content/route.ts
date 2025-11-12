@@ -210,26 +210,39 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
     const responseText = data.choices?.[0]?.message?.content || '';
 
     // Prova a parsare come JSON
-    let content;
-    try {
-      // Pulisce eventuali backticks o markdown che Llama potrebbe aggiungere
-      const cleanedResponse = responseText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .replace(/^[^{]*/, '')
-        .replace(/[^}]*$/, '}')
-        .trim();
-      
-      content = JSON.parse(cleanedResponse);
-    } catch (e) {
-      console.error('JSON Parse Error:', e, 'Response:', responseText);
-      // Se non è JSON valido, crea struttura manuale
-      content = {
-        title: `Post ${platform} su ${topic}`,
-        content: responseText,
-        hashtags: generateFallbackHashtags(topic, category, platform)
-      };
+let content;
+try {
+  // Pulisce eventuali backticks o markdown che Llama potrebbe aggiungere
+  let cleanedResponse = responseText.trim();
+  
+  // Se la risposta inizia e finisce con {}, è già JSON
+  if (cleanedResponse.startsWith('{') && cleanedResponse.endsWith('}')) {
+    content = JSON.parse(cleanedResponse);
+  } 
+  // Se contiene JSON embedded, estrailo
+  else {
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      content = JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error('No JSON found');
     }
+  }
+  
+  // Valida che abbiamo i campi necessari
+  if (!content.title || !content.content || !content.hashtags) {
+    throw new Error('Invalid JSON structure');
+  }
+  
+} catch (e) {
+  console.error('JSON Parse Error:', e, 'Response:', responseText);
+  // Se non è JSON valido, crea struttura manuale
+  content = {
+    title: `🧠 Gestire l'ansia con efficacia`,
+    content: responseText.replace(/[{}"\[\],]/g, '').replace(/title:|content:|hashtags:/g, ''),
+    hashtags: generateFallbackHashtags(topic, category, platform)
+  };
+}
 
     // Valida e pulisci il contenuto
     if (!content.title) content.title = `Post ${platform} su ${topic}`;
