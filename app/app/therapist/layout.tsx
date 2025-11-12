@@ -50,13 +50,14 @@ export default function TherapistLayout({ children }: { children: React.ReactNod
   }
 
   const menuItems = [
-    { href: "/app/therapist", label: "Dashboard", icon: "🏠" },
-    { href: "/app/therapist/pazienti", label: "Pazienti", icon: "👥" },
-    { href: "/app/therapist/appuntamenti", label: "Appuntamenti", icon: "📅" },
-    { href: "/app/therapist/consensi", label: "Consensi", icon: "📋" },
-    { href: "/app/therapist/sedute", label: "Sedute", icon: "📝" },
-    { href: "/app/therapist/questionari", label: "Questionari", icon: "📊" }
-  ];
+  { href: "/app/therapist", label: "Dashboard", icon: "🏠" },
+  { href: "/app/therapist/pazienti", label: "Pazienti", icon: "👥" },
+  { href: "/app/therapist/appuntamenti", label: "Appuntamenti", icon: "📅" },
+  { href: "/app/therapist/consensi", label: "Consensi", icon: "📋" },
+  { href: "/app/therapist/personal-branding", label: "Personal Branding", icon: "📱" },
+  { href: "/app/therapist/sedute", label: "Sedute", icon: "📝" },
+  { href: "/app/therapist/questionari", label: "Questionari", icon: "📊" }
+];
 
   return (
     <div className="min-h-screen bg-gray-50">
