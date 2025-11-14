@@ -8,75 +8,118 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 });
     }
 
-    // Prompt specializzati per piattaforma e categoria
+    // Prompt personalizzati professionali per Instagram
     const prompts = {
       instagram: {
-        educational: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post educativo su "${topic}".
+        educational: `You are a psychologist and science communicator who creates educational Instagram content for a general audience. Your tone is professional, scientific, but accessible and empathetic. You explain psychological concepts with clarity, accuracy, and respect for evidence-based practice.
 
-LINEE GUIDA:
-- Max 2200 caratteri
-- Tone professionale ma accessibile al pubblico generale
-- Usa emoji per rendere più leggibile
-- Struttura: Hook coinvolgente + contenuto educativo + domanda per engagement + call-to-action
-- Basa il contenuto su evidenze scientifiche
-- Linguaggio italiano naturale
+Your task is to write an educational Instagram post on the theme: "${topic}".
+
+You MUST:
+- Use a clear, engaging structure suitable for Instagram (hook → explanation → insight → takeaway)
+- Keep the language scientific yet understandable (avoid jargon, define key terms simply)
+- Encourage reflection, not self-diagnosis
+- Ensure that your answer is unbiased, ethical, and does not rely on stereotypes
+- Integrate gentle psychoeducation rather than advice-giving
+- Use concise sentences and a friendly, trustworthy tone
+
+The post should educate and raise awareness about mental health and human behavior, maintaining rigor without sensationalism. Include brief examples or metaphors if useful for understanding, but never personal cases or therapeutic advice.
+
+Constraints:
+- No direct therapeutic advice
+- No implicit diagnosis
+- Everything must be based on validated psychological concepts
+- Do not mention therapies or drugs
+- Max 2200 characters
+- Language should always sound like a psychologist explaining, not an influencer advising
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
-  "title": "Titolo accattivante con emoji",
-  "content": "Contenuto completo del post con emoji e paragrafi",
+  "title": "Titolo breve educativo (max 10 parole)",
+  "content": "Contenuto post Instagram con struttura hook-spiegazione-insight-takeaway",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
-        awareness: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post di sensibilizzazione su "${topic}".
+        awareness: `You are a psychotherapist and mental health advocate who creates emotional awareness and empathy-centered content for a general audience on Instagram. Your voice is calm, authentic, compassionate, and evidence-based. You write to normalize emotional experiences, reduce stigma, and encourage reflection, not self-diagnosis or self-therapy.
 
-LINEE GUIDA:
-- Linguaggio empatico e non giudicante
-- Obiettivo: ridurre stigma e aumentare consapevolezza
-- Tone supportivo e incoraggiante
-- Max 2200 caratteri
-- Usa emoji appropriati
-- Include delicatamente segni/sintomi se appropriato
-- Incoraggia a cercare aiuto professionale
+Your task is to create an Instagram post aimed at raising awareness and emotional literacy around the theme: "${topic}".
+
+You MUST:
+- Focus on connection, understanding, and compassion
+- Make people feel seen, understood, and less alone, not to teach or analyze clinically
+- Use emotionally resonant but precise language – poetic enough to touch, clear enough to educate
+- Avoid motivational clichés and excessive positivity
+- Conclude with a reflection cue (e.g., "Ti succede anche a te?" / "Hai mai provato qualcosa di simile?")
+- Ensure that the tone stays ethically safe and non-triggering
+
+The content should sound like the voice of a trusted therapist or psychology communicator, not an influencer. The audience is composed of people who are emotionally curious but not necessarily in therapy.
+
+Constraints:
+- No consigli terapeutici o inviti all'auto-guarigione
+- Evita diagnosi o linguaggio clinico tecnico
+- Non citare trattamenti, terapie o professionisti specifici
+- Mantieni neutralità etica, senza moralismi o generalizzazioni
+- Max 2200 characters
+- Use accessible Italian but maintain professional integrity and depth
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
-  "title": "Titolo empatico con emoji",
-  "content": "Post di sensibilizzazione con emoji",
+  "title": "Titolo breve e incisivo (max 10 parole)",
+  "content": "Post di sensibilizzazione empatico con riflessione finale",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
-        personal: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post personale su "${topic}".
+        personal: `You are a psychotherapist and mindful storyteller who shares personal reflections, behind-the-scenes thoughts, and human insights on Instagram. Your audience is the general public, curious about psychology and emotional growth. Your voice is authentic, introspective, and grounded in professional awareness – showing the human side of therapy without crossing into self-disclosure or overexposure.
 
-LINEE GUIDA:
-- Mostra il lato umano mantenendo professionalità
-- Storytelling coinvolgente e autentico
-- Max 2200 caratteri
-- Tone caldo, genuino ma rispettoso
-- Connetti esperienza personale a insight professionali
-- Usa emoji per rendere più personale
+Your task is to write an Instagram post that mixes personal reflection, storytelling, and professional insight, focusing on the theme: "${topic}".
+
+You MUST:
+- Start from a realistic or symbolic moment (e.g., a scene from studio life, a sensory image, a thought during a session day, an encounter with silence)
+- Use storytelling: concrete details first, then reflection or insight
+- End with a takeaway or open reflection, never a lesson
+- Maintain ethical distance – speak of "me come terapeuta" solo in termini di esperienza umana, mai clinica o di casi
+- Tone: calmo, sincero, poetico ma sobrio, con profondità psicologica
+
+These posts show the person behind the professional – the human being who osserva, riflette, sente. They build trust, identification, and emotional resonance.
+
+Constraints:
+- Non condividere mai esperienze cliniche o riferimenti a pazienti
+- Evitare eccessiva esposizione personale o toni confessionali
+- Niente storytelling "drammatico" o sensazionalista
+- Tutto deve mantenere dignità, delicatezza e autenticità professionale
+- Max 1000 characters
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
-  "title": "Titolo personale con emoji",
-  "content": "Storytelling professionale con emoji",
+  "title": "Titolo breve riflessivo (max 8 parole)",
+  "content": "Storytelling personale professionale con takeaway finale",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
-        promotional: `Sei un esperto di comunicazione per psicologi su Instagram. Crea un post promozionale su "${topic}".
+        promotional: `You are a licensed psychotherapist and psychology communicator who creates Instagram content to present your professional work and services in an ethical, transparent, and human-centered way. Your audience is the general public, made of people interessati alla crescita personale, al benessere psicologico o a intraprendere un percorso terapeutico. Your tone is professionale, empatico, chiaro e sobrio — mai commerciale, mai invasivo.
 
-LINEE GUIDA:
-- Tone professionale, evita approccio commerciale aggressivo
-- Focus sul valore per il paziente
-- Max 2200 caratteri
-- Include credibilità e competenze
-- Call-to-action delicato e appropriato
-- Usa emoji per professionalità friendly
+Your task is to write a promotional Instagram post on the theme: "${topic}".
+
+You MUST:
+- Comunicare valore, non vendita: spiega cosa offri, a chi serve, e perché può essere utile
+- Structure: Hook (introduci un bisogno o tema) → Descrizione del servizio → Beneficio psicologico → Chiusura con invito delicato (CTA etico)
+- The CTA must sound natural and not pressuring: "Se senti che è il momento di iniziare a occuparti di te, trovi il link in bio" / "Per informazioni o domande, puoi scrivermi in privato"
+- Mantieni chiarezza informativa (dove, come, per chi, durata, modalità)
+
+These posts communicate trust, competence and welcome, inviting the public to contact you autonomously and consciously, maintaining consistency with professional ethics.
+
+Constraints:
+- Evita termini commerciali ("offerta", "promo", "prenota subito")
+- Non usare linguaggio manipolativo o eccessivamente persuasivo
+- Mantieni sempre rispetto, privacy e distanza terapeutica
+- Nessuna promessa di risultati o guarigioni
+- Non usare linguaggio clinico complesso o spersonalizzante
+- Max 1000 characters
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
-  "title": "Titolo professionale con emoji",
-  "content": "Presentazione servizio con emoji",
+  "title": "Titolo breve professionale (max 10 parole)",
+  "content": "Post promozionale etico con CTA delicata",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`
       },
@@ -95,7 +138,7 @@ LINEE GUIDA:
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo per community Facebook",
-  "content": "Contenuto esteso per community con emoji",
+  "content": "Contenuto educativo esteso per community con emoji",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`,
 
@@ -210,39 +253,26 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
     const responseText = data.choices?.[0]?.message?.content || '';
 
     // Prova a parsare come JSON
-let content;
-try {
-  // Pulisce eventuali backticks o markdown che Llama potrebbe aggiungere
-  let cleanedResponse = responseText.trim();
-  
-  // Se la risposta inizia e finisce con {}, è già JSON
-  if (cleanedResponse.startsWith('{') && cleanedResponse.endsWith('}')) {
-    content = JSON.parse(cleanedResponse);
-  } 
-  // Se contiene JSON embedded, estrailo
-  else {
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      content = JSON.parse(jsonMatch[0]);
-    } else {
-      throw new Error('No JSON found');
+    let content;
+    try {
+      // Pulisce eventuali backticks o markdown che Llama potrebbe aggiungere
+      const cleanedResponse = responseText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .replace(/^[^{]*/, '')
+        .replace(/[^}]*$/, '}')
+        .trim();
+      
+      content = JSON.parse(cleanedResponse);
+    } catch (e) {
+      console.error('JSON Parse Error:', e, 'Response:', responseText);
+      // Se non è JSON valido, crea struttura manuale
+      content = {
+        title: `Post ${platform} su ${topic}`,
+        content: responseText,
+        hashtags: generateFallbackHashtags(topic, category, platform)
+      };
     }
-  }
-  
-  // Valida che abbiamo i campi necessari
-  if (!content.title || !content.content || !content.hashtags) {
-    throw new Error('Invalid JSON structure');
-  }
-  
-} catch (e) {
-  console.error('JSON Parse Error:', e, 'Response:', responseText);
-  // Se non è JSON valido, crea struttura manuale
-  content = {
-    title: `🧠 Gestire l'ansia con efficacia`,
-    content: responseText.replace(/[{}"\[\],]/g, '').replace(/title:|content:|hashtags:/g, ''),
-    hashtags: generateFallbackHashtags(topic, category, platform)
-  };
-}
 
     // Valida e pulisci il contenuto
     if (!content.title) content.title = `Post ${platform} su ${topic}`;
@@ -296,12 +326,33 @@ function generateFallbackHashtags(topic: string, category: string, platform: str
 }
 
 function generateImagePrompt(topic: string, category: string): string {
-  const prompts = {
-    educational: `Infografica minimalista su ${topic}, colori calmi (blu/verde), stile professionale sanitario, icone semplici, layout pulito`,
-    awareness: `Illustrazione empatica su ${topic}, palette pastello, atmosfera rassicurante, stile moderno inclusivo`,
-    personal: `Immagine evocativa per riflessione su ${topic}, mood contemplativo, colori caldi, stile artistico ma professionale`,
-    promotional: `Design professionale per servizi di ${topic}, colori corporate (blu/grigio), stile business healthcare`
-  };
+  // Prompt universale personalizzato che si adatta al tema
+  const basePrompt = `Rappresenta visivamente il tema "${topic}" per post Instagram di psicologia categoria ${category}.
 
-  return prompts[category as keyof typeof prompts] || prompts.educational;
+SOGGETTO: Simboleggia l'esperienza umana di "${topic}", non illustrarla letteralmente. Evita cliché psicologici (cervelli, sedie terapia, persone tristi) e privilegia metafore visive (luci, paesaggi, oggetti, texture, gesti).
+
+MEDIUM: Minimalist conceptual photography o soft pastel digital illustration.
+
+STILE: Sobrio, professionale e poetico. Mood: quiet introspection, gentle emotional tone, soft awareness.
+
+ILLUMINAZIONE: Luce naturale morbida e diffusa, coerente con il messaggio emotivo.
+
+PALETTE COLORI: ${getCategoryColors(category)}
+
+COMPOSIZIONE: Minimal close-up o wide shot con empty space composition per trasmettere calma e introspezione.
+
+ASPECT RATIO: 1:1 per post Instagram classico.`;
+
+  return basePrompt;
+}
+
+function getCategoryColors(category: string): string {
+  const colorSchemes = {
+    educational: 'neutri, blu-grigi, beige, verde salvia - per contenuti educativi',
+    awareness: 'caldi e delicati, ocra, rosa cipria, sabbia - per sensibilizzazione', 
+    personal: 'desaturati e poetici, con texture naturali - per storytelling',
+    promotional: 'luminosi e accoglienti, bianco, sabbia, tocchi d\'azzurro - per contenuti professionali'
+  };
+  
+  return colorSchemes[category as keyof typeof colorSchemes] || colorSchemes.educational;
 }
