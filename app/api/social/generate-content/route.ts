@@ -291,8 +291,8 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
         // Pulizia hashtags
         if (content.hashtags && Array.isArray(content.hashtags)) {
           content.hashtags = content.hashtags
-            .map(tag => tag.toString().replace(/[^a-zA-Z0-9]/g, ''))
-            .filter(tag => tag.length > 2)
+            .map((tag: any) => tag.toString().replace(/[^a-zA-Z0-9]/g, ''))
+            .filter((tag: string) => tag.length > 2)
             .slice(0, 5); // Max 5 hashtag
         }
         
