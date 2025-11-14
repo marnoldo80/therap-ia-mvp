@@ -22,6 +22,7 @@ You MUST:
 - Ensure that your answer is unbiased, ethical, and does not rely on stereotypes
 - Integrate gentle psychoeducation rather than advice-giving
 - Use concise sentences and a friendly, trustworthy tone
+- MAX 250 CHARACTERS for content - keep it SHORT and engaging
 
 The post should educate and raise awareness about mental health and human behavior, maintaining rigor without sensationalism. Include brief examples or metaphors if useful for understanding, but never personal cases or therapeutic advice.
 
@@ -30,13 +31,13 @@ Constraints:
 - No implicit diagnosis
 - Everything must be based on validated psychological concepts
 - Do not mention therapies or drugs
-- Max 2200 characters
+- MAX 250 characters for content
 - Language should always sound like a psychologist explaining, not an influencer advising
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo breve educativo (max 10 parole)",
-  "content": "Contenuto post Instagram con struttura hook-spiegazione-insight-takeaway",
+  "content": "Contenuto post Instagram BREVE (max 250 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
@@ -51,6 +52,7 @@ You MUST:
 - Avoid motivational clichés and excessive positivity
 - Conclude with a reflection cue (e.g., "Ti succede anche a te?" / "Hai mai provato qualcosa di simile?")
 - Ensure that the tone stays ethically safe and non-triggering
+- MAX 250 CHARACTERS for content - keep it SHORT and impactful
 
 The content should sound like the voice of a trusted therapist or psychology communicator, not an influencer. The audience is composed of people who are emotionally curious but not necessarily in therapy.
 
@@ -59,13 +61,13 @@ Constraints:
 - Evita diagnosi o linguaggio clinico tecnico
 - Non citare trattamenti, terapie o professionisti specifici
 - Mantieni neutralità etica, senza moralismi o generalizzazioni
-- Max 2200 characters
+- MAX 250 characters for content
 - Use accessible Italian but maintain professional integrity and depth
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo breve e incisivo (max 10 parole)",
-  "content": "Post di sensibilizzazione empatico con riflessione finale",
+  "content": "Post di sensibilizzazione empatico BREVE (max 250 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
@@ -79,6 +81,7 @@ You MUST:
 - End with a takeaway or open reflection, never a lesson
 - Maintain ethical distance – speak of "me come terapeuta" solo in termini di esperienza umana, mai clinica o di casi
 - Tone: calmo, sincero, poetico ma sobrio, con profondità psicologica
+- MAX 250 CHARACTERS for content - keep it SHORT and meaningful
 
 These posts show the person behind the professional – the human being who osserva, riflette, sente. They build trust, identification, and emotional resonance.
 
@@ -87,12 +90,12 @@ Constraints:
 - Evitare eccessiva esposizione personale o toni confessionali
 - Niente storytelling "drammatico" o sensazionalista
 - Tutto deve mantenere dignità, delicatezza e autenticità professionale
-- Max 1000 characters
+- MAX 250 characters for content
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo breve riflessivo (max 8 parole)",
-  "content": "Storytelling personale professionale con takeaway finale",
+  "content": "Storytelling personale professionale BREVE (max 250 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`,
 
@@ -105,6 +108,7 @@ You MUST:
 - Structure: Hook (introduci un bisogno o tema) → Descrizione del servizio → Beneficio psicologico → Chiusura con invito delicato (CTA etico)
 - The CTA must sound natural and not pressuring: "Se senti che è il momento di iniziare a occuparti di te, trovi il link in bio" / "Per informazioni o domande, puoi scrivermi in privato"
 - Mantieni chiarezza informativa (dove, come, per chi, durata, modalità)
+- MAX 250 CHARACTERS for content - keep it SHORT and professional
 
 These posts communicate trust, competence and welcome, inviting the public to contact you autonomously and consciously, maintaining consistency with professional ethics.
 
@@ -114,12 +118,12 @@ Constraints:
 - Mantieni sempre rispetto, privacy e distanza terapeutica
 - Nessuna promessa di risultati o guarigioni
 - Non usare linguaggio clinico complesso o spersonalizzante
-- Max 1000 characters
+- MAX 250 characters for content
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo breve professionale (max 10 parole)",
-  "content": "Post promozionale etico con CTA delicata",
+  "content": "Post promozionale etico BREVE (max 250 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
 }`
       },
@@ -128,17 +132,16 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
         educational: `Sei un esperto di comunicazione per psicologi su Facebook. Crea un post educativo su "${topic}".
 
 LINEE GUIDA:
-- Max 4000 caratteri (Facebook permette più testo)
+- Max 400 caratteri (Facebook - più breve per engagement)
 - Tone professionale ma conversazionale
-- Struttura: Introduzione + contenuto dettagliato + domande per discussione
+- Struttura: Introduzione + contenuto + domanda per discussione
 - Incoraggia commenti e condivisioni
-- Può includere paragrafi più lunghi e approfonditi
 - Usa emoji con moderazione
 
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo per community Facebook",
-  "content": "Contenuto educativo esteso per community con emoji",
+  "content": "Contenuto educativo per community (max 400 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`,
 
@@ -147,7 +150,7 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 LINEE GUIDA:
 - Community building, discussione aperta
 - Linguaggio inclusivo e supportivo
-- Max 4000 caratteri
+- Max 400 caratteri
 - Incoraggia condivisione di esperienze appropriate
 - Crea senso di comunità e supporto reciproco
 - Usa emoji per empatia
@@ -155,7 +158,7 @@ LINEE GUIDA:
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo community con emoji",
-  "content": "Post di sensibilizzazione community-oriented",
+  "content": "Post di sensibilizzazione community-oriented (max 400 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`
       },
@@ -164,7 +167,7 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
         educational: `Sei un esperto di comunicazione per psicologi su LinkedIn. Crea un post professionale su "${topic}".
 
 LINEE GUIDA:
-- Max 3000 caratteri
+- Max 300 caratteri (LinkedIn breve e professionale)
 - Tone autorevole e professionale
 - Include insight settoriali e best practices
 - Adatto per networking con colleghi
@@ -174,7 +177,7 @@ LINEE GUIDA:
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo professionale LinkedIn",
-  "content": "Insight professionale dettagliato",
+  "content": "Insight professionale dettagliato (max 300 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`,
 
@@ -183,7 +186,7 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 LINEE GUIDA:
 - Thought leadership nel settore psicologia
 - Include evidenze scientifiche e best practices
-- Max 3000 caratteri
+- Max 300 caratteri
 - Tone esperto ma accessibile
 - Call-to-action per networking professionale
 - Focus su competenze e innovazione
@@ -191,7 +194,7 @@ LINEE GUIDA:
 FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
 {
   "title": "Titolo thought leadership",
-  "content": "Articolo professionale autorevole",
+  "content": "Articolo professionale autorevole (max 300 caratteri)",
   "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4"]
 }`
       }
@@ -223,7 +226,7 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
         messages: [
           {
             role: 'system',
-            content: 'Sei un esperto copywriter specializzato in comunicazione digitale per psicologi e psicoterapeuti. Crei contenuti professionali, etici e coinvolgenti per social media. Rispondi SEMPRE e SOLO con JSON valido, senza testo aggiuntivo.'
+            content: 'Sei un esperto copywriter specializzato in comunicazione digitale per psicologi e psicoterapeuti. Crei contenuti professionali, etici e coinvolgenti per social media. Rispondi SEMPRE e SOLO con JSON valido, senza testo aggiuntivo. IMPORTANTE: mantieni il contenuto BREVE e conciso per social media.'
           },
           {
             role: 'user',
@@ -231,7 +234,7 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
           }
         ],
         temperature: 0.7,
-        max_tokens: 1500,
+        max_tokens: 800, // Ridotto per contenuti più brevi
       }),
     });
 
@@ -252,31 +255,77 @@ FORMATO RICHIESTO - Rispondi SOLO con JSON valido:
     const data = await response.json();
     const responseText = data.choices?.[0]?.message?.content || '';
 
-    // Prova a parsare come JSON
+    // Parsing JSON robusto e pulizia contenuto
     let content;
     try {
-      // Pulisce eventuali backticks o markdown che Llama potrebbe aggiungere
-      const cleanedResponse = responseText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .replace(/^[^{]*/, '')
-        .replace(/[^}]*$/, '}')
-        .trim();
+      // Pulizia aggressiva del response
+      let cleanedResponse = responseText.trim();
       
-      content = JSON.parse(cleanedResponse);
+      // Rimuovi eventuali backticks, markdown e testo extra
+      cleanedResponse = cleanedResponse
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .replace(/^[^{]*/, '') // Rimuovi tutto prima della prima {
+        .replace(/[^}]*$/, '}'); // Forza chiusura con }
+      
+      // Se contiene JSON, estrailo
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = JSON.parse(jsonMatch[0]);
+        
+        // Pulizia aggiuntiva del contenuto
+        if (content.content) {
+          content.content = content.content
+            .replace(/[{}"\[\]]/g, '') // Rimuovi caratteri JSON residui
+            .replace(/title:|content:|hashtags:/gi, '') // Rimuovi label JSON
+            .replace(/\s+/g, ' ') // Normalizza spazi
+            .trim();
+            
+          // Limita lunghezza per platform (MOLTO BREVE)
+          const maxLength = platform === 'instagram' ? 250 : platform === 'facebook' ? 400 : 300;
+          if (content.content.length > maxLength) {
+            content.content = content.content.substring(0, maxLength) + '...';
+          }
+        }
+        
+        // Pulizia hashtags
+        if (content.hashtags && Array.isArray(content.hashtags)) {
+          content.hashtags = content.hashtags
+            .map(tag => tag.toString().replace(/[^a-zA-Z0-9]/g, ''))
+            .filter(tag => tag.length > 2)
+            .slice(0, 5); // Max 5 hashtag
+        }
+        
+      } else {
+        throw new Error('No valid JSON found');
+      }
+      
     } catch (e) {
-      console.error('JSON Parse Error:', e, 'Response:', responseText);
-      // Se non è JSON valido, crea struttura manuale
+      console.error('JSON Parse Error:', e, 'Raw Response:', responseText);
+      
+      // Fallback: crea contenuto pulito manualmente
+      let cleanContent = responseText
+        .replace(/[{}"\[\],]/g, '')
+        .replace(/title:|content:|hashtags:/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+        
+      // Limita lunghezza
+      const maxLength = platform === 'instagram' ? 250 : platform === 'facebook' ? 400 : 300;
+      if (cleanContent.length > maxLength) {
+        cleanContent = cleanContent.substring(0, maxLength) + '...';
+      }
+      
       content = {
-        title: `Post ${platform} su ${topic}`,
-        content: responseText,
+        title: `💭 ${topic}`,
+        content: cleanContent,
         hashtags: generateFallbackHashtags(topic, category, platform)
       };
     }
 
-    // Valida e pulisci il contenuto
-    if (!content.title) content.title = `Post ${platform} su ${topic}`;
-    if (!content.content) content.content = responseText;
+    // Validazione finale
+    if (!content.title) content.title = `💭 ${topic}`;
+    if (!content.content) content.content = 'Contenuto non disponibile';
     if (!content.hashtags || !Array.isArray(content.hashtags)) {
       content.hashtags = generateFallbackHashtags(topic, category, platform);
     }
@@ -322,7 +371,7 @@ function generateFallbackHashtags(topic: string, category: string, platform: str
     ...baseHashtags,
     ...(categoryHashtags[category as keyof typeof categoryHashtags] || []),
     ...(platformHashtags[platform as keyof typeof platformHashtags] || [])
-  ].slice(0, 6);
+  ].slice(0, 5);
 }
 
 function generateImagePrompt(topic: string, category: string): string {
