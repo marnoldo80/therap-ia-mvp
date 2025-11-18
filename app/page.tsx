@@ -66,13 +66,12 @@ export default function HomePage() {
         <header>
           <div className="wrap">
             <div className="header-content">
-              <svg className="logo" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="25" cy="25" r="20" stroke="#f1f5ff" strokeWidth="2" fill="none"/>
-                <circle cx="18" cy="20" r="2" fill="#f1f5ff"/>
-                <circle cx="32" cy="20" r="2" fill="#f1f5ff"/>
-                <path d="M18 30 Q25 35 32 30" stroke="#f1f5ff" strokeWidth="2" fill="none"/>
-                <text x="55" y="35" fill="#f1f5ff" fontSize="24" fontWeight="700" fontFamily="system-ui">cIAo-doc</text>
-              </svg>
+              <img 
+                src="/logo-transparent-png.png" 
+                alt="cIAo-doc" 
+                className="logo"
+                style={{height: '50px', width: 'auto'}}
+              />
             </div>
             <p className="subtitle">Intelligenza Artificiale al Servizio del Terapeuta</p>
           </div>
