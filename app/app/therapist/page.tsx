@@ -131,186 +131,118 @@ export default function Page() {
     window.location.reload();
   }
 
-  function handleLogout() {
-    supabase.auth.signOut().then(() => {
-      window.location.href = '/login';
-    });
-  }
-
   return (
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+      padding: '24px'
     }}>
-      {/* Header */}
-      <header style={{
-        background: 'rgba(0,0,0,0.1)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        padding: '16px 24px'
-      }}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <img 
-              src="/logo-transparent-png.png" 
-              alt="cIAo-doc" 
-              style={{ height: '40px', width: 'auto' }}
-            />
-          </div>
-          
-          {/* Navigation Menu */}
-          <nav className="flex items-center gap-6">
-            <Link 
-              href="/app/therapist/pazienti"
-              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
-              style={{ backgroundColor: '#9333ea' }}
-            >
-              Pazienti
-            </Link>
-            <Link 
-              href="/app/therapist/appuntamenti"
-              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
-              style={{ backgroundColor: '#9333ea' }}
-            >
-              Appuntamenti
-            </Link>
-            <Link 
-              href="/app/therapist/personal-branding"
-              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
-              style={{ backgroundColor: '#9333ea' }}
-            >
-              Personal Branding
-            </Link>
-            <button 
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
-              style={{ backgroundColor: '#9333ea' }}
-            >
-              Logout
-            </button>
-          </nav>
+      {/* Welcome Section */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-white">
+          {getWelcomeMessage(therapist?.display_name)} {therapist?.display_name || ''}
+        </h1>
+        <Link 
+          href="/app/therapist/onboarding"
+          className="px-6 py-2 rounded-lg text-white font-medium transition-colors duration-200"
+          style={{ backgroundColor: '#9333ea' }}
+        >
+          Modifica Profilo
+        </Link>
+      </div>
+
+      {err && (
+        <div className="mb-6 p-4 rounded-lg text-red-100" style={{ 
+          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+          border: '1px solid rgba(239, 68, 68, 0.3)'
+        }}>
+          {err}
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
-        {/* Welcome Section */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            {getWelcomeMessage(therapist?.display_name)} {therapist?.display_name || ''}
-          </h1>
-          <Link 
-            href="/app/therapist/onboarding"
-            className="px-6 py-2 rounded-lg text-white font-medium transition-colors duration-200"
-            style={{ backgroundColor: '#9333ea' }}
-          >
-            Modifica Profilo
-          </Link>
-        </div>
+      {/* Main Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-7xl mx-auto">
+        {/* Nuovo Paziente */}
+        <Link 
+          href="/app/therapist/pazienti/nuovo"
+          className="block p-8 rounded-2xl text-white text-center font-semibold text-xl transition-transform duration-200 hover:scale-105"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+          }}
+        >
+          Nuovo Paziente
+        </Link>
 
-        {err && (
-          <div className="mb-6 p-4 rounded-lg text-red-100" style={{ 
-            backgroundColor: 'rgba(239, 68, 68, 0.2)',
-            border: '1px solid rgba(239, 68, 68, 0.3)'
-          }}>
-            {err}
-          </div>
-        )}
+        {/* Nuovo Appuntamento */}
+        <button
+          onClick={() => setShowCalendarPicker(true)}
+          className="p-8 rounded-2xl text-white text-center font-semibold text-xl transition-transform duration-200 hover:scale-105 w-full"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            border: 'none'
+          }}
+        >
+          Nuovo Appuntamento
+        </button>
 
-        {/* Main Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Nuovo Paziente */}
-          <Link 
-            href="/app/therapist/pazienti/nuovo"
-            className="block p-8 rounded-2xl text-white text-center font-semibold text-xl transition-transform duration-200 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-            }}
-          >
-            Nuovo Paziente
-          </Link>
-
-          {/* Nuovo Appuntamento */}
-          <button
-            onClick={() => setShowCalendarPicker(true)}
-            className="p-8 rounded-2xl text-white text-center font-semibold text-xl transition-transform duration-200 hover:scale-105 w-full"
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              border: 'none'
-            }}
-          >
-            Nuovo Appuntamento
-          </button>
-
-          {/* Prossimi Appuntamenti */}
-          <div 
-            className="p-8 rounded-2xl text-white"
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              minHeight: '200px'
-            }}
-          >
-            <h2 className="text-xl font-semibold mb-4">Prossimi Appuntamenti</h2>
-            <div className="space-y-3 max-h-40 overflow-y-auto">
-              {loading ? (
-                <div className="text-center py-4 text-blue-100">Caricamento...</div>
-              ) : nextAppts.length > 0 ? (
-                nextAppts.slice(0, 3).map(a => (
-                  <div key={a.id} className="bg-white/10 rounded-lg p-3">
-                    <div className="font-medium text-sm">
-                      {a.title}
-                      {(() => { const n = getPatientName(a.patients || null); return n ? ` · ${n}` : ''; })()}
-                    </div>
-                    <div className="text-xs text-blue-100 mt-1">
-                      {new Date(a.starts_at).toLocaleDateString('it-IT')} alle {new Date(a.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+        {/* Prossimi Appuntamenti */}
+        <div 
+          className="p-8 rounded-2xl text-white"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            minHeight: '200px'
+          }}
+        >
+          <h2 className="text-xl font-semibold mb-4">Prossimi Appuntamenti</h2>
+          <div className="space-y-3 max-h-40 overflow-y-auto">
+            {loading ? (
+              <div className="text-center py-4 text-blue-100">Caricamento...</div>
+            ) : nextAppts.length > 0 ? (
+              nextAppts.slice(0, 3).map(a => (
+                <div key={a.id} className="bg-white/10 rounded-lg p-3">
+                  <div className="font-medium text-sm">
+                    {a.title}
+                    {(() => { const n = getPatientName(a.patients || null); return n ? ` · ${n}` : ''; })()}
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-blue-100">Nessun appuntamento</div>
-              )}
-            </div>
-            {nextAppts.length > 3 && (
-              <Link href="/app/therapist/appuntamenti" className="text-sm text-blue-100 hover:text-white block text-center mt-3">
-                Vedi tutti ({nextAppts.length})
-              </Link>
+                  <div className="text-xs text-blue-100 mt-1">
+                    {new Date(a.starts_at).toLocaleDateString('it-IT')} alle {new Date(a.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-blue-100">Nessun appuntamento</div>
             )}
           </div>
+          {nextAppts.length > 3 && (
+            <Link href="/app/therapist/appuntamenti" className="text-sm text-blue-100 hover:text-white block text-center mt-3">
+              Vedi tutti ({nextAppts.length})
+            </Link>
+          )}
+        </div>
 
-          {/* Alert e Notifiche */}
-          <div 
-            className="p-8 rounded-2xl text-white"
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              minHeight: '200px'
-            }}
-          >
-            <h2 className="text-xl font-semibold mb-4">Alert e Notifiche</h2>
-            <div className="space-y-3">
-              {loading ? (
-                <div className="text-center py-4 text-blue-100">Caricamento...</div>
-              ) : (
-                <>
-                  <div className="bg-white/10 rounded-lg p-3">
-                    <div className="font-medium text-sm">Pazienti totali</div>
-                    <div className="text-2xl font-bold">{totalPatients}</div>
-                  </div>
-                  <div className="bg-white/10 rounded-lg p-3">
-                    <div className="font-medium text-sm">Appuntamenti questa settimana</div>
-                    <div className="text-2xl font-bold">{weekAppts}</div>
-                  </div>
-                  {!loading && <AlertsWidgetWrapper />}
-                </>
-              )}
-            </div>
+        {/* Alert e Notifiche - SOLO AlertsWidget */}
+        <div 
+          className="p-8 rounded-2xl text-white"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            minHeight: '200px'
+          }}
+        >
+          <h2 className="text-xl font-semibold mb-4">Alert e Notifiche</h2>
+          <div className="space-y-3">
+            {loading ? (
+              <div className="text-center py-4 text-blue-100">Caricamento...</div>
+            ) : (
+              <AlertsWidgetWrapper />
+            )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Modals */}
       <CalendarPicker
