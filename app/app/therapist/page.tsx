@@ -104,7 +104,7 @@ export default function Page() {
   }, []);
 
   // Function to determine welcome message based on name
-  function getWelcomeMessage(name: string | null): string {
+  function getWelcomeMessage(name: string | null | undefined): string {
     if (!name) return 'Benvenuto/a';
     
     // Simple logic for Italian names - can be improved
