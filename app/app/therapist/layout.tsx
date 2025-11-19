@@ -49,84 +49,64 @@ export default function TherapistLayout({ children }: { children: React.ReactNod
     router.push("/login");
   }
 
-  const menuItems = [
-  { href: "/app/therapist", label: "Dashboard", icon: "🏠" },
-  { href: "/app/therapist/pazienti", label: "Pazienti", icon: "👥" },
-  { href: "/app/therapist/appuntamenti", label: "Appuntamenti", icon: "📅" },
-  { href: "/app/therapist/consensi", label: "Consensi", icon: "📋" },
-  { href: "/app/therapist/personal-branding", label: "Personal Branding", icon: "📱" },
-  { href: "/app/therapist/sedute", label: "Sedute", icon: "📝" },
-  { href: "/app/therapist/questionari", label: "Questionari", icon: "📊" }
-];
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/app/therapist" className="text-xl font-bold text-emerald-600">
-                Therap-IA
-              </Link>
-              <span className="ml-3 text-sm text-gray-500">
-                {therapist?.full_name || therapist?.display_name || 'Terapeuta'}
-              </span>
-            </div>
-            
-            <nav className="hidden md:flex space-x-8">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    pathname === item.href
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={logout}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Logout
-              </button>
-            </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+    }}>
+      {/* NUOVO HEADER con logo cIAo-doc + menu orizzontale viola */}
+      <header style={{
+        background: 'rgba(0,0,0,0.1)',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        padding: '16px 24px'
+      }}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          {/* Logo cIAo-doc */}
+          <div className="flex items-center">
+            <img 
+              src="/logo-transparent-png.png" 
+              alt="cIAo-doc" 
+              style={{ height: '40px', width: 'auto' }}
+            />
           </div>
-        </div>
-
-        {/* Mobile Menu */}
-        <div className="md:hidden border-t bg-white">
-          <div className="px-4 py-2">
-            <nav className="flex gap-2 overflow-x-auto">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
-                    pathname === item.href
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          
+          {/* Menu Orizzontale SOLO: Pazienti, Appuntamenti, Personal Branding, Logout */}
+          <nav className="flex items-center gap-6">
+            <Link 
+              href="/app/therapist/pazienti"
+              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#9333ea' }}
+            >
+              Pazienti
+            </Link>
+            <Link 
+              href="/app/therapist/appuntamenti"
+              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#9333ea' }}
+            >
+              Appuntamenti
+            </Link>
+            <Link 
+              href="/app/therapist/personal-branding"
+              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#9333ea' }}
+            >
+              Personal Branding
+            </Link>
+            <button 
+              onClick={logout}
+              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#9333ea' }}
+            >
+              Logout
+            </button>
+          </nav>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content - SENZA padding wrapper, ogni pagina gestisce il suo layout */}
+      <main>
         {children}
       </main>
 
