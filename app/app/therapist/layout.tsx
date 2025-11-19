@@ -67,7 +67,7 @@ export default function TherapistLayout({ children }: { children: React.ReactNod
             <img 
               src="/logo-transparent-png.png" 
               alt="cIAo-doc" 
-              style={{ height: '40px', width: 'auto' }}
+              style={{ height: '60px', width: 'auto' }}
             />
           </div>
           
