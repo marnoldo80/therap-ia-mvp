@@ -26,7 +26,7 @@ export default function LoginPage() {
           }
           .login-wrapper{max-width:900px; width:100%; margin:0 auto}
           .login-wrapper{max-width:900px; width:100%}
-          .header{text-align:center; margin-bottom:48px}
+          .header{text-align:center; margin-bottom:48px; display:flex; flex-direction:column; align-items:center}
           .logo{height:140px; width:auto; margin-bottom:16px}
           .subtitle{
             margin:0; color:var(--muted); font-size:20px; font-weight:500;
