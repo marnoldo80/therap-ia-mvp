@@ -24,10 +24,10 @@ export default function HomePage() {
             padding:20px 0 16px;
           }
           .header-content{display:flex; align-items:center; gap:16px; margin-bottom:12px}
-          .logo{height:80px; width:auto}
+          .logo{height:120px; width:auto}
           .subtitle{margin:0; color:var(--ink); font-size:18px; font-weight:500}
           .section{padding:24px 0}
-          h2.sec{font-size:24px; margin:6px 0 16px; color:var(--ink)}
+          h2.sec{font-size:24px; margin:6px 0 16px; color:var(--ink); font-family: 'Georgia', serif; font-weight:400}
           p.lead{color:var(--muted); font-size:18px; margin:0; line-height:1.6}
           .features-grid{display:grid; gap:16px; grid-template-columns:repeat(2,1fr); margin-top:20px}
           @media (max-width:768px){.features-grid{grid-template-columns:1fr}}
