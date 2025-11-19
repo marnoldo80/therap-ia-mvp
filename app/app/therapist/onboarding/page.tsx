@@ -24,7 +24,6 @@ export default function Page() {
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [province, setProvince] = useState("");
-  const [hasCode, setHasCode] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -38,7 +37,7 @@ export default function Page() {
 
       const { data: rows, error } = await supabase
         .from("therapists")
-        .select("full_name, address, vat_number, customer_code, registration_number, therapeutic_orientation, insurance_policy, tax_code, city, postal_code, province")
+        .select("full_name, address, vat_number, registration_number, therapeutic_orientation, insurance_policy, tax_code, city, postal_code, province")
         .eq("user_id", user.id)
         .single();
 
@@ -60,7 +59,6 @@ export default function Page() {
         setCity(rows.city || "");
         setPostalCode(rows.postal_code || "");
         setProvince(rows.province || "");
-        setHasCode(!!rows.customer_code);
       }
 
       setLoading(false);
@@ -132,16 +130,6 @@ export default function Page() {
       <h1 className="text-3xl font-bold mb-6" style={{ color: 'white' }}>
         Completa il tuo profilo
       </h1>
-      
-      {hasCode && (
-        <div className="mb-4 p-3 rounded" style={{
-          backgroundColor: 'rgba(34, 197, 94, 0.2)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          color: '#86efac'
-        }}>
-          ✓ Codice cliente assegnato
-        </div>
-      )}
 
       <form onSubmit={handleSave} className="space-y-4">
         <div>
