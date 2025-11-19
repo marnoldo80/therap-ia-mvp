@@ -24,7 +24,7 @@ export default function HomePage() {
             padding:20px 0 16px;
           }
           .header-content{display:flex; align-items:center; gap:16px; margin-bottom:12px}
-          .logo{height:50px; width:auto}
+          .logo{height:80px; width:auto}
           .subtitle{margin:0; color:var(--ink); font-size:18px; font-weight:500}
           .section{padding:24px 0}
           h2.sec{font-size:24px; margin:6px 0 16px; color:var(--ink)}
