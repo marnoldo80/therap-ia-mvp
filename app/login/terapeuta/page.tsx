@@ -72,63 +72,200 @@ function LoginTerapeutaContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(180deg, #10162a 0%, #0b0f1c 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+    }}>
+      <div style={{
+        maxWidth: '400px',
+        width: '100%',
+        background: '#141a2c',
+        borderRadius: '20px',
+        padding: '32px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+        border: '2px solid #26304b'
+      }}>
+        {/* Header con Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <img 
+            src="/logo-transparent-png.png" 
+            alt="cIAo-doc" 
+            style={{ height: '80px', width: 'auto', marginBottom: '16px' }}
+          />
+          <div style={{
+            width: '64px',
+            height: '64px',
+            background: 'linear-gradient(135deg, #7aa2ff, #5b9cff)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px'
+          }}>
+            <svg style={{ width: '32px', height: '32px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#f1f5ff',
+            margin: '0 0 8px'
+          }}>
             {mode === 'signup' ? 'Registrazione Terapeuta' : 'Accesso Terapeuta'}
           </h1>
-          <p className="text-gray-600">
+          <p style={{
+            color: '#a8b2d6',
+            margin: '0',
+            fontSize: '16px'
+          }}>
             {mode === 'signup' ? 'Crea il tuo account professionale' : 'Accedi alla tua dashboard'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#f1f5ff',
+              marginBottom: '8px'
+            }}>
+              Email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #26304b',
+                borderRadius: '12px',
+                backgroundColor: '#0b0f1c',
+                color: '#f1f5ff',
+                fontSize: '16px',
+                outline: 'none',
+                transition: 'border-color 0.3s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#f1f5ff',
+              marginBottom: '8px'
+            }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #26304b',
+                borderRadius: '12px',
+                backgroundColor: '#0b0f1c',
+                color: '#f1f5ff',
+                fontSize: '16px',
+                outline: 'none',
+                transition: 'border-color 0.3s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#fca5a5',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              fontSize: '14px'
+            }}>
               {error}
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{
+              width: '100%',
+              background: loading ? '#4b5563' : '#7aa2ff',
+              color: '#0b1022',
+              padding: '14px 24px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 8px 20px rgba(122, 162, 255, 0.25)',
+              opacity: loading ? '0.7' : '1'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 12px 28px rgba(122, 162, 255, 0.35)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 8px 20px rgba(122, 162, 255, 0.25)';
+              }
+            }}
+          >
             {loading ? 'Attendere...' : mode === 'signup' ? 'Registrati' : 'Accedi'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <a href={`/login/terapeuta?mode=${mode === 'signup' ? 'login' : 'signup'}`} className="text-blue-600 text-sm font-medium">
+        {/* Footer Links */}
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <a 
+            href={`/login/terapeuta?mode=${mode === 'signup' ? 'login' : 'signup'}`}
+            style={{
+              color: '#7aa2ff',
+              fontSize: '14px',
+              fontWeight: '500',
+              textDecoration: 'none'
+            }}
+          >
             {mode === 'signup' ? 'Hai già un account? Accedi' : 'Non hai un account? Registrati'}
           </a>
           <br />
-          <a href="/login" className="text-gray-500 text-sm block mt-2">← Torna alla scelta</a>
+          <a 
+            href="/login"
+            style={{
+              color: '#a8b2d6',
+              fontSize: '14px',
+              textDecoration: 'none',
+              display: 'inline-block',
+              marginTop: '8px'
+            }}
+          >
+            ← Torna alla scelta
+          </a>
         </div>
       </div>
     </div>
@@ -137,7 +274,19 @@ function LoginTerapeutaContent() {
 
 export default function LoginTerapeutaPage() {
   return (
-    <Suspense fallback={<div>Caricamento...</div>}>
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #10162a 0%, #0b0f1c 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#f1f5ff',
+        fontFamily: 'system-ui'
+      }}>
+        Caricamento...
+      </div>
+    }>
       <LoginTerapeutaContent />
     </Suspense>
   );
