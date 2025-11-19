@@ -20,10 +20,11 @@ export default function LoginPage() {
             line-height:1.55; min-height:100vh;
             background:linear-gradient(180deg,#10162a 0%,#0b0f1c 100%);
           }
-          .container{
+          ..container{
             min-height:100vh; display:flex; align-items:center; justify-content:center; 
-            padding:20px;
+            padding:20px; width:100%;
           }
+          .login-wrapper{max-width:900px; width:100%; margin:0 auto}
           .login-wrapper{max-width:900px; width:100%}
           .header{text-align:center; margin-bottom:48px}
           .logo{height:140px; width:auto; margin-bottom:16px}
