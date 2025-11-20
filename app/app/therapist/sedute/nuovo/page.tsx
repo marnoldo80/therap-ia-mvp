@@ -96,10 +96,10 @@ function NuovaNotaForm() {
 
   async function generateSummary(text: string) {
     try {
-      const response = await fetch('/api/generate-summary', {
+      const response = await fetch('/api/ai-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: text, patientId })
+        body: JSON.stringify({ transcript: text })
       });
       
       if (response.ok) {
