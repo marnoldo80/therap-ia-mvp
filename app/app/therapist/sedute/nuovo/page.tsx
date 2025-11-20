@@ -27,6 +27,7 @@ function NuovaNotaForm() {
   const [themes, setThemes] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
   const [exercises, setExercises] = useState<string[]>([]);
+  const [personalNotes, setPersonalNotes] = useState(''); // Nuova sezione note personali
 
   // Stati di modifica
   const [editingTranscript, setEditingTranscript] = useState(false);
@@ -34,6 +35,7 @@ function NuovaNotaForm() {
   const [editingThemes, setEditingThemes] = useState(false);
   const [editingObjectives, setEditingObjectives] = useState(false);
   const [editingExercises, setEditingExercises] = useState(false);
+  const [editingPersonalNotes, setEditingPersonalNotes] = useState(false); // Stato modifica note personali
 
   // Stati di caricamento
   const [loadingGeneration, setLoadingGeneration] = useState(false);
@@ -46,6 +48,7 @@ function NuovaNotaForm() {
   const [tempThemes, setTempThemes] = useState('');
   const [tempObjectives, setTempObjectives] = useState('');
   const [tempExercises, setTempExercises] = useState('');
+  const [tempPersonalNotes, setTempPersonalNotes] = useState(''); // Temp per note personali
 
   useEffect(() => {
     loadPatients();
@@ -172,6 +175,11 @@ function NuovaNotaForm() {
     setEditingExercises(false);
   }
 
+  function savePersonalNotes() {
+    setPersonalNotes(tempPersonalNotes);
+    setEditingPersonalNotes(false);
+  }
+
   // Funzioni di avvio editing
   function startEditingTranscript() {
     setTempTranscript(transcript);
@@ -196,6 +204,11 @@ function NuovaNotaForm() {
   function startEditingExercises() {
     setTempExercises(exercises.join('\n'));
     setEditingExercises(true);
+  }
+
+  function startEditingPersonalNotes() {
+    setTempPersonalNotes(personalNotes);
+    setEditingPersonalNotes(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -227,7 +240,11 @@ function NuovaNotaForm() {
       }
       
       if (exercises.length > 0) {
-        structuredNotes += '💪 ESERCIZI PROPOSTI:\n' + exercises.map(e => `• ${e}`).join('\n');
+        structuredNotes += '💪 ESERCIZI PROPOSTI:\n' + exercises.map(e => `• ${e}`).join('\n') + '\n\n';
+      }
+
+      if (personalNotes) {
+        structuredNotes += '📝 NOTE PERSONALI TERAPEUTA:\n' + personalNotes;
       }
 
       const { error } = await supabase.from('session_notes').insert({
@@ -236,8 +253,7 @@ function NuovaNotaForm() {
         session_date: sessionDate,
         notes: structuredNotes,
         ai_summary: aiSummary || null,
-        themes: themes,
-        transcript: transcript || null
+        themes: themes
       });
 
       if (error) throw error;
@@ -607,8 +623,64 @@ function NuovaNotaForm() {
         </div>
       )}
 
+      {/* Sezione Note Personali Terapeuta - SEMPRE VISIBILE */}
+      <div className="rounded-lg p-6" style={{
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)'
+      }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg flex items-center gap-2" style={{ color: 'white' }}>
+            📝 Note Personali Terapeuta
+            <span className="text-sm font-normal" style={{ color: '#a8b2d6' }}>
+              (sempre disponibili per appunti manuali)
+            </span>
+          </h3>
+          <button
+            onClick={startEditingPersonalNotes}
+            className="px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+            style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
+          >
+            ✏️ {personalNotes ? 'Modifica' : 'Aggiungi note'}
+          </button>
+        </div>
+        
+        {editingPersonalNotes ? (
+          <div className="space-y-3">
+            <textarea
+              className="w-full rounded p-3 min-h-[150px] outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b',
+                color: 'white'
+              }}
+              value={tempPersonalNotes}
+              onChange={(e) => setTempPersonalNotes(e.target.value)}
+              placeholder="Scrivi qui le tue osservazioni personali, impressioni cliniche, note per il follow-up..."
+            />
+            <div className="flex gap-2">
+              <button onClick={savePersonalNotes} className="px-4 py-2 rounded font-medium transition-colors duration-200" style={{ backgroundColor: '#22c55e', color: 'white' }}>💾 Salva</button>
+              <button onClick={() => setEditingPersonalNotes(false)} className="px-4 py-2 rounded font-medium transition-colors duration-200" style={{ backgroundColor: '#6b7280', color: 'white' }}>Annulla</button>
+            </div>
+          </div>
+        ) : (
+          personalNotes ? (
+            <div className="rounded-lg p-4" style={{
+              backgroundColor: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <p className="whitespace-pre-wrap" style={{ color: '#d1d5db' }}>{personalNotes}</p>
+            </div>
+          ) : (
+            <div className="text-center py-8" style={{ color: '#a8b2d6' }}>
+              <p>📝 Spazio per le tue note personali</p>
+              <p className="text-sm mt-1">Clicca "Aggiungi note" per scrivere osservazioni, impressioni cliniche o promemoria</p>
+            </div>
+          )
+        )}
+      </div>
+
       {/* Pulsanti di azione */}
-      {(transcript || aiSummary || themes.length > 0) && (
+      {(transcript || aiSummary || themes.length > 0 || personalNotes) && (
         <div className="flex gap-4 pt-4">
           <button
             onClick={handleSubmit}
