@@ -355,7 +355,10 @@ function NuovaNotaForm() {
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: 'white' }}>
           🎙️ Registrazione Audio Seduta
         </h3>
-        <AudioRecorder onTranscriptComplete={handleTranscriptComplete} />
+        <AudioRecorder 
+          onTranscriptComplete={handleTranscriptComplete} 
+          onSummaryComplete={() => {}} 
+        />
       </div>
 
       {loadingGeneration && (
