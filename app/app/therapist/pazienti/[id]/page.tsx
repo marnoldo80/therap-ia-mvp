@@ -1077,7 +1077,7 @@ export default function PatientPage() {
                 <ResendCredentialsButton 
                   patientId={id}
                   patientName={patient.display_name || 'Paziente'}
-                  patientEmail={patient.email}
+                  patientEmail={patient.email || undefined}
                 />
               </div>
             </div>
