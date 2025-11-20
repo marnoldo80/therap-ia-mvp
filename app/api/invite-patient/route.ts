@@ -18,6 +18,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing email/patientId" }, { status: 400 });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+
     // Verifica che il paziente esista
     const { data: patient, error: patientErr } = await supabaseAdmin
       .from("patients")
@@ -29,63 +31,81 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Paziente non trovato" }, { status: 404 });
     }
 
-    // Crea utente Supabase SENZA password (sarà impostata tramite reset)
-    const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: email.toLowerCase().trim(),
-      email_confirm: true,
-      user_metadata: { 
-        patient_id: patientId,
-        role: 'patient' 
-      }
-    });
+    let userId = null;
 
-    if (createErr) {
-      // Se l'utente esiste già, prova a recuperarlo
-      if (createErr.message?.includes('already registered')) {
-        const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-        const user = existingUser?.users?.find(u => u.email === email.toLowerCase().trim());
-        
-        if (user) {
-          // Usa l'utente esistente
-          await supabaseAdmin.from("patients").update({ 
-            email: email.toLowerCase().trim(),
-            patient_user_id: user.id,
-            user_id: user.id
-          }).eq("id", patientId);
-        } else {
-          throw createErr;
-        }
-      } else {
-        throw createErr;
-      }
-    } else {
-      // Aggiorna paziente con il nuovo user_id
+    // Controlla se l'utente esiste già
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === cleanEmail);
+
+    if (existingUser) {
+      console.log('✅ Utente esistente trovato:', existingUser.id);
+      userId = existingUser.id;
+      
+      // Aggiorna il paziente con l'utente esistente
       await supabaseAdmin.from("patients").update({ 
-        email: email.toLowerCase().trim(),
-        patient_user_id: userData.user.id,
-        user_id: userData.user.id
+        email: cleanEmail,
+        patient_user_id: userId,
+        user_id: userId
+      }).eq("id", patientId);
+      
+    } else {
+      // Crea nuovo utente
+      console.log('🆕 Creo nuovo utente per:', cleanEmail);
+      
+      const { data: userData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: cleanEmail,
+        email_confirm: true,
+        user_metadata: { 
+          patient_id: patientId,
+          role: 'patient' 
+        }
+      });
+
+      if (createErr) {
+        console.error('❌ Errore creazione utente:', createErr);
+        throw new Error(`Errore creazione account: ${createErr.message}`);
+      }
+
+      userId = userData.user.id;
+      console.log('✅ Nuovo utente creato:', userId);
+
+      // Aggiorna paziente con nuovo user_id
+      await supabaseAdmin.from("patients").update({ 
+        email: cleanEmail,
+        patient_user_id: userId,
+        user_id: userId
       }).eq("id", patientId);
     }
 
-    // Genera token di reset sicuro
+    // Pulizia vecchi token per questo utente
+    await supabaseAdmin
+      .from('password_reset_tokens')
+      .delete()
+      .eq('email', cleanEmail);
+
+    // Genera nuovo token di reset
     const resetToken = crypto.randomUUID() + '-' + Date.now();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 ore
+
+    console.log('🔑 Genero token reset per utente:', userId);
 
     // Salva token di reset
     const { error: tokenErr } = await supabaseAdmin
       .from('password_reset_tokens')
       .insert({
-        user_id: userData?.user?.id || patient.id,
-        email: email.toLowerCase().trim(),
+        user_id: userId,
+        email: cleanEmail,
         token: resetToken,
         expires_at: expiresAt,
         used: false
       });
 
     if (tokenErr) {
-      console.error('Errore salvataggio token:', tokenErr);
-      throw new Error('Errore generazione link sicuro');
+      console.error('❌ Errore salvataggio token:', tokenErr);
+      throw new Error('Errore generazione link sicuro: ' + tokenErr.message);
     }
+
+    console.log('✅ Token salvato:', resetToken.substring(0, 8) + '...');
 
     // URL sicuro per impostazione password
     const setupUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password?token=${resetToken}`;
@@ -167,6 +187,15 @@ export async function POST(req: Request) {
               </div>
             </div>
           </div>
+
+          <div style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0; line-height: 1.5;">
+              <strong>🔗 Link diretto:</strong><br>
+              <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all;">
+                ${setupUrl}
+              </code>
+            </p>
+          </div>
         </div>
         
         <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px; line-height: 1.6;">
@@ -175,25 +204,32 @@ export async function POST(req: Request) {
         </div>
       </div>
     `;
-    
+
+    console.log('📧 Invio email a:', cleanEmail);
+
+    // Invio email
     const emailResult = await resend.emails.send({ 
       from, 
-      to: email, 
+      to: cleanEmail, 
       subject, 
       html: htmlContent 
     });
     
     if (emailResult.error) {
+      console.error('❌ Errore Resend:', emailResult.error);
       throw new Error('Errore invio email: ' + emailResult.error.message);
     }
 
+    console.log('✅ Email inviata con successo! ID:', emailResult.data?.id);
+
     return NextResponse.json({ 
       ok: true, 
-      message: "✅ Invito inviato! Il paziente riceverà un'email sicura per impostare la password." 
+      message: "✅ Invito inviato! Il paziente riceverà un'email sicura per impostare la password.",
+      emailId: emailResult.data?.id
     });
     
   } catch (e: any) {
-    console.error('Errore invite-patient:', e);
+    console.error('❌ Errore invite-patient:', e);
     return NextResponse.json({ 
       error: e?.message || "Errore durante l'invio dell'invito" 
     }, { status: 500 });
