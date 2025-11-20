@@ -1062,6 +1062,25 @@ export default function PatientPage() {
                 ))}
               </div>
             )}
+            <div className="rounded-lg p-6" style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <h3 className="font-bold text-lg mb-4" style={{ color: 'white' }}>🔑 Gestione Accesso</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium" style={{ color: 'white' }}>Credenziali Paziente</p>
+                  <p className="text-sm" style={{ color: '#a8b2d6' }}>
+                    Genera nuove credenziali se il paziente non ricorda la password
+                  </p>
+                </div>
+                <ResendCredentialsButton 
+                  patientId={id}
+                  patientName={patient.display_name || 'Paziente'}
+                  patientEmail={patient.email}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="rounded-lg p-6" style={{
