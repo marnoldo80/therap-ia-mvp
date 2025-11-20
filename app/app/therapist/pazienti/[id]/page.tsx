@@ -8,6 +8,7 @@ import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 import SessionRatesForm from '@/components/SessionRatesForm';
 import { useRouter } from 'next/navigation';
+import ResendCredentialsButton from '@/components/ResendCredentialsButton';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
