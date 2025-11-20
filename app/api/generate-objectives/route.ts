@@ -123,11 +123,19 @@ Rispondi SOLO con il JSON, senza altro testo.`
 
     // Parse JSON dalla risposta IA
     try {
-      const objectives = JSON.parse(aiResponse);
+      // Pulisce la risposta da eventuali markdown e spazi
+      let cleanResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      // Rimuove eventuali caratteri di controllo
+      cleanResponse = cleanResponse.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+      
+      console.log('Risposta IA pulita:', cleanResponse); // Per debugging
+      
+      const objectives = JSON.parse(cleanResponse);
       
       // Validazione struttura
       if (!objectives.obiettivi_generali || !objectives.obiettivi_specifici || !objectives.esercizi) {
-        throw new Error('Struttura JSON non valida');
+        throw new Error('Struttura JSON non valida - campi mancanti');
       }
 
       return NextResponse.json({
@@ -138,8 +146,18 @@ Rispondi SOLO con il JSON, senza altro testo.`
         patient_name: patient.display_name
       });
     } catch (parseError) {
-      console.error('Errore parsing JSON IA:', aiResponse);
-      return NextResponse.json({ error: 'Formato risposta IA non valido' }, { status: 500 });
+      console.error('Errore parsing JSON IA:', parseError);
+      console.error('Risposta originale IA:', aiResponse);
+      
+      // Fallback: restituisci struttura vuota invece di errore
+      return NextResponse.json({
+        obiettivi_generali: ['Obiettivo generale da definire manualmente'],
+        obiettivi_specifici: ['Obiettivo specifico da definire manualmente'],
+        esercizi: ['Esercizio da definire manualmente'],
+        sessions_analyzed: sessionNotes.length,
+        patient_name: patient.display_name,
+        error_info: 'Risposta IA non parsabile, forniti placeholder'
+      });
     }
 
   } catch (error: any) {
