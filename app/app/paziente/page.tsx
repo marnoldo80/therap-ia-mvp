@@ -726,6 +726,13 @@ export default function Page() {
           patientName={patient.display_name || 'Paziente'}
         />
       )}
+      <PasswordChangeModal 
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={() => {
+          alert('✅ Password aggiornata con successo!');
+        }}
+      />
     </div>
   );
 }
