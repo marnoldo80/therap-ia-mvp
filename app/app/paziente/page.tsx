@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import ChatWidget from '@/components/ChatWidget';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -83,6 +84,7 @@ export default function Page() {
   const [appointmentMessages, setAppointmentMessages] = useState<{[key: string]: string}>({});
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -385,11 +387,20 @@ export default function Page() {
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <span>👤</span> Dati personali
               </h2>
-              {!editingPersonalData && (
-                <button onClick={() => setEditingPersonalData(true)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  ✏️ Modifica
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowPasswordModal(true)}
+                  className="text-sm font-medium px-3 py-1 rounded transition-colors duration-200"
+                  style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+                >
+                  🔐 Cambia Password
                 </button>
-              )}
+                {!editingPersonalData && (
+                  <button onClick={() => setEditingPersonalData(true)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    ✏️ Modifica
+                  </button>
+                )}
+              </div>
             </div>
             
             {editingPersonalData ? (
