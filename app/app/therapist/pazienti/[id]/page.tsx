@@ -465,32 +465,63 @@ function viewConsent(consentId: string) {
     return exercisesCompletion.find(e => e.exercise_index === index);
   }
 
-  if (loading) return <div className="max-w-6xl mx-auto p-6">Caricamento...</div>;
-  if (!patient) return <div className="max-w-6xl mx-auto p-6">Paziente non trovato</div>;
+  if (loading) return (
+    <div className="max-w-6xl mx-auto p-6" style={{ color: 'white' }}>
+      Caricamento...
+    </div>
+  );
+  if (!patient) return (
+    <div className="max-w-6xl mx-auto p-6" style={{ color: 'white' }}>
+      Paziente non trovato
+    </div>
+  );
 
   const unreadMessages = appointmentMessages.filter(m => !m.read_by_therapist).length;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="mb-4">
-        <Link href="/app/therapist/pazienti" className="text-blue-600 hover:underline">← Lista pazienti</Link>
+      {/* Dashboard Button */}
+      <div className="mb-6">
+        <Link 
+          href="/app/therapist"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+          style={{ 
+            color: 'white', 
+            textDecoration: 'none',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}
+        >
+          ← Dashboard
+        </Link>
       </div>
 
-      <div className="bg-white border rounded-lg p-6">
+      <div className="rounded-lg p-6" style={{
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)'
+      }}>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold">{patient.display_name || 'Senza nome'}</h1>
+          <h1 className="text-3xl font-bold" style={{ color: 'white' }}>
+            {patient.display_name || 'Senza nome'}
+          </h1>
           {editPatientMode ? (
             <div className="flex gap-2">
               <button 
                 onClick={savePatientData}
                 disabled={savingPatient}
-                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                className="px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+                style={{
+                  backgroundColor: savingPatient ? '#4b5563' : '#22c55e',
+                  color: 'white',
+                  opacity: savingPatient ? 0.7 : 1
+                }}
               >
                 {savingPatient ? 'Salvando...' : '💾 Salva'}
               </button>
               <button 
                 onClick={() => setEditPatientMode(false)}
-                className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                className="px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+                style={{ backgroundColor: '#6b7280', color: 'white' }}
               >
                 Annulla
               </button>
@@ -498,7 +529,8 @@ function viewConsent(consentId: string) {
           ) : (
             <button 
               onClick={() => setEditPatientMode(true)}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              className="px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
             >
               ✏️ Modifica dati
             </button>
@@ -509,18 +541,32 @@ function viewConsent(consentId: string) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Nome e Cognome</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Nome e Cognome</label>
                 <input 
-                  className="w-full rounded border px-3 py-2 text-sm" 
+                  className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                  style={{
+                    backgroundColor: '#0b0f1c',
+                    border: '2px solid #26304b',
+                    color: 'white'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#26304b'}
                   value={editPatientData.display_name || ''} 
                   onChange={e => setEditPatientData({...editPatientData, display_name: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Email</label>
                 <input 
                   type="email"
-                  className="w-full rounded border px-3 py-2 text-sm" 
+                  className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                  style={{
+                    backgroundColor: '#0b0f1c',
+                    border: '2px solid #26304b',
+                    color: 'white'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#26304b'}
                   value={editPatientData.email || ''} 
                   onChange={e => setEditPatientData({...editPatientData, email: e.target.value})}
                 />
@@ -529,18 +575,32 @@ function viewConsent(consentId: string) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Telefono</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Telefono</label>
                 <input 
-                  className="w-full rounded border px-3 py-2 text-sm" 
+                  className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                  style={{
+                    backgroundColor: '#0b0f1c',
+                    border: '2px solid #26304b',
+                    color: 'white'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#26304b'}
                   value={editPatientData.phone || ''} 
                   onChange={e => setEditPatientData({...editPatientData, phone: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Data di nascita</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Data di nascita</label>
                 <input 
                   type="date"
-                  className="w-full rounded border px-3 py-2 text-sm" 
+                  className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                  style={{
+                    backgroundColor: '#0b0f1c',
+                    border: '2px solid #26304b',
+                    color: 'white'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#26304b'}
                   value={editPatientData.birth_date || ''} 
                   onChange={e => setEditPatientData({...editPatientData, birth_date: e.target.value})}
                 />
@@ -549,17 +609,31 @@ function viewConsent(consentId: string) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Luogo di nascita</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Luogo di nascita</label>
                 <input 
-                  className="w-full rounded border px-3 py-2 text-sm" 
+                  className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                  style={{
+                    backgroundColor: '#0b0f1c',
+                    border: '2px solid #26304b',
+                    color: 'white'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#26304b'}
                   value={editPatientData.birth_place || ''} 
                   onChange={e => setEditPatientData({...editPatientData, birth_place: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Codice Fiscale</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Codice Fiscale</label>
                 <input 
-                  className="w-full rounded border px-3 py-2 text-sm" 
+                  className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                  style={{
+                    backgroundColor: '#0b0f1c',
+                    border: '2px solid #26304b',
+                    color: 'white'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#26304b'}
                   value={editPatientData.fiscal_code || ''} 
                   onChange={e => setEditPatientData({...editPatientData, fiscal_code: e.target.value.toUpperCase()})}
                   maxLength={16}
@@ -568,16 +642,23 @@ function viewConsent(consentId: string) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Indirizzo</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Indirizzo</label>
               <input 
-                className="w-full rounded border px-3 py-2 text-sm" 
+                className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                style={{
+                  backgroundColor: '#0b0f1c',
+                  border: '2px solid #26304b',
+                  color: 'white'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                onBlur={(e) => e.target.style.borderColor = '#26304b'}
                 value={editPatientData.address || ''} 
                 onChange={e => setEditPatientData({...editPatientData, address: e.target.value})}
               />
             </div>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-4 text-sm">
+          <div className="grid md:grid-cols-2 gap-4 text-sm" style={{ color: 'white' }}>
             <div>📧 {patient.email || 'Nessuna email'}</div>
             <div>📱 {patient.phone || 'Nessun telefono'}</div>
             <div>📍 {patient.address || 'Nessun indirizzo'}</div>
@@ -588,103 +669,125 @@ function viewConsent(consentId: string) {
         )}
         
         <div className="flex gap-3 mt-4">
-          <button onClick={invitePatient} className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">🔐 Invita paziente</button>
+          <button 
+            onClick={invitePatient}
+            className="px-4 py-2 rounded font-medium transition-colors duration-200"
+            style={{ backgroundColor: '#374151', color: 'white' }}
+          >
+            🔐 Invita paziente
+          </button>
           <button 
             onClick={() => setShowCalendarPicker(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="px-4 py-2 rounded font-medium transition-colors duration-200"
+            style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
           >
             📅 Nuovo appuntamento
           </button>
           <button
              onClick={() => router.push(`/app/therapist/consenso/${id}`)}
-             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+             className="px-4 py-2 rounded font-medium transition-colors duration-200"
+             style={{ backgroundColor: '#9333ea', color: 'white' }}
           >
             📄 Genera Consenso
           </button>
         </div>
       </div>
 
-      <div className="flex gap-2 border-b overflow-x-auto">
-        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'piano' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Piano Terapeutico</button>
-        <button onClick={() => setActiveTab('area-paziente')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'area-paziente' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>
+      <div className="flex gap-2 border-b border-white/20 overflow-x-auto">
+        <button onClick={() => setActiveTab('piano')} className={`px-4 py-2 whitespace-nowrap font-medium ${activeTab === 'piano' ? 'border-b-2 border-blue-400 text-white' : 'text-gray-300 hover:text-white'}`}>Piano Terapeutico</button>
+        <button onClick={() => setActiveTab('area-paziente')} className={`px-4 py-2 whitespace-nowrap font-medium ${activeTab === 'area-paziente' ? 'border-b-2 border-blue-400 text-white' : 'text-gray-300 hover:text-white'}`}>
           👤 Area Paziente
           {(patientThoughts || unreadMessages > 0) && (
             <span className="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadMessages}</span>
           )}
         </button>
-        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'sedute' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Sedute & IA</button>
-        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 whitespace-nowrap ${activeTab === 'questionari' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}>Questionari</button>
+        <button onClick={() => setActiveTab('sedute')} className={`px-4 py-2 whitespace-nowrap font-medium ${activeTab === 'sedute' ? 'border-b-2 border-blue-400 text-white' : 'text-gray-300 hover:text-white'}`}>Sedute & IA</button>
+        <button onClick={() => setActiveTab('questionari')} className={`px-4 py-2 whitespace-nowrap font-medium ${activeTab === 'questionari' ? 'border-b-2 border-blue-400 text-white' : 'text-gray-300 hover:text-white'}`}>Questionari</button>
       </div>
 
       {activeTab === 'area-paziente' && (
         <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg flex items-center gap-2">
+              <h3 className="font-bold text-lg flex items-center gap-2" style={{ color: 'white' }}>
                 <span>💭</span> Pensieri del paziente per la prossima seduta
               </h3>
               {patientThoughts && (
-                <button onClick={clearPatientThoughts} className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+                <button onClick={clearPatientThoughts} className="text-sm px-3 py-1 rounded font-medium transition-colors duration-200" style={{ backgroundColor: '#22c55e', color: 'white' }}>
                   ✅ Seduta completata (svuota)
                 </button>
               )}
             </div>
             {!patientThoughts ? (
-              <p className="text-gray-500 text-sm">Il paziente non ha ancora scritto pensieri per la prossima seduta.</p>
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Il paziente non ha ancora scritto pensieri per la prossima seduta.</p>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="whitespace-pre-wrap text-gray-800">{patientThoughts}</p>
+              <div className="rounded-lg p-4" style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}>
+                <p className="whitespace-pre-wrap" style={{ color: 'white' }}>{patientThoughts}</p>
               </div>
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>📨</span> Messaggi del paziente sugli appuntamenti
               {unreadMessages > 0 && (
                 <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{unreadMessages} nuovi</span>
               )}
             </h3>
             {appointmentMessages.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessun messaggio ricevuto.</p>
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Nessun messaggio ricevuto.</p>
             ) : (
               <div className="space-y-3">
                 {appointmentMessages.map(msg => (
-                  <div key={msg.id} className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-300 bg-gray-50' : 'border-orange-500 bg-orange-50'}`}>
+                  <div key={msg.id} className={`border-l-4 pl-4 py-3 rounded ${msg.read_by_therapist ? 'border-gray-500' : 'border-orange-500'}`} style={{
+                    backgroundColor: msg.read_by_therapist ? 'rgba(255,255,255,0.02)' : 'rgba(251, 146, 60, 0.1)'
+                  }}>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs text-gray-600">{new Date(msg.created_at).toLocaleString('it-IT')}</div>
+                      <div className="text-xs" style={{ color: '#a8b2d6' }}>{new Date(msg.created_at).toLocaleString('it-IT')}</div>
                       <div className="flex gap-2">
                         {!msg.read_by_therapist && (
-                          <button onClick={() => markMessageAsRead(msg.id)} className="text-xs text-blue-600 hover:text-blue-700">
+                          <button onClick={() => markMessageAsRead(msg.id)} className="text-xs font-medium transition-colors duration-200" style={{ color: '#7aa2ff' }}>
                             ✓ Segna come letto
                           </button>
                         )}
-                        <button onClick={() => deleteMessage(msg.id)} className="text-xs text-red-600 hover:text-red-700">
+                        <button onClick={() => deleteMessage(msg.id)} className="text-xs font-medium transition-colors duration-200" style={{ color: '#ef4444' }}>
                           🗑️ Elimina
                         </button>
                       </div>
                     </div>
-                    <p className="text-gray-800">{msg.message}</p>
+                    <p style={{ color: 'white' }}>{msg.message}</p>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>📔</span> Diario del paziente
             </h3>
             {patientNotes.length === 0 ? (
-              <p className="text-gray-500 text-sm">Il paziente non ha ancora scritto note nel diario.</p>
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Il paziente non ha ancora scritto note nel diario.</p>
             ) : (
               <div className="space-y-4">
                 {patientNotes.map(note => (
-                  <div key={note.id} className="border-l-4 border-emerald-500 pl-4 py-3 bg-gray-50 rounded">
-                    <div className="text-sm font-medium text-gray-600 mb-1">
+                  <div key={note.id} className="border-l-4 border-emerald-500 pl-4 py-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                    <div className="text-sm font-medium mb-1" style={{ color: '#a8b2d6' }}>
                       {new Date(note.note_date).toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
-                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                    <p className="whitespace-pre-wrap" style={{ color: 'white' }}>{note.content}</p>
                   </div>
                 ))}
               </div>
@@ -705,34 +808,39 @@ function viewConsent(consentId: string) {
         </div>
       )}
 
-      <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6" style={{
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)'
+      }}>
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>📄</span> Consensi Firmati ({consentDocuments.length})
             </h3>
             {consentDocuments.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessun consenso firmato trovato.</p>
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Nessun consenso firmato trovato.</p>
             ) : (
               <div className="space-y-4">
                 {consentDocuments.map(consent => (
-                  <div key={consent.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div key={consent.id} className="border rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.1)' }}>
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <h4 className="font-semibold">📋 Consenso Informato</h4>
-                        <p className="text-sm text-gray-600">
+                        <h4 className="font-semibold" style={{ color: 'white' }}>📋 Consenso Informato</h4>
+                        <p className="text-sm" style={{ color: '#a8b2d6' }}>
                           Creato il {new Date(consent.created_at).toLocaleDateString('it-IT')}
                         </p>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => viewConsent(consent.id)}
-                          className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                          className="text-sm px-3 py-1 rounded font-medium transition-colors duration-200"
+                          style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
                         >
                           👁️ Visualizza
                         </button>
                         {consent.status === 'completed' && (
                           <button
                             onClick={() => downloadConsentPDF(consent.id)}
-                            className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                            className="text-sm px-3 py-1 rounded font-medium transition-colors duration-200"
+                            style={{ backgroundColor: '#22c55e', color: 'white' }}
                           >
                             📥 Scarica PDF
                           </button>
@@ -742,28 +850,28 @@ function viewConsent(consentId: string) {
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Firma Terapeuta:</span>
+                        <span style={{ color: '#a8b2d6' }}>Firma Terapeuta:</span>
                         <span className="flex items-center gap-1">
-                          <span className="text-green-600">✅</span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-green-400">✅</span>
+                          <span className="text-xs" style={{ color: '#a8b2d6' }}>
                             {new Date(consent.therapist_signed_at).toLocaleDateString('it-IT')}
                           </span>
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Firma Paziente:</span>
+                        <span style={{ color: '#a8b2d6' }}>Firma Paziente:</span>
                         {consent.patient_signature ? (
                           <span className="flex items-center gap-1">
-                            <span className="text-green-600">✅</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-green-400">✅</span>
+                            <span className="text-xs" style={{ color: '#a8b2d6' }}>
                               {consent.patient_signed_at && new Date(consent.patient_signed_at).toLocaleDateString('it-IT')}
                             </span>
                           </span>
                         ) : (
                           <span className="flex items-center gap-1">
-                            <span className="text-orange-500">⏳</span>
-                            <span className="text-xs text-orange-600">In attesa</span>
+                            <span className="text-orange-400">⏳</span>
+                            <span className="text-xs text-orange-400">In attesa</span>
                           </span>
                         )}
                       </div>
@@ -771,8 +879,8 @@ function viewConsent(consentId: string) {
 
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-600">Tessera Sanitaria:</span>
-                        <span className={consent.tessera_sanitaria_consent ? 'text-green-600' : 'text-red-600'}>
+                        <span style={{ color: '#a8b2d6' }}>Tessera Sanitaria:</span>
+                        <span className={consent.tessera_sanitaria_consent ? 'text-green-400' : 'text-red-400'}>
                           {consent.tessera_sanitaria_consent ? '✅ Autorizzata' : '❌ Non autorizzata'}
                         </span>
                       </div>
@@ -780,10 +888,10 @@ function viewConsent(consentId: string) {
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
                           consent.status === 'completed' 
-                            ? 'bg-green-100 text-green-700' 
+                            ? 'bg-green-600 text-white' 
                             : consent.status === 'therapist_signed'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-600 text-white'
                         }`}>
                           {consent.status === 'completed' ? '✅ Completato' : 
                            consent.status === 'therapist_signed' ? '⏳ In attesa paziente' : 
@@ -797,7 +905,8 @@ function viewConsent(consentId: string) {
                               navigator.clipboard.writeText(link);
                               alert('✅ Link copiato negli appunti! Condividilo con il paziente.');
                             }}
-                            className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700"
+                            className="text-xs px-2 py-1 rounded font-medium transition-colors duration-200"
+                            style={{ backgroundColor: '#9333ea', color: 'white' }}
                           >
                             📋 Copia link paziente
                           </button>
@@ -816,29 +925,38 @@ function viewConsent(consentId: string) {
             {!editMode && (
               <button 
                 onClick={getSuggestions} 
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded hover:from-purple-700 hover:to-blue-700 flex items-center gap-2"
+                className="px-4 py-2 rounded font-medium transition-colors duration-200 flex items-center gap-2"
+                style={{ background: 'linear-gradient(to right, #9333ea, #7aa2ff)', color: 'white' }}
               >
                 ✨ Suggerisci con IA
               </button>
             )}
             {editMode ? (
               <>
-                <button onClick={savePlan} className="bg-green-600 text-white px-4 py-2 rounded mr-2 hover:bg-green-700">💾 Salva</button>
-                <button onClick={() => setEditMode(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Annulla</button>
+                <button onClick={savePlan} className="px-4 py-2 rounded mr-2 font-medium transition-colors duration-200" style={{ backgroundColor: '#22c55e', color: 'white' }}>💾 Salva</button>
+                <button onClick={() => setEditMode(false)} className="px-4 py-2 rounded font-medium transition-colors duration-200" style={{ backgroundColor: '#6b7280', color: 'white' }}>Annulla</button>
               </>
             ) : (
-              <button onClick={() => setEditMode(true)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">✏️ Modifica</button>
+              <button onClick={() => setEditMode(true)} className="px-4 py-2 rounded font-medium transition-colors duration-200" style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}>✏️ Modifica</button>
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6">
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">🎯 VALUTAZIONE (Anamnesi e psicodiagnosi)</h3>
+              <h3 className="font-bold text-lg" style={{ color: 'white' }}>🎯 VALUTAZIONE (Anamnesi e psicodiagnosi)</h3>
               {!editMode && (!anamnesi || !valutazionePsico || !formulazioneCaso) && (
                 <button
                   onClick={generateAssessment}
                   disabled={generatingAssessment}
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded hover:from-emerald-700 hover:to-teal-700 text-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 rounded text-sm flex items-center gap-2 font-medium transition-colors duration-200"
+                  style={{
+                    background: generatingAssessment ? '#6b7280' : 'linear-gradient(to right, #059669, #0d9488)',
+                    color: 'white',
+                    opacity: generatingAssessment ? 0.7 : 1
+                  }}
                 >
                   {generatingAssessment ? (
                     <>
@@ -853,51 +971,102 @@ function viewConsent(consentId: string) {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block font-medium mb-2">Anamnesi:</label>
+                <label className="block font-medium mb-2" style={{ color: 'white' }}>Anamnesi:</label>
                 {editMode ? (
-                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={anamnesi} onChange={e => setAnamnesi(e.target.value)} />
+                  <textarea 
+                    className="w-full rounded p-3 min-h-[100px] outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    value={anamnesi} 
+                    onChange={e => setAnamnesi(e.target.value)} 
+                  />
                 ) : (
-                  <p className="text-gray-700 whitespace-pre-wrap">{anamnesi || 'Nessuna informazione'}</p>
+                  <p className="whitespace-pre-wrap" style={{ color: '#d1d5db' }}>{anamnesi || 'Nessuna informazione'}</p>
                 )}
               </div>
               <div>
-                <label className="block font-medium mb-2">Valutazione psicodiagnostica:</label>
+                <label className="block font-medium mb-2" style={{ color: 'white' }}>Valutazione psicodiagnostica:</label>
                 {editMode ? (
-                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={valutazionePsico} onChange={e => setValutazionePsico(e.target.value)} />
+                  <textarea 
+                    className="w-full rounded p-3 min-h-[100px] outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    value={valutazionePsico} 
+                    onChange={e => setValutazionePsico(e.target.value)} 
+                  />
                 ) : (
-                  <p className="text-gray-700 whitespace-pre-wrap">{valutazionePsico || 'Nessuna informazione'}</p>
+                  <p className="whitespace-pre-wrap" style={{ color: '#d1d5db' }}>{valutazionePsico || 'Nessuna informazione'}</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">📝 FORMULAZIONE DEL CASO</h3>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: 'white' }}>📝 FORMULAZIONE DEL CASO</h3>
             {editMode ? (
-              <textarea className="w-full border rounded p-3 min-h-[120px]" value={formulazioneCaso} onChange={e => setFormulazioneCaso(e.target.value)} />
+              <textarea 
+                className="w-full rounded p-3 min-h-[120px] outline-none transition-colors duration-300" 
+                style={{
+                  backgroundColor: '#0b0f1c',
+                  border: '2px solid #26304b',
+                  color: 'white'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                value={formulazioneCaso} 
+                onChange={e => setFormulazioneCaso(e.target.value)} 
+              />
             ) : (
-              <p className="text-gray-700 whitespace-pre-wrap">{formulazioneCaso || 'Nessuna informazione'}</p>
+              <p className="whitespace-pre-wrap" style={{ color: '#d1d5db' }}>{formulazioneCaso || 'Nessuna informazione'}</p>
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">🎯 CONTRATTO TERAPEUTICO E OBIETTIVI</h3>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: 'white' }}>🎯 CONTRATTO TERAPEUTICO E OBIETTIVI</h3>
             <div className="space-y-4">
               <div>
-                <label className="block font-medium mb-2">Obiettivi generali:</label>
+                <label className="block font-medium mb-2" style={{ color: 'white' }}>Obiettivi generali:</label>
                 {editMode ? (
-                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={obiettiviGenerali.join('\n')} onChange={e => setObiettiviGenerali(e.target.value.split('\n').filter(o => o.trim()))} placeholder="Inserisci un obiettivo per riga" />
+                  <textarea 
+                    className="w-full rounded p-3 min-h-[100px] outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    value={obiettiviGenerali.join('\n')} 
+                    onChange={e => setObiettiviGenerali(e.target.value.split('\n').filter(o => o.trim()))} 
+                    placeholder="Inserisci un obiettivo per riga" 
+                  />
                 ) : (
                   obiettiviGenerali.length === 0 ? (
-                    <p className="text-gray-500">Nessun obiettivo generale</p>
+                    <p style={{ color: '#a8b2d6' }}>Nessun obiettivo generale</p>
                   ) : (
                     <ul className="space-y-2">
                       {obiettiviGenerali.map((o, i) => {
                         const completion = getObjectiveCompletion('generale', i);
                         return (
-                          <li key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+                          <li key={i} className="flex items-start gap-3 p-2 rounded transition-colors duration-200" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                             <input type="checkbox" checked={completion?.completed || false} onChange={() => completion && toggleObjectiveCompletion(completion.id, completion.completed)} className="mt-1 w-5 h-5 text-blue-600 rounded" />
-                            <span className={completion?.completed ? 'line-through text-gray-400' : ''}>{o}</span>
+                            <span className={completion?.completed ? 'line-through' : ''} style={{ color: completion?.completed ? '#9ca3af' : 'white' }}>{o}</span>
                           </li>
                         );
                       })}
@@ -906,20 +1075,32 @@ function viewConsent(consentId: string) {
                 )}
               </div>
               <div>
-                <label className="block font-medium mb-2">Obiettivi specifici:</label>
+                <label className="block font-medium mb-2" style={{ color: 'white' }}>Obiettivi specifici:</label>
                 {editMode ? (
-                  <textarea className="w-full border rounded p-3 min-h-[100px]" value={obiettiviSpecifici.join('\n')} onChange={e => setObiettiviSpecifici(e.target.value.split('\n').filter(o => o.trim()))} placeholder="Inserisci un obiettivo per riga" />
+                  <textarea 
+                    className="w-full rounded p-3 min-h-[100px] outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    value={obiettiviSpecifici.join('\n')} 
+                    onChange={e => setObiettiviSpecifici(e.target.value.split('\n').filter(o => o.trim()))} 
+                    placeholder="Inserisci un obiettivo per riga" 
+                  />
                 ) : (
                   obiettiviSpecifici.length === 0 ? (
-                    <p className="text-gray-500">Nessun obiettivo specifico</p>
+                    <p style={{ color: '#a8b2d6' }}>Nessun obiettivo specifico</p>
                   ) : (
                     <ul className="space-y-2">
                       {obiettiviSpecifici.map((o, i) => {
                         const completion = getObjectiveCompletion('specifico', i);
                         return (
-                          <li key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+                          <li key={i} className="flex items-start gap-3 p-2 rounded transition-colors duration-200" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                             <input type="checkbox" checked={completion?.completed || false} onChange={() => completion && toggleObjectiveCompletion(completion.id, completion.completed)} className="mt-1 w-5 h-5 text-blue-600 rounded" />
-                            <span className={completion?.completed ? 'line-through text-gray-400' : ''}>{o}</span>
+                            <span className={completion?.completed ? 'line-through' : ''} style={{ color: completion?.completed ? '#9ca3af' : 'white' }}>{o}</span>
                           </li>
                         );
                       })}
@@ -930,23 +1111,38 @@ function viewConsent(consentId: string) {
             </div>
           </div>
 
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">💪 ESERCIZI</h3>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: 'white' }}>💪 ESERCIZI</h3>
             {editMode ? (
-              <textarea className="w-full border rounded p-3 min-h-[120px]" value={esercizi.join('\n')} onChange={e => setEsercizi(e.target.value.split('\n').filter(e => e.trim()))} placeholder="Inserisci un esercizio per riga" />
+              <textarea 
+                className="w-full rounded p-3 min-h-[120px] outline-none transition-colors duration-300" 
+                style={{
+                  backgroundColor: '#0b0f1c',
+                  border: '2px solid #26304b',
+                  color: 'white'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                value={esercizi.join('\n')} 
+                onChange={e => setEsercizi(e.target.value.split('\n').filter(e => e.trim()))} 
+                placeholder="Inserisci un esercizio per riga" 
+              />
             ) : (
               esercizi.length === 0 ? (
-                <p className="text-gray-500">Nessun esercizio</p>
+                <p style={{ color: '#a8b2d6' }}>Nessun esercizio</p>
               ) : (
                 <ul className="space-y-2">
                   {esercizi.map((ex, i) => {
                     const completion = getExerciseCompletion(i);
                     return (
-                      <li key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
+                      <li key={i} className="flex items-start gap-3 p-2 rounded transition-colors duration-200" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <input type="checkbox" checked={completion?.completed || false} onChange={() => completion && toggleExerciseCompletion(completion.id, completion.completed)} className="mt-1 w-5 h-5 text-emerald-600 rounded" />
-                        <span className={completion?.completed ? 'line-through text-gray-400' : ''}>{ex}</span>
+                        <span className={completion?.completed ? 'line-through' : ''} style={{ color: completion?.completed ? '#9ca3af' : 'white' }}>{ex}</span>
                         {completion?.completed && completion.completed_at && (
-                          <span className="text-xs text-gray-500 ml-auto">✓ {new Date(completion.completed_at).toLocaleDateString('it-IT')}</span>
+                          <span className="text-xs ml-auto" style={{ color: '#a8b2d6' }}>✓ {new Date(completion.completed_at).toLocaleDateString('it-IT')}</span>
                         )}
                       </li>
                     );
@@ -960,21 +1156,29 @@ function viewConsent(consentId: string) {
 
       {activeTab === 'sedute' && (
         <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6">
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">📝 Sedute e Riassunti IA</h3>
-              <Link href={`/app/therapist/sedute/nuovo?patientId=${id}`} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">+ Nuova Nota</Link>
+              <h3 className="font-bold text-lg" style={{ color: 'white' }}>📝 Sedute e Riassunti IA</h3>
+              <Link href={`/app/therapist/sedute/nuovo?patientId=${id}`} className="px-4 py-2 rounded text-sm font-medium transition-colors duration-200" style={{ backgroundColor: '#7aa2ff', color: '#0b1022', textDecoration: 'none' }}>+ Nuova Nota</Link>
             </div>
             {sessionNotes.length === 0 ? (
-              <p className="text-gray-500">Nessuna seduta registrata</p>
+              <p style={{ color: '#a8b2d6' }}>Nessuna seduta registrata</p>
             ) : (
               <div className="space-y-3">
                 {sessionNotes.map(note => (
-                  <Link key={note.id} href={`/app/therapist/sedute/${note.id}`} className="block border rounded p-4 hover:bg-gray-50 transition">
+                  <Link key={note.id} href={`/app/therapist/sedute/${note.id}`} className="block border rounded p-4 transition-colors duration-200" style={{ 
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    textDecoration: 'none',
+                    color: 'white'
+                  }}>
                     <div className="font-medium">📅 {new Date(note.session_date).toLocaleDateString('it-IT')}</div>
-                    {note.ai_summary && <div className="text-sm text-gray-600 mt-1">🤖 Riassunto IA disponibile</div>}
+                    {note.ai_summary && <div className="text-sm mt-1" style={{ color: '#a8b2d6' }}>🤖 Riassunto IA disponibile</div>}
                     {note.notes && (
-                      <div className="text-sm text-gray-600 mt-2 line-clamp-2">{note.notes.substring(0, 100)}...</div>
+                      <div className="text-sm mt-2 line-clamp-2" style={{ color: '#a8b2d6' }}>{note.notes.substring(0, 100)}...</div>
                     )}
                   </Link>
                 ))}
@@ -982,14 +1186,23 @@ function viewConsent(consentId: string) {
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="font-bold text-lg mb-3">📅 Prossimi Appuntamenti</h3>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: 'white' }}>📅 Prossimi Appuntamenti</h3>
             {appointments.length === 0 ? (
-              <p className="text-gray-500">Nessun appuntamento programmato</p>
+              <p style={{ color: '#a8b2d6' }}>Nessun appuntamento programmato</p>
             ) : (
               <div className="space-y-2">
                 {appointments.map(apt => (
-                  <div key={apt.id} className="border rounded p-3">{new Date(apt.starts_at).toLocaleString('it-IT')} - {apt.title}</div>
+                  <div key={apt.id} className="border rounded p-3" style={{ 
+                    borderColor: 'rgba(255,255,255,0.1)', 
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    color: 'white'
+                  }}>
+                    {new Date(apt.starts_at).toLocaleString('it-IT')} - {apt.title}
+                  </div>
                 ))}
               </div>
             )}
@@ -998,21 +1211,27 @@ function viewConsent(consentId: string) {
       )}
 
       {activeTab === 'questionari' && (
-        <div className="bg-white border rounded-lg p-6">
-          <h3 className="font-bold text-lg mb-3">📊 Questionari Realizzati</h3>
+        <div className="rounded-lg p-6" style={{
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <h3 className="font-bold text-lg mb-3" style={{ color: 'white' }}>📊 Questionari Realizzati</h3>
           {gad7Results.length === 0 ? (
-            <p className="text-gray-500">Nessun questionario compilato</p>
+            <p style={{ color: '#a8b2d6' }}>Nessun questionario compilato</p>
           ) : (
             <div className="space-y-3">
               {gad7Results.map(result => (
-                <div key={result.id} className="border rounded p-4 flex items-center justify-between">
-                  <div>
+                <div key={result.id} className="border rounded p-4 flex items-center justify-between" style={{ 
+                  borderColor: 'rgba(255,255,255,0.1)', 
+                  backgroundColor: 'rgba(255,255,255,0.02)'
+                }}>
+                  <div style={{ color: 'white' }}>
                     <span className="font-medium">GAD-7</span> | Score: {result.total} | 
-                    <span className={`ml-2 px-2 py-1 rounded text-xs ${result.severity === 'minima' ? 'bg-green-100 text-green-700' : result.severity === 'lieve' ? 'bg-blue-100 text-blue-700' : result.severity === 'moderata' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`ml-2 px-2 py-1 rounded text-xs ${result.severity === 'minima' ? 'bg-green-600 text-white' : result.severity === 'lieve' ? 'bg-blue-600 text-white' : result.severity === 'moderata' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'}`}>
                       {result.severity}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-600">{new Date(result.created_at).toLocaleDateString('it-IT')}</div>
+                  <div className="text-sm" style={{ color: '#a8b2d6' }}>{new Date(result.created_at).toLocaleDateString('it-IT')}</div>
                 </div>
               ))}
             </div>
