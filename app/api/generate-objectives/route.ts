@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
-// Inizializza OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Inizializza Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE!
 );
 
 export async function POST(request: NextRequest) {
@@ -18,138 +11,139 @@ export async function POST(request: NextRequest) {
     const { patientId } = await request.json();
 
     if (!patientId) {
-      return NextResponse.json({ error: 'ID paziente richiesto' }, { status: 400 });
+      return NextResponse.json({ error: 'Patient ID mancante' }, { status: 400 });
     }
 
     // Recupera informazioni paziente
-    const { data: patient, error: patientError } = await supabase
+    const { data: patient } = await supabase
       .from('patients')
       .select('display_name')
       .eq('id', patientId)
       .single();
 
-    if (patientError || !patient) {
+    if (!patient) {
       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 });
     }
 
-    // Recupera tutte le sedute del paziente
-    const { data: sessions, error: sessionsError } = await supabase
+    // Recupera tutte le sedute del paziente per analisi completa
+    const { data: sessionNotes } = await supabase
       .from('session_notes')
-      .select('session_date, notes, ai_summary')
+      .select('notes, ai_summary, session_date')
       .eq('patient_id', patientId)
       .order('session_date', { ascending: true });
 
-    if (sessionsError) {
-      return NextResponse.json({ error: 'Errore nel recupero delle sedute' }, { status: 500 });
-    }
-
-    if (!sessions || sessions.length === 0) {
+    if (!sessionNotes || sessionNotes.length === 0) {
       return NextResponse.json({ error: 'Nessuna seduta trovata per questo paziente' }, { status: 400 });
     }
 
-    // Prepara il contenuto delle sedute per l'analisi
-    const sessionContent = sessions
-      .map(session => {
-        const date = new Date(session.session_date).toLocaleDateString('it-IT');
-        const content = session.ai_summary || session.notes || '';
-        return `SEDUTA ${date}:\n${content}`;
-      })
-      .join('\n\n---\n\n');
+    // Recupera piano terapeutico esistente per contesto
+    const { data: plan } = await supabase
+      .from('therapy_plan')
+      .select('anamnesi, valutazione_psicodiagnostica, formulazione_caso')
+      .eq('patient_id', patientId)
+      .maybeSingle();
 
-    // Prompt per generare obiettivi ed esercizi
-    const prompt = `
-Sei uno psicologo clinico esperto. Analizza le seguenti sedute terapeutiche del paziente ${patient.display_name} e genera obiettivi terapeutici ed esercizi specifici basati sui contenuti emersi.
+    // Costruisci contesto dalle sedute per generazione obiettivi
+    let context = `PAZIENTE: ${patient.display_name}\n\n`;
+    
+    if (plan?.anamnesi) {
+      context += `ANAMNESI:\n${plan.anamnesi}\n\n`;
+    }
 
-SEDUTE ANALIZZATE:
-${sessionContent}
+    if (plan?.valutazione_psicodiagnostica) {
+      context += `VALUTAZIONE PSICODIAGNOSTICA:\n${plan.valutazione_psicodiagnostica}\n\n`;
+    }
 
-ISTRUZIONI:
-1. Analizza i pattern, le problematiche ricorrenti e i progressi del paziente
-2. Identifica le aree di intervento prioritarie
-3. Formula obiettivi SMART (Specifici, Misurabili, Raggiungibili, Rilevanti, Temporizzati)
-4. Proponi esercizi pratici collegati agli obiettivi
+    if (plan?.formulazione_caso) {
+      context += `FORMULAZIONE DEL CASO:\n${plan.formulazione_caso}\n\n`;
+    }
 
-FORMATO RICHIESTA (rispondi SOLO in formato JSON valido):
+    context += `SEDUTE TERAPEUTICHE ANALIZZATE (${sessionNotes.length} sedute):\n`;
+    sessionNotes.forEach((note, i) => {
+      const sessionDate = new Date(note.session_date).toLocaleDateString('it-IT');
+      context += `\nSeduta ${i + 1} (${sessionDate}):\n`;
+      if (note.ai_summary) {
+        context += note.ai_summary + '\n';
+      } else if (note.notes) {
+        context += note.notes + '\n';
+      }
+    });
+
+    // Chiama Groq per generare obiettivi ed esercizi specifici
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: `Sei uno psicoterapeuta clinico esperto. Analizza le sedute terapeutiche fornite e genera obiettivi ed esercizi specifici basati sui contenuti emersi e sui progressi del paziente.
+
+Genera suggerimenti in formato JSON con questa struttura esatta:
 {
-  "obiettivi_generali": [
-    "Obiettivo generale 1 basato sulle sedute",
-    "Obiettivo generale 2 basato sulle sedute"
-  ],
-  "obiettivi_specifici": [
-    "Obiettivo specifico 1 con dettagli pratici",
-    "Obiettivo specifico 2 con dettagli pratici",
-    "Obiettivo specifico 3 con dettagli pratici"
-  ],
-  "esercizi": [
-    "Esercizio pratico 1 collegato agli obiettivi",
-    "Esercizio pratico 2 collegato agli obiettivi",
-    "Esercizio pratico 3 collegato agli obiettivi"
-  ]
+  "obiettivi_generali": ["obiettivo generale 1", "obiettivo generale 2", "obiettivo generale 3"],
+  "obiettivi_specifici": ["obiettivo specifico 1", "obiettivo specifico 2", "obiettivo specifico 3", "obiettivo specifico 4"],
+  "esercizi": ["esercizio pratico 1", "esercizio pratico 2", "esercizio pratico 3", "esercizio pratico 4"]
 }
 
-REGOLE IMPORTANTI:
+ISTRUZIONI SPECIFICHE:
+- ANALIZZA le sedute per identificare pattern, problematiche ricorrenti, progressi e aree di miglioramento
+- Obiettivi generali: ampi, strategici, orientati al cambiamento complessivo
+- Obiettivi specifici: concreti, misurabili, collegati alle sessioni analizzate
+- Esercizi: pratici, graduali, evidence-based (CBT, ACT, mindfulness, tecniche comportamentali)
+- Considera la progressione terapeutica emersa dalle sedute
 - Usa terminologia clinica appropriata
-- Gli obiettivi devono essere realistici e raggiungibili
-- Gli esercizi devono essere pratici e specifici
-- Considera la gravità e la tipologia del disturbo emerso dalle sedute
-- Massimo 3 obiettivi generali, 5 specifici, 5 esercizi
-- Rispondi SOLO con JSON valido, nessun testo aggiuntivo
-`;
+- Gli obiettivi devono essere SMART (Specifici, Misurabili, Raggiungibili, Rilevanti, Temporizzati)
+- Gli esercizi devono essere collegati direttamente alle problematiche emerse
 
-    // Chiamata all'API OpenAI
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "Sei un assistente specializzato nella generazione di piani terapeutici basati su sedute cliniche. Rispondi sempre e solo in formato JSON valido."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
+Rispondi SOLO con il JSON, senza altro testo.`
+          },
+          {
+            role: 'user',
+            content: context
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      }),
     });
 
-    const aiResponse = completion.choices[0]?.message?.content;
-    
-    if (!aiResponse) {
-      return NextResponse.json({ error: 'Nessuna risposta dall\'IA' }, { status: 500 });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Errore Groq:', errorText);
+      return NextResponse.json({ error: 'Errore generazione obiettivi' }, { status: 500 });
     }
 
-    // Parse della risposta JSON
-    let objectives;
+    const data = await response.json();
+    const aiResponse = data.choices?.[0]?.message?.content || '';
+
+    // Parse JSON dalla risposta IA
     try {
-      // Pulisce la risposta da eventuali markdown
-      const cleanResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      objectives = JSON.parse(cleanResponse);
+      const objectives = JSON.parse(aiResponse);
+      
+      // Validazione struttura
+      if (!objectives.obiettivi_generali || !objectives.obiettivi_specifici || !objectives.esercizi) {
+        throw new Error('Struttura JSON non valida');
+      }
+
+      return NextResponse.json({
+        obiettivi_generali: objectives.obiettivi_generali || [],
+        obiettivi_specifici: objectives.obiettivi_specifici || [],
+        esercizi: objectives.esercizi || [],
+        sessions_analyzed: sessionNotes.length,
+        patient_name: patient.display_name
+      });
     } catch (parseError) {
-      console.error('Errore parsing JSON:', parseError);
-      console.error('Risposta AI:', aiResponse);
-      return NextResponse.json({ error: 'Errore nel parsing della risposta IA' }, { status: 500 });
+      console.error('Errore parsing JSON IA:', aiResponse);
+      return NextResponse.json({ error: 'Formato risposta IA non valido' }, { status: 500 });
     }
-
-    // Validazione della struttura
-    if (!objectives.obiettivi_generali || !objectives.obiettivi_specifici || !objectives.esercizi) {
-      return NextResponse.json({ error: 'Struttura risposta IA non valida' }, { status: 500 });
-    }
-
-    // Ritorna gli obiettivi ed esercizi generati
-    return NextResponse.json({
-      obiettivi_generali: objectives.obiettivi_generali || [],
-      obiettivi_specifici: objectives.obiettivi_specifici || [],
-      esercizi: objectives.esercizi || [],
-      sessions_analyzed: sessions.length,
-      patient_name: patient.display_name
-    });
 
   } catch (error: any) {
-    console.error('Errore API generate-objectives:', error);
-    return NextResponse.json(
-      { error: 'Errore interno del server: ' + error.message },
-      { status: 500 }
-    );
+    console.error('Errore generazione obiettivi:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
