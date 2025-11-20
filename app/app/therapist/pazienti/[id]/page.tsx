@@ -1173,31 +1173,146 @@ export default function PatientPage() {
 
       {/* Tab Content - Questionari */}
       {activeTab === 'questionari' && (
-        <div className="rounded-lg p-6" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <h3 className="font-bold text-lg mb-3" style={{ color: 'white' }}>📊 Questionari Realizzati</h3>
-          {gad7Results.length === 0 ? (
-            <p style={{ color: '#a8b2d6' }}>Nessun questionario compilato</p>
-          ) : (
-            <div className="space-y-3">
-              {gad7Results.map(result => (
-                <div key={result.id} className="border rounded p-4 flex items-center justify-between" style={{ 
-                  borderColor: 'rgba(255,255,255,0.1)', 
-                  backgroundColor: 'rgba(255,255,255,0.02)'
-                }}>
-                  <div style={{ color: 'white' }}>
-                    <span className="font-medium">GAD-7</span> | Score: {result.total} | 
-                    <span className={`ml-2 px-2 py-1 rounded text-xs ${result.severity === 'minima' ? 'bg-green-600 text-white' : result.severity === 'lieve' ? 'bg-blue-600 text-white' : result.severity === 'moderata' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'}`}>
-                      {result.severity}
-                    </span>
-                  </div>
-                  <div className="text-sm" style={{ color: '#a8b2d6' }}>{new Date(result.created_at).toLocaleDateString('it-IT')}</div>
+        <div className="space-y-6">
+          {/* Questionari Disponibili */}
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-4" style={{ color: 'white' }}>📋 Questionari Disponibili</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* GAD-7 Card */}
+              <div className="rounded-lg p-4 border transition-colors duration-200 hover:border-blue-400" style={{
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                borderColor: 'rgba(255,255,255,0.1)'
+              }}>
+                <div className="text-3xl mb-3">📊</div>
+                <h4 className="font-semibold text-lg mb-2" style={{ color: 'white' }}>GAD-7</h4>
+                <p className="text-sm mb-4" style={{ color: '#a8b2d6' }}>Questionario per ansia generalizzata</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => window.open(`/app/therapist/questionari/gad7/compila?patientId=${id}`, '_blank')}
+                    className="px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+                    style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
+                  >
+                    📝 Compila in seduta
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/send-gad7-invite', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ patientId: id, email: patient.email })
+                        });
+                        if (!res.ok) throw new Error('Errore invio');
+                        alert('📧 Email inviata al paziente!');
+                      } catch (e: any) {
+                        alert('Errore: ' + e.message);
+                      }
+                    }}
+                    className="px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+                    style={{ backgroundColor: '#22c55e', color: 'white' }}
+                    disabled={!patient.email}
+                  >
+                    📧 Invia via email
+                  </button>
                 </div>
-              ))}
+                {!patient.email && (
+                  <p className="text-xs mt-2" style={{ color: '#ef4444' }}>Email paziente mancante</p>
+                )}
+              </div>
+
+              {/* Placeholder per futuri questionari */}
+              <div className="rounded-lg p-4 border-dashed border-2 transition-colors duration-200" style={{
+                backgroundColor: 'rgba(255,255,255,0.01)',
+                borderColor: 'rgba(255,255,255,0.2)'
+              }}>
+                <div className="text-3xl mb-3">➕</div>
+                <h4 className="font-semibold text-lg mb-2" style={{ color: '#a8b2d6' }}>PHQ-9</h4>
+                <p className="text-sm mb-4" style={{ color: '#a8b2d6' }}>Prossimamente disponibile</p>
+                <button
+                  disabled
+                  className="px-3 py-1 rounded text-sm font-medium opacity-50"
+                  style={{ backgroundColor: '#6b7280', color: 'white' }}
+                >
+                  In sviluppo
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Storico Risultati GAD-7 */}
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="font-bold text-lg mb-4" style={{ color: 'white' }}>📈 Storico Risultati</h3>
+            {gad7Results.length === 0 ? (
+              <p style={{ color: '#a8b2d6' }}>Nessun questionario completato ancora</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-4 text-sm font-medium pb-2 border-b border-white/20" style={{ color: '#a8b2d6' }}>
+                  <div>Questionario</div>
+                  <div>Punteggio</div>
+                  <div>Severità</div>
+                  <div>Data</div>
+                </div>
+                {gad7Results.map(result => (
+                  <div key={result.id} className="grid grid-cols-4 gap-4 py-3 rounded-lg transition-colors duration-200" style={{ 
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    color: 'white'
+                  }}>
+                    <div className="flex items-center gap-2">
+                      <span>📊</span>
+                      <span className="font-medium">GAD-7</span>
+                    </div>
+                    <div className="font-mono">
+                      <span className="text-lg">{result.total}</span>
+                      <span className="text-sm" style={{ color: '#a8b2d6' }}>/21</span>
+                    </div>
+                    <div>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        result.severity === 'minima' ? 'bg-green-600 text-white' : 
+                        result.severity === 'lieve' ? 'bg-blue-600 text-white' : 
+                        result.severity === 'moderata' ? 'bg-yellow-600 text-white' : 
+                        'bg-red-600 text-white'
+                      }`}>
+                        {result.severity}
+                      </span>
+                    </div>
+                    <div className="text-sm" style={{ color: '#a8b2d6' }}>
+                      {new Date(result.created_at).toLocaleDateString('it-IT')}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Trend semplice */}
+                {gad7Results.length > 1 && (
+                  <div className="mt-4 pt-4 border-t border-white/20">
+                    <h4 className="font-medium mb-2" style={{ color: 'white' }}>📊 Trend</h4>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const latest = gad7Results[0].total;
+                        const previous = gad7Results[1].total;
+                        const diff = latest - previous;
+                        return (
+                          <>
+                            <span style={{ color: diff < 0 ? '#22c55e' : diff > 0 ? '#ef4444' : '#a8b2d6' }}>
+                              {diff < 0 ? '⬇️ Miglioramento' : diff > 0 ? '⬆️ Peggioramento' : '➡️ Stabile'}
+                            </span>
+                            <span className="text-sm" style={{ color: '#a8b2d6' }}>
+                              ({diff > 0 ? '+' : ''}{diff} punti)
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
