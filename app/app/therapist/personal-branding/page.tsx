@@ -100,16 +100,9 @@ export default function PersonalBrandingHub() {
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.1)'
       }}>
-        <div className="flex items-center gap-4 mb-4">
-          <img 
-            src="/logo-transparent-png.png" 
-            alt="cIAo-doc" 
-            style={{ height: '60px', width: 'auto' }}
-          />
-          <div>
-            <h1 className="text-3xl font-bold">Personal Branding Hub</h1>
-            <p className="text-lg opacity-80">Costruisci la tua presenza digitale professionale</p>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold">Personal Branding Hub</h1>
+          <p className="text-lg opacity-80">Costruisci la tua presenza digitale professionale</p>
         </div>
       </div>
 
