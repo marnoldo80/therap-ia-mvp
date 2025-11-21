@@ -357,16 +357,24 @@ export default function Page() {
   const specificObjectives = objectivesCompletion.filter(o => o.objective_type === 'specifico');
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6" style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0b1022 0%, #1e293b 50%, #334155 100%)'
+    }}>
       {/* Header con logo e styling cIAo-doc */}
       <div className="rounded-xl p-8 text-white shadow-lg" style={{
-        background: 'linear-gradient(135deg, #0b1022 0%, #1e293b 50%, #334155 100%)'
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center justify-center w-16 h-16 rounded-xl" style={{
             background: 'linear-gradient(135deg, #7aa2ff 0%, #9333ea 100%)'
           }}>
-            <span className="text-2xl font-bold text-white">🩺</span>
+            <svg width="32" height="32" viewBox="0 0 200 200" fill="none">
+              <circle cx="100" cy="100" r="80" stroke="white" strokeWidth="8" fill="none"/>
+              <path d="M100 40 L100 80 M100 120 L100 160 M60 100 L100 100 M140 100 L100 100" stroke="white" strokeWidth="6" strokeLinecap="round"/>
+              <circle cx="100" cy="100" r="12" fill="white"/>
+            </svg>
           </div>
           <div>
             <h1 className="text-3xl font-bold">cIAo-doc</h1>
