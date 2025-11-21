@@ -358,11 +358,21 @@ export default function Page() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      {/* Header con styling cIAo-doc */}
+      {/* Header con logo e styling cIAo-doc */}
       <div className="rounded-xl p-8 text-white shadow-lg" style={{
         background: 'linear-gradient(135deg, #0b1022 0%, #1e293b 50%, #334155 100%)'
       }}>
-        <h1 className="text-3xl font-bold mb-2">💙 cIAo-doc</h1>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center justify-center w-16 h-16 rounded-xl" style={{
+            background: 'linear-gradient(135deg, #7aa2ff 0%, #9333ea 100%)'
+          }}>
+            <span className="text-2xl font-bold text-white">🩺</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">cIAo-doc</h1>
+            <p className="text-lg opacity-80">La tua area personale</p>
+          </div>
+        </div>
         <p className="text-xl mb-4">Benvenuto, {patient.display_name || 'Paziente'}! 👋</p>
         <div className="flex gap-6 text-sm opacity-90">
           {lastNote && (
