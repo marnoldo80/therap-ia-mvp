@@ -374,8 +374,7 @@ export default function Page() {
               alt="cIAo-doc" 
               style={{ height: '60px', width: 'auto' }}
             />
-            <div>
-         </div>
+          </div>
         <p className="text-xl mb-4">Benvenuto, {patient.display_name || 'Paziente'}! 👋</p>
         <div className="flex gap-6 text-sm opacity-90">
           {lastNote && (
