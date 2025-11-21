@@ -8,7 +8,6 @@ import CalendarPicker from '@/components/CalendarPicker';
 import QuickAppointmentModal from '@/components/QuickAppointmentModal';
 import SessionRatesForm from '@/components/SessionRatesForm';
 import { useRouter } from 'next/navigation';
-import ResendCredentialsButton from '@/components/ResendCredentialsButton';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -398,6 +397,24 @@ export default function PatientPage() {
     }
   }
 
+  async function regeneratePassword() {
+    if (!patient?.email) {
+      alert('Il paziente non ha email');
+      return;
+    }
+    try {
+      const res = await fetch('/api/resend-credentials', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ patientId: id }) 
+      });
+      if (!res.ok) throw new Error('Errore invio');
+      alert('✅ Nuove credenziali generate e inviate!');
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+    }
+  }
+
   async function getSuggestions() {
     setAiLoading(true);
     setShowAIModal(true);
@@ -695,6 +712,13 @@ export default function PatientPage() {
                  style={{ backgroundColor: '#9333ea', color: 'white' }}
               >
                 📄 Genera Consenso
+              </button>
+              <button
+                 onClick={regeneratePassword}
+                 className="px-4 py-2 rounded font-medium transition-colors duration-200"
+                 style={{ backgroundColor: '#f59e0b', color: 'white' }}
+              >
+                🔑 Rigenera Password
               </button>
             </div>
           </div>
@@ -1062,25 +1086,6 @@ export default function PatientPage() {
                 ))}
               </div>
             )}
-            <div className="rounded-lg p-6" style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}>
-              <h3 className="font-bold text-lg mb-4" style={{ color: 'white' }}>🔑 Gestione Accesso</h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium" style={{ color: 'white' }}>Credenziali Paziente</p>
-                  <p className="text-sm" style={{ color: '#a8b2d6' }}>
-                    Genera nuove credenziali se il paziente non ricorda la password
-                  </p>
-                </div>
-                <ResendCredentialsButton 
-                  patientId={id}
-                  patientName={patient.display_name || 'Paziente'}
-                  patientEmail={patient.email || undefined}
-                />
-              </div>
-            </div>
           </div>
 
           <div className="rounded-lg p-6" style={{
