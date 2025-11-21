@@ -67,7 +67,7 @@ export default function Page() {
   const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
   const [nextSessionThoughts, setNextSessionThoughts] = useState('');
   const [diaryEntry, setDiaryEntry] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'diary' | 'progress'>('overview');
+  const [activeTab, setActiveTab] = useState<'profilo' | 'diario' | 'obiettivi'>('profilo');
   
   const [editingPersonalData, setEditingPersonalData] = useState(false);
   const [editedName, setEditedName] = useState('');
@@ -104,7 +104,6 @@ export default function Page() {
         return;
       }
 
-      // CAMBIATO: ora cerca con patient_user_id invece di user_id
       const { data: p, error: pe } = await supabase
         .from('patients')
         .select(`
@@ -323,8 +322,8 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <p className="text-gray-600">Caricamento della tua area...</p>
+      <div className="max-w-6xl mx-auto p-6" style={{ color: 'white' }}>
+        <p>Caricamento della tua area...</p>
       </div>
     );
   }
@@ -332,7 +331,11 @@ export default function Page() {
   if (err) {
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <div className="rounded bg-red-50 border border-red-200 p-4 text-red-700">
+        <div className="rounded p-4" style={{ 
+          backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          color: '#dc2626'
+        }}>
           <p className="font-semibold mb-2">Errore</p>
           <p className="text-sm">{err}</p>
         </div>
@@ -342,7 +345,7 @@ export default function Page() {
 
   if (!patient) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6" style={{ color: 'white' }}>
         <p>Profilo paziente non disponibile.</p>
       </div>
     );
@@ -355,8 +358,12 @@ export default function Page() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-8 text-white shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">Benvenuto, {patient.display_name || 'Paziente'}! 👋</h1>
+      {/* Header con styling cIAo-doc */}
+      <div className="rounded-xl p-8 text-white shadow-lg" style={{
+        background: 'linear-gradient(135deg, #0b1022 0%, #1e293b 50%, #334155 100%)'
+      }}>
+        <h1 className="text-3xl font-bold mb-2">💙 cIAo-doc</h1>
+        <p className="text-xl mb-4">Benvenuto, {patient.display_name || 'Paziente'}! 👋</p>
         <div className="flex gap-6 text-sm opacity-90">
           {lastNote && (
             <div>📝 Ultima nota: {new Date(lastNote.note_date).toLocaleDateString('it-IT')}</div>
@@ -367,36 +374,61 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="flex gap-2 border-b">
-        <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 font-medium ${activeTab === 'overview' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-gray-600'}`}>
-          📊 Panoramica
+      {/* Tabs Navigation con styling cIAo-doc */}
+      <div className="flex gap-2 overflow-x-auto">
+        <button 
+          onClick={() => setActiveTab('profilo')} 
+          className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
+            activeTab === 'profilo' ? 'bg-purple-600 text-white' : 'bg-purple-600/70 text-white/80 hover:bg-purple-600'
+          }`}
+        >
+          👤 Profilo
         </button>
-        <button onClick={() => setActiveTab('diary')} className={`px-4 py-2 font-medium ${activeTab === 'diary' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-gray-600'}`}>
+        <button 
+          onClick={() => setActiveTab('diario')} 
+          className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
+            activeTab === 'diario' ? 'bg-purple-600 text-white' : 'bg-purple-600/70 text-white/80 hover:bg-purple-600'
+          }`}
+        >
           📔 Diario
         </button>
-        <button onClick={() => setActiveTab('progress')} className={`px-4 py-2 font-medium ${activeTab === 'progress' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-gray-600'}`}>
-          📈 Progressi
+        <button 
+          onClick={() => setActiveTab('obiettivi')} 
+          className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
+            activeTab === 'obiettivi' ? 'bg-purple-600 text-white' : 'bg-purple-600/70 text-white/80 hover:bg-purple-600'
+          }`}
+        >
+          🎯 Obiettivi ed Esercizi
         </button>
       </div>
 
-      {activeTab === 'overview' && (
+      {/* Tab Content - Profilo */}
+      {activeTab === 'profilo' && (
         <div className="grid lg:grid-cols-2 gap-6">
           
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
+          {/* Dati personali */}
+          <div className="rounded-lg p-6 shadow-sm" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
+              <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'white' }}>
                 <span>👤</span> Dati personali
               </h2>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setShowPasswordModal(true)}
                   className="text-sm font-medium px-3 py-1 rounded transition-colors duration-200"
-                  style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+                  style={{ backgroundColor: '#f59e0b', color: 'white' }}
                 >
                   🔐 Cambia Password
                 </button>
                 {!editingPersonalData && (
-                  <button onClick={() => setEditingPersonalData(true)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <button 
+                    onClick={() => setEditingPersonalData(true)} 
+                    className="text-sm font-medium px-3 py-1 rounded transition-colors duration-200"
+                    style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
+                  >
                     ✏️ Modifica
                   </button>
                 )}
@@ -407,125 +439,278 @@ export default function Page() {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Nome completo</label>
-                    <input type="text" value={editedName} onChange={e => setEditedName(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Mario Rossi" />
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>Nome completo</label>
+                    <input 
+                      type="text" 
+                      value={editedName} 
+                      onChange={e => setEditedName(e.target.value)} 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      placeholder="Mario Rossi" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Data di nascita</label>
-                    <input type="date" value={editedBirthDate} onChange={e => setEditedBirthDate(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" />
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>Data di nascita</label>
+                    <input 
+                      type="date" 
+                      value={editedBirthDate} 
+                      onChange={e => setEditedBirthDate(e.target.value)} 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Luogo di nascita</label>
-                  <input type="text" value={editedBirthPlace} onChange={e => setEditedBirthPlace(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Roma" />
+                  <label className="block text-sm mb-1" style={{ color: 'white' }}>Luogo di nascita</label>
+                  <input 
+                    type="text" 
+                    value={editedBirthPlace} 
+                    onChange={e => setEditedBirthPlace(e.target.value)} 
+                    className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    placeholder="Roma" 
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Email</label>
-                    <input type="email" value={patient.email || ''} disabled className="w-full border rounded px-3 py-2 text-sm bg-gray-100" />
-                    <p className="text-xs text-gray-500 mt-1">L'email non può essere modificata</p>
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>Email</label>
+                    <input 
+                      type="email" 
+                      value={patient.email || ''} 
+                      disabled 
+                      className="w-full rounded px-3 py-2 text-sm opacity-50" 
+                      style={{
+                        backgroundColor: '#1a1a2e',
+                        border: '2px solid #26304b',
+                        color: '#9ca3af'
+                      }}
+                    />
+                    <p className="text-xs mt-1" style={{ color: '#a8b2d6' }}>L'email non può essere modificata</p>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Telefono</label>
-                    <input type="tel" value={editedPhone} onChange={e => setEditedPhone(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="+39 123 456 7890" />
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>Telefono</label>
+                    <input 
+                      type="tel" 
+                      value={editedPhone} 
+                      onChange={e => setEditedPhone(e.target.value)} 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      placeholder="+39 123 456 7890" 
+                    />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Codice Fiscale</label>
-                  <input type="text" value={editedFiscalCode} onChange={e => setEditedFiscalCode(e.target.value.toUpperCase())} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="RSSMRA80A01H501Z" maxLength={16} />
+                  <label className="block text-sm mb-1" style={{ color: 'white' }}>Codice Fiscale</label>
+                  <input 
+                    type="text" 
+                    value={editedFiscalCode} 
+                    onChange={e => setEditedFiscalCode(e.target.value.toUpperCase())} 
+                    className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    placeholder="RSSMRA80A01H501Z" 
+                    maxLength={16} 
+                  />
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Medico di medicina generale</label>
-                  <input type="text" value={editedMedico} onChange={e => setEditedMedico(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Dr. Mario Rossi" />
+                  <label className="block text-sm mb-1" style={{ color: 'white' }}>Medico di medicina generale</label>
+                  <input 
+                    type="text" 
+                    value={editedMedico} 
+                    onChange={e => setEditedMedico(e.target.value)} 
+                    className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    placeholder="Dr. Mario Rossi" 
+                  />
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Indirizzo</label>
-                  <input type="text" value={editedAddress} onChange={e => setEditedAddress(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Via Roma 123" />
+                  <label className="block text-sm mb-1" style={{ color: 'white' }}>Indirizzo</label>
+                  <input 
+                    type="text" 
+                    value={editedAddress} 
+                    onChange={e => setEditedAddress(e.target.value)} 
+                    className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    placeholder="Via Roma 123" 
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Città</label>
-                    <input type="text" value={editedCity} onChange={e => setEditedCity(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Roma" />
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>Città</label>
+                    <input 
+                      type="text" 
+                      value={editedCity} 
+                      onChange={e => setEditedCity(e.target.value)} 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      placeholder="Roma" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">CAP</label>
-                    <input type="text" value={editedPostalCode} onChange={e => setEditedPostalCode(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="00100" />
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>CAP</label>
+                    <input 
+                      type="text" 
+                      value={editedPostalCode} 
+                      onChange={e => setEditedPostalCode(e.target.value)} 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      placeholder="00100" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Provincia</label>
-                    <input type="text" value={editedProvince} onChange={e => setEditedProvince(e.target.value.toUpperCase())} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="RM" maxLength={2} />
+                    <label className="block text-sm mb-1" style={{ color: 'white' }}>Provincia</label>
+                    <input 
+                      type="text" 
+                      value={editedProvince} 
+                      onChange={e => setEditedProvince(e.target.value.toUpperCase())} 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      placeholder="RM" 
+                      maxLength={2} 
+                    />
                   </div>
                 </div>
                 
                 <div className="flex gap-2 pt-2">
-                  <button onClick={savePersonalData} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 text-sm font-medium">💾 Salva</button>
-                  <button onClick={() => {
-                    setEditingPersonalData(false);
-                    setEditedName(patient.display_name || '');
-                    setEditedPhone(patient.phone || '');
-                    setEditedAddress(patient.address || '');
-                    setEditedCity(patient.city || '');
-                    setEditedPostalCode(patient.postal_code || '');
-                    setEditedProvince(patient.province || '');
-                    setEditedFiscalCode(patient.fiscal_code || '');
-                    setEditedBirthDate(patient.birth_date || '');
-                    setEditedBirthPlace(patient.birth_place || '');
-                    setEditedMedico(patient.medico_mmg || '');
-                  }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 text-sm font-medium">Annulla</button>
+                  <button 
+                    onClick={savePersonalData} 
+                    className="px-4 py-2 rounded font-medium transition-colors duration-200"
+                    style={{ backgroundColor: '#22c55e', color: 'white' }}
+                  >
+                    💾 Salva
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setEditingPersonalData(false);
+                      setEditedName(patient.display_name || '');
+                      setEditedPhone(patient.phone || '');
+                      setEditedAddress(patient.address || '');
+                      setEditedCity(patient.city || '');
+                      setEditedPostalCode(patient.postal_code || '');
+                      setEditedProvince(patient.province || '');
+                      setEditedFiscalCode(patient.fiscal_code || '');
+                      setEditedBirthDate(patient.birth_date || '');
+                      setEditedBirthPlace(patient.birth_place || '');
+                      setEditedMedico(patient.medico_mmg || '');
+                    }} 
+                    className="px-4 py-2 rounded font-medium transition-colors duration-200"
+                    style={{ backgroundColor: '#6b7280', color: 'white' }}
+                  >
+                    Annulla
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-sm" style={{ color: 'white' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Nome:</span>
+                    <span style={{ color: '#a8b2d6' }}>Nome:</span>
                     <span className="font-medium">{patient.display_name || '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Data nascita:</span>
+                    <span style={{ color: '#a8b2d6' }}>Data nascita:</span>
                     <span className="font-medium">{patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('it-IT') : '—'}</span>
                   </div>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Luogo di nascita:</span>
+                  <span style={{ color: '#a8b2d6' }}>Luogo di nascita:</span>
                   <span className="font-medium">{patient.birth_place || '—'}</span>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Email:</span>
+                    <span style={{ color: '#a8b2d6' }}>Email:</span>
                     <span className="font-medium">{patient.email || '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Telefono:</span>
+                    <span style={{ color: '#a8b2d6' }}>Telefono:</span>
                     <span className="font-medium">{patient.phone || '—'}</span>
                   </div>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Codice Fiscale:</span>
+                  <span style={{ color: '#a8b2d6' }}>Codice Fiscale:</span>
                   <span className="font-medium">{patient.fiscal_code || '—'}</span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Medico MMG:</span>
+                  <span style={{ color: '#a8b2d6' }}>Medico MMG:</span>
                   <span className="font-medium">{patient.medico_mmg || '—'}</span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Indirizzo:</span>
+                  <span style={{ color: '#a8b2d6' }}>Indirizzo:</span>
                   <span className="font-medium">{patient.address || '—'}</span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Città, CAP, Provincia:</span>
+                  <span style={{ color: '#a8b2d6' }}>Città, CAP, Provincia:</span>
                   <span className="font-medium">
                     {[patient.city, patient.postal_code, patient.province].filter(Boolean).join(', ') || '—'}
                   </span>
@@ -534,26 +719,43 @@ export default function Page() {
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          {/* Prossimi appuntamenti */}
+          <div className="rounded-lg p-6 shadow-sm" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>📅</span> Prossimi appuntamenti
             </h2>
             {appointments.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessun appuntamento programmato</p>
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Nessun appuntamento programmato</p>
             ) : (
               <div className="space-y-4">
                 {appointments.map(apt => (
-                  <div key={apt.id} className="border-l-4 border-emerald-500 pl-4 py-2">
-                    <div className="font-medium">{apt.title}</div>
-                    <div className="text-sm text-gray-600 mb-2">{new Date(apt.starts_at).toLocaleString('it-IT')}</div>
+                  <div key={apt.id} className="border-l-4 pl-4 py-2" style={{ borderColor: '#7aa2ff' }}>
+                    <div className="font-medium" style={{ color: 'white' }}>{apt.title}</div>
+                    <div className="text-sm mb-2" style={{ color: '#a8b2d6' }}>
+                      {new Date(apt.starts_at).toLocaleString('it-IT')}
+                    </div>
                     <div className="mt-2">
                       <textarea
                         placeholder="Scrivi un messaggio al terapeuta (es: disdetta, cambio orario...)"
                         value={appointmentMessages[apt.id] || ''}
                         onChange={e => setAppointmentMessages({ ...appointmentMessages, [apt.id]: e.target.value })}
-                        className="w-full text-sm border rounded p-2 min-h-[60px] focus:ring-2 focus:ring-emerald-500"
+                        className="w-full text-sm rounded p-2 min-h-[60px] outline-none transition-colors duration-300"
+                        style={{
+                          backgroundColor: '#0b0f1c',
+                          border: '2px solid #26304b',
+                          color: 'white'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                        onBlur={(e) => e.target.style.borderColor = '#26304b'}
                       />
-                      <button onClick={() => sendAppointmentMessage(apt.id)} className="mt-1 text-xs bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700">
+                      <button 
+                        onClick={() => sendAppointmentMessage(apt.id)} 
+                        className="mt-1 text-xs px-3 py-1 rounded transition-colors duration-200"
+                        style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
+                      >
                         📨 Invia al terapeuta
                       </button>
                     </div>
@@ -563,126 +765,119 @@ export default function Page() {
             )}
           </div>
 
-          <div className="bg-white border rounded-lg p-6 shadow-sm lg:col-span-2">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <span>🎯</span> I tuoi obiettivi (condivisi con il terapeuta)
-            </h2>
-            {generalObjectives.length === 0 && specificObjectives.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessun obiettivo definito ancora. Il terapeuta li aggiungerà nel piano terapeutico.</p>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {generalObjectives.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-3">Obiettivi Generali:</h3>
-                    <ul className="space-y-2">
-                      {generalObjectives.map(obj => (
-                        <li key={obj.id} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
-                          <input type="checkbox" checked={obj.completed} onChange={() => toggleObjective(obj.id, obj.completed)} className="mt-1 w-5 h-5 text-emerald-600 rounded" />
-                          <span className={`text-sm ${obj.completed ? 'line-through text-gray-400' : ''}`}>{obj.objective_text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {specificObjectives.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-3">Obiettivi Specifici:</h3>
-                    <ul className="space-y-2">
-                      {specificObjectives.map(obj => (
-                        <li key={obj.id} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
-                          <input type="checkbox" checked={obj.completed} onChange={() => toggleObjective(obj.id, obj.completed)} className="mt-1 w-5 h-5 text-emerald-600 rounded" />
-                          <span className={`text-sm ${obj.completed ? 'line-through text-gray-400' : ''}`}>{obj.objective_text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white border rounded-lg p-6 shadow-sm lg:col-span-2">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          {/* I tuoi pensieri per la prossima seduta */}
+          <div className="rounded-lg p-6 shadow-sm lg:col-span-2" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>💭</span> I tuoi pensieri per la prossima seduta
             </h2>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm mb-3" style={{ color: '#a8b2d6' }}>
               Scrivi qui domande, obiettivi o situazioni che vuoi discutere nella prossima seduta. Il terapeuta potrà leggerli in anticipo.
             </p>
             <textarea
-              className="w-full border rounded-lg p-3 min-h-[120px] focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full rounded-lg p-3 min-h-[120px] outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b',
+                color: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
               placeholder="Es: Vorrei parlare di come gestire l'ansia prima delle presentazioni di lavoro..."
               value={nextSessionThoughts}
               onChange={e => setNextSessionThoughts(e.target.value)}
             />
-            <button onClick={saveNextSessionThoughts} className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-medium">
+            <button 
+              onClick={saveNextSessionThoughts} 
+              className="mt-3 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
+            >
               💾 Salva pensieri
             </button>
           </div>
-
-          <div className="bg-white border rounded-lg p-6 shadow-sm lg:col-span-2">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <span>💪</span> Esercizi assegnati dal terapeuta
-            </h2>
-            {exercisesCompletion.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessun esercizio assegnato ancora.</p>
-            ) : (
-              <div className="space-y-3">
-                {exercisesCompletion.map(ex => (
-                  <label key={ex.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" checked={ex.completed} onChange={() => toggleExercise(ex.id, ex.completed)} className="mt-1 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500" />
-                    <span className={`flex-1 ${ex.completed ? 'line-through text-gray-400' : ''}`}>{ex.exercise_text}</span>
-                    {ex.completed && ex.completed_at && (
-                      <span className="text-xs text-gray-500">✓ {new Date(ex.completed_at).toLocaleDateString('it-IT')}</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
         </div>
       )}
 
-      {activeTab === 'diary' && (
+      {/* Tab Content - Diario */}
+      {activeTab === 'diario' && (
         <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <div className="rounded-lg p-6 shadow-sm" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>✍️</span> Scrivi una nuova nota
             </h2>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm mb-3" style={{ color: '#a8b2d6' }}>
               Usa il diario per annotare pensieri, emozioni, situazioni quotidiane. Il terapeuta potrà leggerle.
             </p>
             <textarea
-              className="w-full border rounded-lg p-3 min-h-[150px] focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full rounded-lg p-3 min-h-[150px] outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b',
+                color: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
               placeholder="Oggi mi sono sentito/a..."
               value={diaryEntry}
               onChange={e => setDiaryEntry(e.target.value)}
             />
-            <button onClick={saveDiaryEntry} disabled={!diaryEntry.trim()} className="mt-3 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50">
+            <button 
+              onClick={saveDiaryEntry} 
+              disabled={!diaryEntry.trim()} 
+              className="mt-3 px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50"
+              style={{ backgroundColor: '#7aa2ff', color: '#0b1022' }}
+            >
               💾 Salva nota
             </button>
           </div>
 
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <div className="rounded-lg p-6 shadow-sm" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: 'white' }}>
               <span>📚</span> Le tue note
             </h2>
             {patientNotes.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nessuna nota nel diario ancora.</p>
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Nessuna nota nel diario ancora.</p>
             ) : (
               <div className="space-y-4">
                 {patientNotes.map(note => (
-                  <div key={note.id} className="border-l-4 border-emerald-500 pl-4 py-3 bg-gray-50 rounded">
+                  <div key={note.id} className="border-l-4 pl-4 py-3 rounded" style={{
+                    borderColor: '#7aa2ff',
+                    backgroundColor: 'rgba(255,255,255,0.02)'
+                  }}>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-gray-600">
-                        {new Date(note.note_date).toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                      <div className="text-sm font-medium" style={{ color: '#a8b2d6' }}>
+                        {new Date(note.note_date).toLocaleDateString('it-IT', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
                       </div>
                       {editingNoteId !== note.id && (
                         <div className="flex gap-2">
-                          <button onClick={() => { setEditingNoteId(note.id); setEditingNoteContent(note.content); }} className="text-xs text-blue-600 hover:text-blue-700">
+                          <button 
+                            onClick={() => { 
+                              setEditingNoteId(note.id); 
+                              setEditingNoteContent(note.content); 
+                            }} 
+                            className="text-xs transition-colors duration-200"
+                            style={{ color: '#7aa2ff' }}
+                          >
                             ✏️ Modifica
                           </button>
-                          <button onClick={() => deleteDiaryNote(note.id)} className="text-xs text-red-600 hover:text-red-700">
+                          <button 
+                            onClick={() => deleteDiaryNote(note.id)} 
+                            className="text-xs transition-colors duration-200"
+                            style={{ color: '#ef4444' }}
+                          >
                             🗑️ Cancella
                           </button>
                         </div>
@@ -691,14 +886,40 @@ export default function Page() {
                     
                     {editingNoteId === note.id ? (
                       <div>
-                        <textarea value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="w-full border rounded p-2 min-h-[100px] text-sm focus:ring-2 focus:ring-emerald-500" />
+                        <textarea 
+                          value={editingNoteContent} 
+                          onChange={e => setEditingNoteContent(e.target.value)} 
+                          className="w-full rounded p-2 min-h-[100px] text-sm outline-none transition-colors duration-300"
+                          style={{
+                            backgroundColor: '#0b0f1c',
+                            border: '2px solid #26304b',
+                            color: 'white'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                          onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                        />
                         <div className="flex gap-2 mt-2">
-                          <button onClick={() => updateDiaryNote(note.id)} className="text-xs bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700">💾 Salva</button>
-                          <button onClick={() => { setEditingNoteId(null); setEditingNoteContent(''); }} className="text-xs bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300">Annulla</button>
+                          <button 
+                            onClick={() => updateDiaryNote(note.id)} 
+                            className="text-xs px-3 py-1 rounded transition-colors duration-200"
+                            style={{ backgroundColor: '#22c55e', color: 'white' }}
+                          >
+                            💾 Salva
+                          </button>
+                          <button 
+                            onClick={() => { 
+                              setEditingNoteId(null); 
+                              setEditingNoteContent(''); 
+                            }} 
+                            className="text-xs px-3 py-1 rounded transition-colors duration-200"
+                            style={{ backgroundColor: '#6b7280', color: 'white' }}
+                          >
+                            Annulla
+                          </button>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                      <p className="whitespace-pre-wrap" style={{ color: 'white' }}>{note.content}</p>
                     )}
                   </div>
                 ))}
@@ -708,24 +929,126 @@ export default function Page() {
         </div>
       )}
 
-      {activeTab === 'progress' && (
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span>📈</span> I tuoi progressi
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Questa sezione mostrerà una timeline dei tuoi progressi, obiettivi completati e statistiche. 
-            <br />
-            <em>(In sviluppo - verrà implementata nelle prossime versioni)</em>
-          </p>
+      {/* Tab Content - Obiettivi ed Esercizi */}
+      {activeTab === 'obiettivi' && (
+        <div className="space-y-6">
+          {/* Obiettivi */}
+          <div className="rounded-lg p-6 shadow-sm" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: 'white' }}>
+              <span>🎯</span> I tuoi obiettivi terapeutici
+            </h2>
+            {generalObjectives.length === 0 && specificObjectives.length === 0 ? (
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>
+                Nessun obiettivo definito ancora. Il terapeuta li aggiungerà nel piano terapeutico.
+              </p>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {generalObjectives.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3" style={{ color: '#a8b2d6' }}>Obiettivi Generali:</h3>
+                    <ul className="space-y-2">
+                      {generalObjectives.map(obj => (
+                        <li key={obj.id} className="flex items-start gap-3 p-2 rounded transition-colors duration-200" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={obj.completed} 
+                            onChange={() => toggleObjective(obj.id, obj.completed)} 
+                            className="mt-1 w-5 h-5 text-blue-600 rounded" 
+                          />
+                          <span 
+                            className={`text-sm ${obj.completed ? 'line-through' : ''}`}
+                            style={{ color: obj.completed ? '#9ca3af' : 'white' }}
+                          >
+                            {obj.objective_text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {specificObjectives.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3" style={{ color: '#a8b2d6' }}>Obiettivi Specifici:</h3>
+                    <ul className="space-y-2">
+                      {specificObjectives.map(obj => (
+                        <li key={obj.id} className="flex items-start gap-3 p-2 rounded transition-colors duration-200" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={obj.completed} 
+                            onChange={() => toggleObjective(obj.id, obj.completed)} 
+                            className="mt-1 w-5 h-5 text-blue-600 rounded" 
+                          />
+                          <span 
+                            className={`text-sm ${obj.completed ? 'line-through' : ''}`}
+                            style={{ color: obj.completed ? '#9ca3af' : 'white' }}
+                          >
+                            {obj.objective_text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Esercizi */}
+          <div className="rounded-lg p-6 shadow-sm" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ color: 'white' }}>
+              <span>💪</span> Esercizi assegnati dal terapeuta
+            </h2>
+            {exercisesCompletion.length === 0 ? (
+              <p className="text-sm" style={{ color: '#a8b2d6' }}>Nessun esercizio assegnato ancora.</p>
+            ) : (
+              <div className="space-y-3">
+                {exercisesCompletion.map(ex => (
+                  <label 
+                    key={ex.id} 
+                    className="flex items-start gap-3 p-3 border rounded-lg transition-colors duration-200 cursor-pointer"
+                    style={{
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      backgroundColor: 'rgba(255,255,255,0.02)'
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={ex.completed} 
+                      onChange={() => toggleExercise(ex.id, ex.completed)} 
+                      className="mt-1 w-5 h-5 text-emerald-600 rounded" 
+                    />
+                    <span 
+                      className={`flex-1 ${ex.completed ? 'line-through' : ''}`}
+                      style={{ color: ex.completed ? '#9ca3af' : 'white' }}
+                    >
+                      {ex.exercise_text}
+                    </span>
+                    {ex.completed && ex.completed_at && (
+                      <span className="text-xs" style={{ color: '#a8b2d6' }}>
+                        ✓ {new Date(ex.completed_at).toLocaleDateString('it-IT')}
+                      </span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
+
       {patient && (
         <ChatWidget 
           patientId={patient.id} 
           patientName={patient.display_name || 'Paziente'}
         />
       )}
+      
       <PasswordChangeModal 
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
