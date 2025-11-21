@@ -95,7 +95,7 @@ export default function PersonalBrandingHub() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       
-      {/* Header con Logo cIAo-doc */}
+      {/* Header */}
       <div className="rounded-xl p-8 text-white shadow-lg" style={{
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.1)'
@@ -301,41 +301,6 @@ export default function PersonalBrandingHub() {
             <div className="text-white font-medium">Prossimamente</div>
             <div className="text-sm text-red-100">Disponibile a breve</div>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="rounded-lg p-6 text-center" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div className="text-3xl font-bold text-white">{stats.totalPosts}</div>
-          <div className="text-sm" style={{ color: '#a8b2d6' }}>Post Totali</div>
-        </div>
-        
-        <div className="rounded-lg p-6 text-center" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div className="text-3xl font-bold text-white">{stats.readyPosts}</div>
-          <div className="text-sm" style={{ color: '#a8b2d6' }}>Pronti per Pubblicazione</div>
-        </div>
-        
-        <div className="rounded-lg p-6 text-center" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div className="text-3xl font-bold text-white">{stats.draftPosts}</div>
-          <div className="text-sm" style={{ color: '#a8b2d6' }}>Bozze</div>
-        </div>
-        
-        <div className="rounded-lg p-6 text-center" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div className="text-3xl font-bold text-white">0</div>
-          <div className="text-sm" style={{ color: '#a8b2d6' }}>Siti Web</div>
         </div>
       </div>
     </div>
