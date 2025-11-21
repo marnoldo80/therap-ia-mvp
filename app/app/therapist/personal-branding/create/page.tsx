@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import ImagePreview from '@/components/ImagePreview';
+import ImagePicker from '@/components/ImagePicker';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +18,12 @@ interface GeneratedContent {
   content: string;
   hashtags: string[];
   imagePrompt?: string;
+}
+
+interface SelectedImage {
+  type: 'stock' | 'upload' | 'gradient' | 'plain';
+  data: any;
+  prompt?: string;
 }
 
 const CATEGORIES = {
@@ -65,8 +71,9 @@ function ContentCreatorInner() {
   const [editedContent, setEditedContent] = useState('');
   const [editedHashtags, setEditedHashtags] = useState<string[]>([]);
   
-  // Canvas/Image state
-  const [showImagePreview, setShowImagePreview] = useState(true);
+  // Image state - NUOVO
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
+  const [showImagePicker, setShowImagePicker] = useState(true);
   
   // Saving
   const [isSaving, setIsSaving] = useState(false);
@@ -160,6 +167,12 @@ function ContentCreatorInner() {
     }
   }
 
+  // NUOVO - Handler per selezione immagine
+  function handleImageSelected(imageData: SelectedImage) {
+    setSelectedImage(imageData);
+    setError(null);
+  }
+
   async function savePost(status: 'draft' | 'ready') {
     setIsSaving(true);
     setError(null);
@@ -176,6 +189,7 @@ function ContentCreatorInner() {
         hashtags: editedHashtags,
         agent_type: selectedPlatform,
         category: selectedCategory,
+        image_data: selectedImage, // NUOVO - salva anche i dati immagine
         status: status
       });
 
@@ -198,12 +212,21 @@ function ContentCreatorInner() {
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link href="/app/therapist/personal-branding" className="text-blue-600 hover:underline">
+        <Link 
+          href="/app/therapist/personal-branding" 
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+          style={{ 
+            color: 'white', 
+            textDecoration: 'none',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}
+        >
           ← Personal Branding
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">🤖 Content Creator</h1>
-          <p className="text-gray-600">Agente specializzato per creazione contenuti social</p>
+          <h1 className="text-2xl font-bold text-white">🤖 Content Creator</h1>
+          <p style={{ color: '#a8b2d6' }}>Agente specializzato per creazione contenuti social</p>
         </div>
       </div>
 
@@ -226,7 +249,11 @@ function ContentCreatorInner() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-6">
+        <div className="rounded p-4" style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          color: '#ef4444'
+        }}>
           <p><strong>Errore:</strong> {error}</p>
         </div>
       )}
@@ -236,8 +263,11 @@ function ContentCreatorInner() {
         <div className="space-y-8">
           
           {/* Platform Selection */}
-          <div className="bg-white border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">📱 Scegli Piattaforma</h2>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 text-white">📱 Scegli Piattaforma</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(['instagram', 'facebook', 'linkedin'] as Platform[]).map((platform) => {
                 const config = getPlatformConfig(platform);
@@ -247,14 +277,18 @@ function ContentCreatorInner() {
                     onClick={() => setSelectedPlatform(platform)}
                     className={`p-6 border rounded-lg text-center transition-all ${
                       selectedPlatform === platform
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-blue-500 bg-blue-500/20 shadow-md'
+                        : 'border-gray-500 hover:border-gray-400 hover:bg-white/5'
                     }`}
+                    style={{ 
+                      borderColor: selectedPlatform === platform ? '#3b82f6' : 'rgba(255,255,255,0.2)',
+                      backgroundColor: selectedPlatform === platform ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)'
+                    }}
                   >
                     <div className="text-3xl mb-2">{config.icon}</div>
-                    <h3 className="font-semibold mb-1">{config.name}</h3>
-                    <p className="text-sm text-gray-600">{config.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">Max {config.maxLength} caratteri</p>
+                    <h3 className="font-semibold mb-1 text-white">{config.name}</h3>
+                    <p className="text-sm" style={{ color: '#a8b2d6' }}>{config.description}</p>
+                    <p className="text-xs mt-2" style={{ color: '#64748b' }}>Max {config.maxLength} caratteri</p>
                   </button>
                 );
               })}
@@ -262,8 +296,11 @@ function ContentCreatorInner() {
           </div>
 
           {/* Category Selection */}
-          <div className="bg-white border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">🎯 Tipo di Contenuto</h2>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h2 className="text-xl font-semibold mb-4 text-white">🎯 Tipo di Contenuto</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(Object.entries(CATEGORIES) as [ContentCategory, typeof CATEGORIES[ContentCategory]][]).map(([category, config]) => (
                 <button
@@ -271,16 +308,20 @@ function ContentCreatorInner() {
                   onClick={() => setSelectedCategory(category)}
                   className={`p-6 border rounded-lg text-left transition-all ${
                     selectedCategory === category
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-blue-500/20 shadow-md'
+                      : 'border-gray-500 hover:border-gray-400 hover:bg-white/5'
                   }`}
+                  style={{ 
+                    borderColor: selectedCategory === category ? '#3b82f6' : 'rgba(255,255,255,0.2)',
+                    backgroundColor: selectedCategory === category ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)'
+                  }}
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">{config.icon}</span>
-                    <h3 className="font-semibold">{config.title}</h3>
+                    <h3 className="font-semibold text-white">{config.title}</h3>
                   </div>
-                  <p className="text-sm text-gray-600 mb-3">{config.description}</p>
-                  <div className="text-xs text-gray-500">
+                  <p className="text-sm mb-3" style={{ color: '#a8b2d6' }}>{config.description}</p>
+                  <div className="text-xs" style={{ color: '#64748b' }}>
                     <p className="font-medium mb-1">Esempi:</p>
                     <ul className="list-disc list-inside space-y-1">
                       {config.examples.map((example, i) => (
@@ -320,20 +361,24 @@ function ContentCreatorInner() {
           </div>
 
           {/* Topic Input */}
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">✏️ Inserisci il Topic</h3>
+          <div className="rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="text-lg font-semibold mb-4 text-white">✏️ Inserisci il Topic</h3>
             <textarea
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Es: Tecniche di rilassamento per l'ansia, Come riconoscere i sintomi della depressione..."
-              className="w-full border rounded-lg p-4 min-h-[100px] focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg p-4 min-h-[100px] focus:ring-2 focus:ring-blue-500 bg-white/10 text-white placeholder-gray-400"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
             />
           </div>
 
           <div className="flex justify-between">
             <button
               onClick={() => setStep(1)}
-              className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-300"
+              className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
             >
               ← Indietro
             </button>
@@ -355,7 +400,7 @@ function ContentCreatorInner() {
         </div>
       )}
 
-      {/* Step 3: Review & Edit WITH CANVAS */}
+      {/* Step 3: Review & Edit CON NUOVO IMAGE PICKER */}
       {step === 3 && generatedContent && (
         <div className="space-y-6">
           
@@ -364,55 +409,60 @@ function ContentCreatorInner() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold mb-2">✨ Contenuto Generato</h2>
-                <p className="opacity-90">Modifica il testo e genera l'immagine per i social</p>
+                <p className="opacity-90">Modifica il testo e scegli l'immagine di sfondo</p>
               </div>
               <button
-                onClick={() => setShowImagePreview(!showImagePreview)}
+                onClick={() => setShowImagePicker(!showImagePicker)}
                 className="bg-white/20 px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
               >
-                {showImagePreview ? '📝 Solo Testo' : '🖼️ Mostra Immagine'}
+                {showImagePicker ? '📝 Solo Testo' : '🖼️ Scegli Immagine'}
               </button>
             </div>
           </div>
 
-          <div className={`grid gap-6 ${showImagePreview ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
+          <div className={`grid gap-6 ${showImagePicker ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
             
             {/* Edit Content */}
-            <div className="bg-white border rounded-lg p-6">
-              <h3 className="font-semibold mb-4">📝 Modifica Contenuto</h3>
+            <div className="rounded-lg p-6" style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <h3 className="font-semibold mb-4 text-white">📝 Modifica Contenuto</h3>
               
               {generatedContent.title && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Titolo</label>
+                  <label className="block text-sm font-medium mb-2 text-white">Titolo</label>
                   <input
                     type="text"
                     value={generatedContent.title}
                     readOnly
-                    className="w-full border rounded-lg p-3 bg-gray-50 text-sm"
+                    className="w-full border rounded-lg p-3 text-sm bg-white/10 text-white"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                   />
                 </div>
               )}
               
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2 text-white">
                   Contenuto ({editedContent.length}/{platformConfig.maxLength})
                 </label>
                 <textarea
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
-                  className="w-full border rounded-lg p-3 min-h-[300px] focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full border rounded-lg p-3 min-h-[300px] focus:ring-2 focus:ring-blue-500 text-sm bg-white/10 text-white placeholder-gray-400"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Hashtags</label>
+                <label className="block text-sm font-medium mb-2 text-white">Hashtags</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {editedHashtags.map((hashtag, index) => (
-                    <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                    <span key={index} className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-sm">
                       #{hashtag}
                       <button
                         onClick={() => setEditedHashtags(prev => prev.filter((_, i) => i !== index))}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        className="ml-2 text-blue-300 hover:text-blue-100"
                       >
                         ×
                       </button>
@@ -422,7 +472,8 @@ function ContentCreatorInner() {
                 <input
                   type="text"
                   placeholder="Aggiungi hashtag (senza #)"
-                  className="w-full border rounded-lg p-2 text-sm"
+                  className="w-full border rounded-lg p-2 text-sm bg-white/10 text-white placeholder-gray-400"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       const value = (e.target as HTMLInputElement).value.trim();
@@ -436,81 +487,45 @@ function ContentCreatorInner() {
               </div>
             </div>
 
-            {/* Image Preview with Canvas */}
-            {showImagePreview && (
-              <div className="space-y-6">
-                <ImagePreview
-                  content={{
-                    title: generatedContent.title,
-                    content: editedContent,
-                    hashtags: editedHashtags
-                  }}
-                  platform={selectedPlatform}
+            {/* NUOVO - Image Picker */}
+            {showImagePicker && (
+              <div className="rounded-lg p-6" style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}>
+                <h3 className="font-semibold mb-4 text-white">🖼️ Scegli Immagine di Sfondo</h3>
+                <ImagePicker
+                  onImageSelected={handleImageSelected}
+                  currentImage={selectedImage?.data}
                 />
+                
+                {/* Preview dell'immagine selezionata */}
+                {selectedImage && (
+                  <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                    <h4 className="text-sm font-medium text-white mb-2">Immagine Selezionata:</h4>
+                    <div className="text-xs" style={{ color: '#a8b2d6' }}>
+                      <span className="inline-block px-2 py-1 rounded" style={{ backgroundColor: 'rgba(59,130,246,0.2)', color: '#60a5fa' }}>
+                        {selectedImage.type === 'stock' ? '📸 Stock Photo' :
+                         selectedImage.type === 'upload' ? '📁 Upload Personale' :
+                         selectedImage.type === 'gradient' ? '🎨 Sfondo Neutro' :
+                         '⚪ Colore Unito'}
+                      </span>
+                      {selectedImage.prompt && (
+                        <p className="mt-2">Prompt: {selectedImage.prompt}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Social Preview (when image is hidden) */}
-            {!showImagePreview && (
-              <div className="bg-white border rounded-lg p-6">
-                <h3 className="font-semibold mb-4">👁️ Anteprima {platformConfig.name}</h3>
-                <div className="border rounded-lg p-4 bg-gray-50 min-h-[400px]">
-                  
-                  {/* Instagram Preview */}
-                  {selectedPlatform === 'instagram' && (
-                    <div className="max-w-sm mx-auto bg-white rounded-lg border shadow-sm">
-                      <div className="p-3 border-b flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full"></div>
-                        <div>
-                          <p className="font-semibold text-sm">dr.cognome</p>
-                          <p className="text-xs text-gray-600">Psicoterapeuta</p>
-                        </div>
-                      </div>
-                      
-                      <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500">
-                        <span className="text-4xl">🧠</span>
-                      </div>
-                      
-                      <div className="p-3">
-                        <p className="text-sm whitespace-pre-wrap">{editedContent}</p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {editedHashtags.slice(0, 5).map((tag, i) => (
-                            <span key={i} className="text-xs text-blue-600">#{tag}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Other platforms preview */}
-                  {selectedPlatform !== 'instagram' && (
-                    <div className="bg-white rounded-lg border shadow-sm p-4">
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="text-2xl">{platformConfig.icon}</span>
-                        <div>
-                          <p className="font-semibold">Dr. Cognome - Psicoterapeuta</p>
-                          <p className="text-xs text-gray-600">{platformConfig.name}</p>
-                        </div>
-                      </div>
-                      <p className="text-sm whitespace-pre-wrap mb-3">{editedContent}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {editedHashtags.map((tag, i) => (
-                          <span key={i} className="text-xs text-blue-600">#{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Actions */}
           <div className="flex justify-between">
             <button
               onClick={() => setStep(2)}
-              className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-300"
+              className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
             >
               ← Rigenera
             </button>
@@ -545,8 +560,8 @@ export default function ContentCreator() {
     <Suspense fallback={
       <div className="max-w-4xl mx-auto p-6">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-white/20 rounded w-1/3"></div>
+          <div className="h-64 bg-white/10 rounded"></div>
         </div>
       </div>
     }>
