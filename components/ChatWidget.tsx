@@ -104,14 +104,18 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button with cIAo-doc Logo */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all hover:scale-110 z-50 flex items-center gap-2"
+          className="fixed bottom-6 right-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full p-3 shadow-2xl hover:shadow-3xl transition-all hover:scale-110 z-50 flex items-center justify-center"
+          style={{ width: '64px', height: '64px' }}
         >
-          <span className="text-2xl">💬</span>
-          <span className="font-semibold hidden sm:inline">Assistente IA</span>
+          <img 
+            src="/logo-transparent-png.png" 
+            alt="cIAo-doc Assistente" 
+            style={{ width: '40px', height: '40px' }}
+          />
         </button>
       )}
 
@@ -121,9 +125,13 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+              <img 
+                src="/logo-transparent-png.png" 
+                alt="cIAo-doc" 
+                style={{ width: '32px', height: '32px' }}
+              />
               <div>
-                <div className="font-bold">Assistente Terapeutico</div>
+                <div className="font-bold">cIAo-doc Assistente</div>
                 <div className="text-xs opacity-90">Sempre disponibile per te</div>
               </div>
             </div>
@@ -150,7 +158,14 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
                   }`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="text-xs font-semibold text-purple-600 mb-1">🤖 Assistente</div>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-purple-600 mb-1">
+                      <img 
+                        src="/logo-transparent-png.png" 
+                        alt="cIAo-doc" 
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      cIAo-doc
+                    </div>
                   )}
                   <div className="whitespace-pre-wrap">{msg.content}</div>
                   <div className={`text-xs mt-1 ${msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'}`}>
