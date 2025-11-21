@@ -187,12 +187,12 @@ export async function POST(req: Request) {
       html: htmlContent
     });
 
-    console.log('✅ Email inviata con successo! SendGrid ID:', emailResult[0].messageId);
+    console.log('✅ Email inviata con successo! SendGrid:', emailResult);
 
     return NextResponse.json({ 
       ok: true, 
       message: "✅ Invito inviato! Il paziente ha ricevuto le credenziali via email.",
-      emailId: emailResult[0].messageId
+      emailId: emailResult[0]?.headers?.['x-message-id'] || 'sent'
     });
     
   } catch (error: any) {
