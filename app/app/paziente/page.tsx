@@ -375,10 +375,7 @@ export default function Page() {
               style={{ height: '60px', width: 'auto' }}
             />
             <div>
-              <h1 className="text-3xl font-bold">cIAo-doc</h1>
-              <p className="text-lg opacity-80">La tua area personale</p>
-            </div>
-          </div>
+         </div>
         <p className="text-xl mb-4">Benvenuto, {patient.display_name || 'Paziente'}! 👋</p>
         <div className="flex gap-6 text-sm opacity-90">
           {lastNote && (
