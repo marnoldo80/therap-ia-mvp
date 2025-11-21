@@ -337,66 +337,6 @@ export default function PersonalBrandingHub() {
           <div className="text-3xl font-bold text-white">0</div>
           <div className="text-sm" style={{ color: '#a8b2d6' }}>Siti Web</div>
         </div>
-      </div>
-
-      {/* Quick Access Actions */}
-      <div className="rounded-lg p-6" style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <h3 className="text-xl font-bold text-white mb-4">🚀 Azioni Rapide</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link 
-            href="/app/therapist/personal-branding/create"
-            className="flex items-center gap-3 p-4 rounded-lg transition-colors duration-200"
-            style={{ 
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
-              color: '#60a5fa',
-              textDecoration: 'none'
-            }}
-          >
-            <span className="text-2xl">📱</span>
-            <div>
-              <div className="font-semibold">Crea Post Social</div>
-              <div className="text-sm opacity-80">Instagram, Facebook, LinkedIn</div>
-            </div>
-          </Link>
-
-          <Link 
-            href="/app/therapist/personal-branding/templates"
-            className="flex items-center gap-3 p-4 rounded-lg transition-colors duration-200"
-            style={{ 
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34d399',
-              textDecoration: 'none'
-            }}
-          >
-            <span className="text-2xl">🎨</span>
-            <div>
-              <div className="font-semibold">Gestisci Template</div>
-              <div className="text-sm opacity-80">Layout personalizzati</div>
-            </div>
-          </Link>
-
-          <button 
-            className="flex items-center gap-3 p-4 rounded-lg transition-colors duration-200 opacity-50"
-            style={{ 
-              backgroundColor: 'rgba(168, 85, 247, 0.1)',
-              border: '1px solid rgba(168, 85, 247, 0.3)',
-              color: '#a855f7'
-            }}
-            disabled
-          >
-            <span className="text-2xl">📊</span>
-            <div>
-              <div className="font-semibold">Analytics</div>
-              <div className="text-sm opacity-80">Prossimamente</div>
-            </div>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
