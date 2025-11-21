@@ -337,6 +337,7 @@ export default function PersonalBrandingHub() {
           <div className="text-3xl font-bold text-white">0</div>
           <div className="text-sm" style={{ color: '#a8b2d6' }}>Siti Web</div>
         </div>
+      </div>
     </div>
   );
 }
