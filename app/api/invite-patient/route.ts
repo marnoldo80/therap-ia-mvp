@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
 // Genera password sicura ma memorabile
 function generatePassword(): string {
   const words = ['Casa', 'Mare', 'Sole', 'Luna', 'Fiore', 'Verde', 'Pace', 'Gioia', 'Luce', 'Vita'];
-  const numbers = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   const word = words[Math.floor(Math.random() * words.length)];
   return `${word}${numbers}!`;
 }
