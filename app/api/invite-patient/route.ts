@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import sgMail from '@sendgrid/mail';
 import { createClient } from "@supabase/supabase-js";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+sgMail.setApiKey(process.env.RESEND_API_KEY!);
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -179,24 +179,20 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    // Invia email
-    const emailResult = await resend.emails.send({ 
+    // Invia email con SendGrid
+    const emailResult = await sgMail.send({
       from: process.env.RESEND_FROM!,
-      to: cleanEmail, 
-      subject, 
-      html: htmlContent 
+      to: cleanEmail,
+      subject,
+      html: htmlContent
     });
-    
-    if (emailResult.error) {
-      throw new Error(`Errore invio email: ${emailResult.error.message}`);
-    }
 
-    console.log('✅ Email inviata con successo! ID:', emailResult.data?.id);
+    console.log('✅ Email inviata con successo! SendGrid ID:', emailResult[0].messageId);
 
     return NextResponse.json({ 
       ok: true, 
       message: "✅ Invito inviato! Il paziente ha ricevuto le credenziali via email.",
-      emailId: emailResult.data?.id
+      emailId: emailResult[0].messageId
     });
     
   } catch (error: any) {
