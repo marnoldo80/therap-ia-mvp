@@ -104,7 +104,7 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
 
   return (
     <>
-      {/* Floating Button with cIAo-doc Logo */}
+      {/* Floating Button with Chatbot Logo */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -112,7 +112,7 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
           style={{ width: '64px', height: '64px' }}
         >
           <img 
-            src="/logo-transparent-png.png" 
+            src="/logo-chatbot.png" 
             alt="cIAo-doc Assistente" 
             style={{ width: '40px', height: '40px' }}
           />
@@ -126,7 +126,7 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src="/logo-transparent-png.png" 
+                src="/logo-chatbot.png" 
                 alt="cIAo-doc" 
                 style={{ width: '32px', height: '32px' }}
               />
@@ -160,7 +160,7 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
                   {msg.role === 'assistant' && (
                     <div className="flex items-center gap-2 text-xs font-semibold text-purple-600 mb-1">
                       <img 
-                        src="/logo-transparent-png.png" 
+                        src="/logo-chatbot.png" 
                         alt="cIAo-doc" 
                         style={{ width: '16px', height: '16px' }}
                       />
