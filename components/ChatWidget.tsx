@@ -104,11 +104,11 @@ export default function ChatWidget({ patientId, patientName }: ChatWidgetProps) 
 
   return (
     <>
-      {/* Floating Button with Chatbot Logo */}
+      {/* Floating Button with White Background */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full p-3 shadow-2xl hover:shadow-3xl transition-all hover:scale-110 z-50 flex items-center justify-center"
+          className="fixed bottom-6 right-6 bg-white rounded-full p-3 shadow-2xl hover:shadow-3xl transition-all hover:scale-110 z-50 flex items-center justify-center border-2 border-purple-200"
           style={{ width: '64px', height: '64px' }}
         >
           <img 
