@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import ChatWidget from '@/components/ChatWidget';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
 
-const supabase = createClient(
+const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
@@ -15,7 +16,13 @@ type Patient = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  province: string | null;
   fiscal_code: string | null;
+  birth_date: string | null;
+  birth_place: string | null;
+  medico_mmg: string | null;
   goals: string | null;
   issues: string | null;
 };
@@ -66,10 +73,18 @@ export default function Page() {
   const [editedName, setEditedName] = useState('');
   const [editedPhone, setEditedPhone] = useState('');
   const [editedAddress, setEditedAddress] = useState('');
+  const [editedCity, setEditedCity] = useState('');
+  const [editedPostalCode, setEditedPostalCode] = useState('');
+  const [editedProvince, setEditedProvince] = useState('');
   const [editedFiscalCode, setEditedFiscalCode] = useState('');
+  const [editedBirthDate, setEditedBirthDate] = useState('');
+  const [editedBirthPlace, setEditedBirthPlace] = useState('');
+  const [editedMedico, setEditedMedico] = useState('');
+  
   const [appointmentMessages, setAppointmentMessages] = useState<{[key: string]: string}>({});
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -81,17 +96,24 @@ export default function Page() {
       await new Promise(r => setTimeout(r, 500));
       
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 DEBUG - User autenticato:', user?.id, user?.email);
       if (!user) {
+        console.log('❌ DEBUG - Nessun utente trovato!');
         setErr('Sessione non valida');
         setLoading(false);
         return;
       }
 
+      // CAMBIATO: ora cerca con patient_user_id invece di user_id
       const { data: p, error: pe } = await supabase
         .from('patients')
-        .select('id, display_name, email, phone, address, fiscal_code, goals, issues')
-        .eq('user_id', user.id)
+        .select(`
+          id, display_name, email, phone, address, city, postal_code, province, 
+          fiscal_code, birth_date, birth_place, medico_mmg, goals, issues
+        `)
+        .eq('patient_user_id', user.id)
         .single();
+      console.log('🔍 DEBUG - Query patients:', { data: p, error: pe, searched_user_id: user.id });
 
       if (pe || !p) {
         setErr('Profilo paziente non trovato');
@@ -103,7 +125,13 @@ export default function Page() {
       setEditedName(p.display_name || '');
       setEditedPhone(p.phone || '');
       setEditedAddress(p.address || '');
+      setEditedCity(p.city || '');
+      setEditedPostalCode(p.postal_code || '');
+      setEditedProvince(p.province || '');
       setEditedFiscalCode(p.fiscal_code || '');
+      setEditedBirthDate(p.birth_date || '');
+      setEditedBirthPlace(p.birth_place || '');
+      setEditedMedico(p.medico_mmg || '');
 
       const { data: appts } = await supabase
         .from('appointments')
@@ -140,18 +168,13 @@ export default function Page() {
         .order('objective_index', { ascending: true });
       setObjectivesCompletion(objData || []);
 
-     const { data: exData, error: exError } = await supabase
-  .from('exercises_completion')
-  .select('*')
-  .eq('patient_id', p.id)
-  .order('exercise_index', { ascending: true });
+      const { data: exData } = await supabase
+        .from('exercises_completion')
+        .select('*')
+        .eq('patient_id', p.id)
+        .order('exercise_index', { ascending: true });
+      setExercisesCompletion(exData || []);
 
-console.log('PATIENT ID:', p.id);
-console.log('EXERCISES DATA:', exData);
-console.log('EXERCISES ERROR:', exError);
-console.log('EXERCISES LENGTH:', exData?.length);
-
-setExercisesCompletion(exData || []);
       setLoading(false);
     } catch (e: any) {
       setErr(e?.message || 'Errore sconosciuto');
@@ -166,7 +189,13 @@ setExercisesCompletion(exData || []);
         display_name: editedName,
         phone: editedPhone,
         address: editedAddress,
-        fiscal_code: editedFiscalCode
+        city: editedCity,
+        postal_code: editedPostalCode,
+        province: editedProvince.toUpperCase(),
+        fiscal_code: editedFiscalCode.toUpperCase(),
+        birth_date: editedBirthDate || null,
+        birth_place: editedBirthPlace,
+        medico_mmg: editedMedico
       }).eq('id', patient.id);
       if (error) throw error;
       alert('✅ Dati salvati!');
@@ -235,36 +264,36 @@ setExercisesCompletion(exData || []);
   }
 
   async function sendAppointmentMessage(appointmentId: string) {
-  if (!patient?.id) {
-    alert('Errore: profilo paziente non trovato');
-    return;
-  }
-  
-  const message = appointmentMessages[appointmentId];
-  if (!message?.trim()) {
-    alert('Scrivi un messaggio prima di inviare');
-    return;
-  }
-  
-  try {
-    const { error } = await supabase.from('appointment_messages').insert({
-      appointment_id: appointmentId,
-      patient_id: patient.id,
-      message: message
-    });
-    
-    if (error) {
-      console.error('Errore inserimento messaggio:', error);
-      throw error;
+    if (!patient?.id) {
+      alert('Errore: profilo paziente non trovato');
+      return;
     }
     
-    alert('✅ Messaggio inviato al terapeuta!');
-    setAppointmentMessages({ ...appointmentMessages, [appointmentId]: '' });
-  } catch (e: any) {
-    alert('Errore: ' + e.message);
-    console.error('Errore completo:', e);
+    const message = appointmentMessages[appointmentId];
+    if (!message?.trim()) {
+      alert('Scrivi un messaggio prima di inviare');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.from('appointment_messages').insert({
+        appointment_id: appointmentId,
+        patient_id: patient.id,
+        message: message
+      });
+      
+      if (error) {
+        console.error('Errore inserimento messaggio:', error);
+        throw error;
+      }
+      
+      alert('✅ Messaggio inviato al terapeuta!');
+      setAppointmentMessages({ ...appointmentMessages, [appointmentId]: '' });
+    } catch (e: any) {
+      alert('Errore: ' + e.message);
+      console.error('Errore completo:', e);
+    }
   }
-}
 
   async function toggleObjective(objId: string, currentCompleted: boolean) {
     try {
@@ -358,36 +387,82 @@ setExercisesCompletion(exData || []);
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <span>👤</span> Dati personali
               </h2>
-              {!editingPersonalData && (
-                <button onClick={() => setEditingPersonalData(true)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  ✏️ Modifica
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowPasswordModal(true)}
+                  className="text-sm font-medium px-3 py-1 rounded transition-colors duration-200"
+                  style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+                >
+                  🔐 Cambia Password
                 </button>
-              )}
+                {!editingPersonalData && (
+                  <button onClick={() => setEditingPersonalData(true)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    ✏️ Modifica
+                  </button>
+                )}
+              </div>
             </div>
             
             {editingPersonalData ? (
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nome completo</label>
-                  <input type="text" value={editedName} onChange={e => setEditedName(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Nome completo</label>
+                    <input type="text" value={editedName} onChange={e => setEditedName(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Mario Rossi" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Data di nascita</label>
+                    <input type="date" value={editedBirthDate} onChange={e => setEditedBirthDate(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" />
+                  </div>
                 </div>
+                
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Email</label>
-                  <input type="email" value={patient.email || ''} disabled className="w-full border rounded px-3 py-2 text-sm bg-gray-100" />
-                  <p className="text-xs text-gray-500 mt-1">L'email non può essere modificata</p>
+                  <label className="block text-sm text-gray-600 mb-1">Luogo di nascita</label>
+                  <input type="text" value={editedBirthPlace} onChange={e => setEditedBirthPlace(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Roma" />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Telefono</label>
-                  <input type="tel" value={editedPhone} onChange={e => setEditedPhone(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Email</label>
+                    <input type="email" value={patient.email || ''} disabled className="w-full border rounded px-3 py-2 text-sm bg-gray-100" />
+                    <p className="text-xs text-gray-500 mt-1">L'email non può essere modificata</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Telefono</label>
+                    <input type="tel" value={editedPhone} onChange={e => setEditedPhone(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="+39 123 456 7890" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Indirizzo</label>
-                  <input type="text" value={editedAddress} onChange={e => setEditedAddress(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" />
-                </div>
+                
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Codice Fiscale</label>
-                  <input type="text" value={editedFiscalCode} onChange={e => setEditedFiscalCode(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" />
+                  <input type="text" value={editedFiscalCode} onChange={e => setEditedFiscalCode(e.target.value.toUpperCase())} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="RSSMRA80A01H501Z" maxLength={16} />
                 </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Medico di medicina generale</label>
+                  <input type="text" value={editedMedico} onChange={e => setEditedMedico(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Dr. Mario Rossi" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Indirizzo</label>
+                  <input type="text" value={editedAddress} onChange={e => setEditedAddress(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Via Roma 123" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Città</label>
+                    <input type="text" value={editedCity} onChange={e => setEditedCity(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Roma" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">CAP</label>
+                    <input type="text" value={editedPostalCode} onChange={e => setEditedPostalCode(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="00100" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Provincia</label>
+                    <input type="text" value={editedProvince} onChange={e => setEditedProvince(e.target.value.toUpperCase())} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="RM" maxLength={2} />
+                  </div>
+                </div>
+                
                 <div className="flex gap-2 pt-2">
                   <button onClick={savePersonalData} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 text-sm font-medium">💾 Salva</button>
                   <button onClick={() => {
@@ -395,31 +470,65 @@ setExercisesCompletion(exData || []);
                     setEditedName(patient.display_name || '');
                     setEditedPhone(patient.phone || '');
                     setEditedAddress(patient.address || '');
+                    setEditedCity(patient.city || '');
+                    setEditedPostalCode(patient.postal_code || '');
+                    setEditedProvince(patient.province || '');
                     setEditedFiscalCode(patient.fiscal_code || '');
+                    setEditedBirthDate(patient.birth_date || '');
+                    setEditedBirthPlace(patient.birth_place || '');
+                    setEditedMedico(patient.medico_mmg || '');
                   }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 text-sm font-medium">Annulla</button>
                 </div>
               </div>
             ) : (
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Nome:</span>
-                  <span className="font-medium">{patient.display_name || '—'}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Nome:</span>
+                    <span className="font-medium">{patient.display_name || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Data nascita:</span>
+                    <span className="font-medium">{patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('it-IT') : '—'}</span>
+                  </div>
                 </div>
+                
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Email:</span>
-                  <span className="font-medium">{patient.email || '—'}</span>
+                  <span className="text-gray-500">Luogo di nascita:</span>
+                  <span className="font-medium">{patient.birth_place || '—'}</span>
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Email:</span>
+                    <span className="font-medium">{patient.email || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Telefono:</span>
+                    <span className="font-medium">{patient.phone || '—'}</span>
+                  </div>
+                </div>
+                
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Telefono:</span>
-                  <span className="font-medium">{patient.phone || '—'}</span>
+                  <span className="text-gray-500">Codice Fiscale:</span>
+                  <span className="font-medium">{patient.fiscal_code || '—'}</span>
                 </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Medico MMG:</span>
+                  <span className="font-medium">{patient.medico_mmg || '—'}</span>
+                </div>
+                
                 <div className="flex justify-between">
                   <span className="text-gray-500">Indirizzo:</span>
                   <span className="font-medium">{patient.address || '—'}</span>
                 </div>
+                
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Codice Fiscale:</span>
-                  <span className="font-medium">{patient.fiscal_code || '—'}</span>
+                  <span className="text-gray-500">Città, CAP, Provincia:</span>
+                  <span className="font-medium">
+                    {[patient.city, patient.postal_code, patient.province].filter(Boolean).join(', ') || '—'}
+                  </span>
                 </div>
               </div>
             )}
@@ -617,6 +726,13 @@ setExercisesCompletion(exData || []);
           patientName={patient.display_name || 'Paziente'}
         />
       )}
+      <PasswordChangeModal 
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={() => {
+          alert('✅ Password aggiornata con successo!');
+        }}
+      />
     </div>
   );
 }

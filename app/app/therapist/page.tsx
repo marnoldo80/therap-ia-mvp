@@ -103,6 +103,18 @@ export default function Page() {
     })();
   }, []);
 
+  // Function to determine welcome message based on name
+  function getWelcomeMessage(name: string | null | undefined): string {
+    if (!name) return 'Benvenuto/a';
+    
+    // Simple logic for Italian names - can be improved
+    const femaleEndings = ['a', 'na', 'la', 'ra', 'sa', 'ta'];
+    const lowerName = name.toLowerCase();
+    
+    const isFemale = femaleEndings.some(ending => lowerName.endsWith(ending));
+    return isFemale ? 'Benvenuta' : 'Benvenuto';
+  }
+
   function getPatientName(rel: any): string {
     if (!rel) return '';
     if (Array.isArray(rel)) return rel[0]?.display_name || '';
@@ -120,130 +132,116 @@ export default function Page() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-3xl font-bold">Area Terapeuta</h1>
-          <p className="text-gray-600 mt-1">
-            Benvenuto, {therapist?.display_name || 'Dottore'}
-          </p>
+    <div style={{ padding: '24px' }}>
+      <div className="max-w-7xl mx-auto">
+        {/* Welcome Section */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-white">
+            {getWelcomeMessage(therapist?.display_name)} {therapist?.display_name || ''}
+          </h1>
+          <Link 
+            href="/app/therapist/onboarding"
+            className="px-6 py-2 rounded-lg text-white font-medium transition-colors duration-200"
+            style={{ backgroundColor: '#9333ea' }}
+          >
+            Modifica Profilo
+          </Link>
         </div>
-        <Link 
-          href="/app/therapist/onboarding" 
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Modifica profilo
-        </Link>
-      </div>
 
-      {err && <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-700">{err}</div>}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link 
-          href="/app/therapist/pazienti/nuovo"
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
-        >
-          <div className="text-4xl mb-2">👤</div>
-          <div>Nuovo Paziente</div>
-        </Link>
-        <button
-          onClick={() => setShowCalendarPicker(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
-        >
-          <div className="text-4xl mb-2">📅</div>
-          <div>Nuovo Appuntamento</div>
-        </button>
-        <Link 
-          href="/app/therapist/questionari"
-          className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-6 text-center font-semibold shadow-lg transition"
-        >
-          <div className="text-4xl mb-2">📋</div>
-          <div>Questionari</div>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="text-gray-500 text-sm font-medium">Pazienti totali</div>
-          <div className="text-3xl font-bold mt-2">{totalPatients}</div>
-        </div>
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="text-gray-500 text-sm font-medium">Appuntamenti questa settimana</div>
-          <div className="text-3xl font-bold mt-2">{weekAppts}</div>
-        </div>
-      </div>
-
-      {loading && <div className="text-center py-8 text-gray-500">Caricamento...</div>}
-
-      {!loading && <AlertsWidgetWrapper />}
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Prossimi appuntamenti</h2>
-            <Link href="/app/therapist/appuntamenti" className="text-sm text-blue-600 hover:underline">
-              Vedi tutti
-            </Link>
+        {err && (
+          <div className="mb-6 p-4 rounded-lg text-red-100" style={{ 
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.3)'
+          }}>
+            {err}
           </div>
-          <div className="space-y-3">
-            {nextAppts.map(a => (
-              <div key={a.id} className="border rounded-lg p-4 hover:bg-gray-50 transition">
-                <div className="font-medium text-lg">
-                  {a.title}
-                  {(() => { const n = getPatientName(a.patients || null); return n ? ` · ${n}` : ''; })()}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  📅 {new Date(a.starts_at).toLocaleString('it-IT')}
-                </div>
-                <div className="text-xs mt-2">
-                  <span className={`inline-block px-2 py-1 rounded ${
-                    a.status === 'scheduled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {a.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-            {nextAppts.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Nessun appuntamento programmato
-              </div>
+        )}
+
+        {/* Main Cards Grid 2x2 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Nuovo Paziente */}
+          <Link 
+            href="/app/therapist/pazienti/nuovo"
+            className="block p-8 rounded-2xl text-white text-center font-semibold text-xl transition-transform duration-200 hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+            }}
+          >
+            Nuovo Paziente
+          </Link>
+
+          {/* Nuovo Appuntamento */}
+          <button
+            onClick={() => setShowCalendarPicker(true)}
+            className="p-8 rounded-2xl text-white text-center font-semibold text-xl transition-transform duration-200 hover:scale-105 w-full"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              border: 'none'
+            }}
+          >
+            Nuovo Appuntamento
+          </button>
+
+          {/* Prossimi Appuntamenti */}
+          <div 
+            className="p-8 rounded-2xl text-white"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              minHeight: '200px'
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-4">Prossimi Appuntamenti</h2>
+            <div className="space-y-3 max-h-40 overflow-y-auto">
+              {loading ? (
+                <div className="text-center py-4 text-blue-100">Caricamento...</div>
+              ) : nextAppts.length > 0 ? (
+                nextAppts.slice(0, 3).map(a => (
+                  <div key={a.id} className="bg-white/10 rounded-lg p-3">
+                    <div className="font-medium text-sm">
+                      {a.title}
+                      {(() => { const n = getPatientName(a.patients || null); return n ? ` · ${n}` : ''; })()}
+                    </div>
+                    <div className="text-xs text-blue-100 mt-1">
+                      {new Date(a.starts_at).toLocaleDateString('it-IT')} alle {new Date(a.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-blue-100">Nessun appuntamento</div>
+              )}
+            </div>
+            {nextAppts.length > 3 && (
+              <Link href="/app/therapist/appuntamenti" className="text-sm text-blue-100 hover:text-white block text-center mt-3">
+                Vedi tutti ({nextAppts.length})
+              </Link>
             )}
           </div>
-        </div>
 
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">I tuoi pazienti</h2>
-            <div className="flex gap-3">
-              <Link href="/app/therapist/pazienti" className="text-sm text-blue-600 hover:underline">
-                Vedi tutti
-              </Link>
-              <Link href="/app/therapist/pazienti/nuovo" className="text-sm text-blue-600 hover:underline">
-                + Nuovo
-              </Link>
+          {/* Alert e Notifiche - SOLO AlertsWidget */}
+          <div 
+            className="p-8 rounded-2xl text-white"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              minHeight: '200px'
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-4">Alert e Notifiche</h2>
+            <div className="space-y-3">
+              {loading ? (
+                <div className="text-center py-4 text-blue-100">Caricamento...</div>
+              ) : (
+                <AlertsWidgetWrapper />
+              )}
             </div>
           </div>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {allPatients.map(p => (
-              <Link 
-                key={p.id} 
-                href={`/app/therapist/pazienti/${p.id}`}
-                className="block border rounded-lg p-4 hover:bg-gray-50 transition"
-              >
-                <div className="font-medium text-lg">{p.display_name || 'Senza nome'}</div>
-                <div className="text-sm text-gray-600 mt-1">{p.email || 'Nessuna email'}</div>
-              </Link>
-            ))}
-            {allPatients.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Nessun paziente ancora
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
+      {/* Modals */}
       <CalendarPicker
         isOpen={showCalendarPicker}
         onClose={() => setShowCalendarPicker(false)}

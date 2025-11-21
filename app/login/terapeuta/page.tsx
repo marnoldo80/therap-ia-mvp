@@ -72,63 +72,120 @@ function LoginTerapeutaContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{
+      background: 'linear-gradient(180deg, #10162a 0%, #0b0f1c 100%)',
+      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+    }}>
+      <div className="max-w-md w-full rounded-2xl p-8" style={{
+        background: '#141a2c',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+        border: '2px solid #26304b'
+      }}>
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <img 
+            src="/logo-transparent-png.png" 
+            alt="cIAo-doc" 
+            className="mx-auto mb-4"
+            style={{ height: '80px', width: 'auto' }}
+          />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{
+            background: 'linear-gradient(135deg, #7aa2ff, #5b9cff)'
+          }}>
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: '#f1f5ff' }}>
             {mode === 'signup' ? 'Registrazione Terapeuta' : 'Accesso Terapeuta'}
           </h1>
-          <p className="text-gray-600">
+          <p style={{ color: '#a8b2d6' }}>
             {mode === 'signup' ? 'Crea il tuo account professionale' : 'Accedi alla tua dashboard'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#f1f5ff' }}>
+              Email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-lg text-white outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#f1f5ff' }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-lg text-white outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="px-4 py-3 rounded-lg text-sm" style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#fca5a5'
+            }}>
               {error}
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-3 rounded-lg font-semibold transition-all duration-300"
+            style={{
+              background: loading ? '#4b5563' : '#7aa2ff',
+              color: '#0b1022',
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              boxShadow: '0 8px 20px rgba(122, 162, 255, 0.25)',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
             {loading ? 'Attendere...' : mode === 'signup' ? 'Registrati' : 'Accedi'}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <a href={`/login/terapeuta?mode=${mode === 'signup' ? 'login' : 'signup'}`} className="text-blue-600 text-sm font-medium">
+          <a 
+            href={`/login/terapeuta?mode=${mode === 'signup' ? 'login' : 'signup'}`}
+            className="text-sm font-medium"
+            style={{ color: '#7aa2ff', textDecoration: 'none' }}
+          >
             {mode === 'signup' ? 'Hai già un account? Accedi' : 'Non hai un account? Registrati'}
           </a>
           <br />
-          <a href="/login" className="text-gray-500 text-sm block mt-2">← Torna alla scelta</a>
+          <a 
+            href="/login"
+            className="text-sm block mt-2"
+            style={{ color: '#a8b2d6', textDecoration: 'none' }}
+          >
+            ← Torna alla scelta
+          </a>
         </div>
       </div>
     </div>
@@ -137,7 +194,15 @@ function LoginTerapeutaContent() {
 
 export default function LoginTerapeutaPage() {
   return (
-    <Suspense fallback={<div>Caricamento...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{
+        background: 'linear-gradient(180deg, #10162a 0%, #0b0f1c 100%)',
+        color: '#f1f5ff',
+        fontFamily: 'system-ui'
+      }}>
+        Caricamento...
+      </div>
+    }>
       <LoginTerapeutaContent />
     </Suspense>
   );

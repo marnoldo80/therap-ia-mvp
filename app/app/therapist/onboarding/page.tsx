@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -19,7 +20,10 @@ export default function Page() {
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [therapeuticOrientation, setTherapeuticOrientation] = useState("Costruttivista");
   const [insurancePolicy, setInsurancePolicy] = useState("");
-  const [hasCode, setHasCode] = useState(false);
+  const [taxCode, setTaxCode] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [province, setProvince] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -33,7 +37,7 @@ export default function Page() {
 
       const { data: rows, error } = await supabase
         .from("therapists")
-        .select("full_name, address, vat_number, customer_code, registration_number, therapeutic_orientation, insurance_policy")
+        .select("full_name, address, vat_number, registration_number, therapeutic_orientation, insurance_policy, tax_code, city, postal_code, province")
         .eq("user_id", user.id)
         .single();
 
@@ -51,7 +55,10 @@ export default function Page() {
         setRegistrationNumber(rows.registration_number || "");
         setTherapeuticOrientation(rows.therapeutic_orientation || "Costruttivista");
         setInsurancePolicy(rows.insurance_policy || "");
-        setHasCode(!!rows.customer_code);
+        setTaxCode(rows.tax_code || "");
+        setCity(rows.city || "");
+        setPostalCode(rows.postal_code || "");
+        setProvince(rows.province || "");
       }
 
       setLoading(false);
@@ -76,6 +83,10 @@ export default function Page() {
           registration_number: registrationNumber,
           therapeutic_orientation: therapeuticOrientation,
           insurance_policy: insurancePolicy,
+          tax_code: taxCode,
+          city: city,
+          postal_code: postalCode,
+          province: province,
           onboarding_completed: true,
         })
         .eq("user_id", user.id);
@@ -93,24 +104,36 @@ export default function Page() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <p>Caricamento...</p>
+        <p style={{ color: 'white' }}>Caricamento...</p>
       </div>
     );
   }
 
   return (
     <main className="max-w-2xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Completa il tuo profilo</h1>
-      
-      {hasCode && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded">
-          ✓ Codice cliente assegnato
-        </div>
-      )}
+      {/* Back to Dashboard Button */}
+      <div className="mb-6">
+        <Link 
+          href="/app/therapist"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+          style={{ 
+            color: 'white', 
+            textDecoration: 'none',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}
+        >
+          ← Dashboard
+        </Link>
+      </div>
+
+      <h1 className="text-3xl font-bold mb-6" style={{ color: 'white' }}>
+        Completa il tuo profilo
+      </h1>
 
       <form onSubmit={handleSave} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
             Nome completo *
           </label>
           <input
@@ -118,13 +141,42 @@ export default function Page() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
             placeholder="Es: Dott.ssa Alessandra Berto"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
+            Codice Fiscale *
+          </label>
+          <input
+            type="text"
+            value={taxCode}
+            onChange={(e) => setTaxCode(e.target.value.toUpperCase())}
+            required
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
+            placeholder="Es: BRTLSS80A01H501Z"
+            maxLength={16}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
             Indirizzo studio *
           </label>
           <input
@@ -132,13 +184,84 @@ export default function Page() {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Es: Via Angeli 33/c, Rovigo"
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
+            placeholder="Es: Via Angeli 33/c"
           />
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
+              Città *
+            </label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+              className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b',
+                color: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
+              placeholder="Es: Rovigo"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
+              CAP *
+            </label>
+            <input
+              type="text"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              required
+              className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b',
+                color: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
+              placeholder="Es: 45100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
+              Provincia *
+            </label>
+            <input
+              type="text"
+              value={province}
+              onChange={(e) => setProvince(e.target.value.toUpperCase())}
+              required
+              className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+              style={{
+                backgroundColor: '#0b0f1c',
+                border: '2px solid #26304b',
+                color: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+              onBlur={(e) => e.target.style.borderColor = '#26304b'}
+              placeholder="Es: RO"
+              maxLength={2}
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
             Partita IVA *
           </label>
           <input
@@ -146,13 +269,20 @@ export default function Page() {
             value={vat}
             onChange={(e) => setVat(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
             placeholder="Es: 12345678901"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
             Numero iscrizione Ordine Psicologi *
           </label>
           <input
@@ -160,13 +290,20 @@ export default function Page() {
             value={registrationNumber}
             onChange={(e) => setRegistrationNumber(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
             placeholder="Es: 5363"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
             Orientamento terapeutico *
           </label>
           <input
@@ -174,13 +311,20 @@ export default function Page() {
             value={therapeuticOrientation}
             onChange={(e) => setTherapeuticOrientation(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
             placeholder="Es: Costruttivista, Cognitivo-Comportamentale, ecc."
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
             Polizza assicurativa *
           </label>
           <input
@@ -188,13 +332,24 @@ export default function Page() {
             value={insurancePolicy}
             onChange={(e) => setInsurancePolicy(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
             placeholder="Es: CAMPI, n. polizza 425840"
           />
         </div>
 
         {err && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+          <div className="p-3 rounded" style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#fca5a5'
+          }}>
             {err}
           </div>
         )}
@@ -202,7 +357,15 @@ export default function Page() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+          className="w-full py-3 px-4 rounded-lg font-medium transition-all duration-300"
+          style={{
+            backgroundColor: loading ? '#4b5563' : '#7aa2ff',
+            color: '#0b1022',
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: '0 8px 20px rgba(122, 162, 255, 0.25)',
+            opacity: loading ? 0.7 : 1
+          }}
         >
           {loading ? "Salvataggio..." : "Salva e continua"}
         </button>

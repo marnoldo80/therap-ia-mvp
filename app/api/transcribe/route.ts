@@ -6,21 +6,40 @@ export async function POST(request: NextRequest) {
     const audioFile = formData.get('audio') as File;
 
     if (!audioFile) {
-      return NextResponse.json({ error: 'Nessun file audio' }, { status: 400 });
+      return NextResponse.json({ error: 'File audio mancante' }, { status: 400 });
     }
 
-    // Converti File in Buffer
-    const arrayBuffer = await audioFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Prepara il file per Deepgram
+    const audioBuffer = await audioFile.arrayBuffer();
 
-    // Chiama Deepgram API con diarization
-    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&language=it&diarize=true', {
+    // Chiama Deepgram con diarization abilitata
+    const deepgramResponse = await fetch('https://api.deepgram.com/v1/listen', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-        'Content-Type': audioFile.type,
+        'Content-Type': 'audio/webm',
       },
-      body: buffer,
+      body: audioBuffer,
+      // Parametri di query per diarization
+      // Aggiungiamo diarize=true per identificare speaker diversi
+    });
+
+    // Versione con parametri nella URL
+    const deepgramUrl = new URL('https://api.deepgram.com/v1/listen');
+    deepgramUrl.searchParams.append('model', 'nova-2');
+    deepgramUrl.searchParams.append('language', 'it');
+    deepgramUrl.searchParams.append('smart_format', 'true');
+    deepgramUrl.searchParams.append('diarize', 'true'); // Abilita diarization
+    deepgramUrl.searchParams.append('punctuate', 'true');
+    deepgramUrl.searchParams.append('utterances', 'true');
+
+    const response = await fetch(deepgramUrl.toString(), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+        'Content-Type': 'audio/webm',
+      },
+      body: audioBuffer,
     });
 
     if (!response.ok) {
@@ -29,10 +48,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Errore trascrizione' }, { status: 500 });
     }
 
-    const data = await response.json();
-    const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+    const deepgramData = await response.json();
+    
+    // Estrai trascrizione con speaker identification
+    let formattedTranscript = '';
+    
+    if (deepgramData.results?.utterances) {
+      // Usa utterances per diarization
+      formattedTranscript = deepgramData.results.utterances
+        .map((utterance: any) => {
+          const speakerLabel = utterance.speaker === 0 ? 'TERAPEUTA' : 'PAZIENTE';
+          return `${speakerLabel}: ${utterance.transcript}`;
+        })
+        .join('\n\n');
+    } else if (deepgramData.results?.channels?.[0]?.alternatives?.[0]) {
+      // Fallback senza diarization
+      formattedTranscript = deepgramData.results.channels[0].alternatives[0].transcript;
+    } else {
+      return NextResponse.json({ error: 'Nessuna trascrizione trovata' }, { status: 500 });
+    }
 
-    return NextResponse.json({ transcript });
+    return NextResponse.json({ 
+      transcript: formattedTranscript,
+      raw_data: deepgramData // Per debugging se necessario
+    });
 
   } catch (error: any) {
     console.error('Errore trascrizione:', error);

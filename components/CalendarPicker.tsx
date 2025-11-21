@@ -1,11 +1,32 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+type Appointment = {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  patients?: { display_name: string | null } | { display_name: string | null }[] | null;
+};
 
 type CalendarPickerProps = {
   isOpen: boolean;
   onClose: () => void;
   onSelectDateTime: (dateTime: string) => void;
 };
+
+function getPatientName(patients: Appointment['patients']): string {
+  if (!patients) return '';
+  if (Array.isArray(patients)) return patients[0]?.display_name || '';
+  return patients.display_name || '';
+}
 
 function getWeekDays(weekOffset: number = 0) {
   const today = new Date();
@@ -26,17 +47,76 @@ function getWeekDays(weekOffset: number = 0) {
 
 export default function CalendarPicker({ isOpen, onClose, onSelectDateTime }: CalendarPickerProps) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Carica appuntamenti quando si apre il calendario
+  useEffect(() => {
+    if (isOpen) {
+      loadAppointments();
+    }
+  }, [isOpen, weekOffset]);
+
+  async function loadAppointments() {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const weekDays = getWeekDays(weekOffset);
+      const weekStart = weekDays[0];
+      const weekEnd = new Date(weekDays[6]);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, title, starts_at, ends_at, status, patients!appointments_patient_id_fkey(display_name)')
+        .eq('therapist_user_id', user.id)
+        .gte('starts_at', weekStart.toISOString())
+        .lte('starts_at', weekEnd.toISOString())
+        .order('starts_at', { ascending: true });
+
+      if (error) throw error;
+      setAppointments((data || []) as Appointment[]);
+    } catch (error) {
+      console.error('Errore caricamento appuntamenti:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getAppointmentsForTimeSlot(date: Date, hour: number) {
+    const slotStart = new Date(date);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(date);
+    slotEnd.setHours(hour, 59, 59, 999);
+
+    return appointments.filter(apt => {
+      const aptStart = new Date(apt.starts_at);
+      const aptEnd = new Date(apt.ends_at);
+      
+      // Controlla se c'è sovrapposizione
+      return (aptStart < slotEnd && aptEnd > slotStart);
+    });
+  }
+
+  function handleCellClick(day: Date, hour: number) {
+    const conflictingAppts = getAppointmentsForTimeSlot(day, hour);
+    
+    if (conflictingAppts.length > 0) {
+      alert(`⚠️ Conflitto di orario!\n\nEsiste già un appuntamento in questo slot:\n"${conflictingAppts[0].title}" alle ${new Date(conflictingAppts[0].starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`);
+      return;
+    }
+
+    const selectedDateTime = new Date(day);
+    selectedDateTime.setHours(hour, 0, 0, 0);
+    onSelectDateTime(selectedDateTime.toISOString());
+  }
 
   if (!isOpen) return null;
 
   const weekDays = getWeekDays(weekOffset);
   const hours = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 - 22:00
-
-  function handleCellClick(day: Date, hour: number) {
-    const selectedDateTime = new Date(day);
-    selectedDateTime.setHours(hour, 0, 0, 0);
-    onSelectDateTime(selectedDateTime.toISOString());
-  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -45,7 +125,10 @@ export default function CalendarPicker({ isOpen, onClose, onSelectDateTime }: Ca
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">📅 Seleziona Data e Ora</h2>
-              <p className="text-sm opacity-90 mt-1">Clicca su uno slot per creare l'appuntamento</p>
+              <p className="text-sm opacity-90 mt-1">
+                Clicca su uno slot libero per creare l'appuntamento
+                {loading && ' • Caricamento...'}
+              </p>
             </div>
             <button 
               onClick={onClose} 
@@ -106,23 +189,46 @@ export default function CalendarPicker({ isOpen, onClose, onSelectDateTime }: Ca
                       const cellDateTime = new Date(day);
                       cellDateTime.setHours(hour, 0, 0, 0);
                       const isPast = cellDateTime < new Date();
+                      const slotAppointments = getAppointmentsForTimeSlot(day, hour);
+                      const hasConflict = slotAppointments.length > 0;
                       
                       return (
                         <td 
                           key={dayIndex} 
-                          onClick={() => !isPast && handleCellClick(day, hour)}
-                          className={`p-2 border-l ${
+                          onClick={() => !isPast && !hasConflict && handleCellClick(day, hour)}
+                          className={`p-1 border-l align-top ${
                             isPast 
                               ? 'bg-gray-100 cursor-not-allowed' 
-                              : 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition'
+                              : hasConflict
+                                ? 'bg-red-50 cursor-not-allowed'
+                                : 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition'
                           }`}
                         >
-                          <div className={`
-                            h-16 flex items-center justify-center rounded
-                            ${isPast ? 'text-gray-400' : 'text-gray-600 hover:text-blue-600 hover:font-medium'}
-                          `}>
-                            {isPast ? '—' : '+ Crea'}
-                          </div>
+                          {hasConflict ? (
+                            <div className="p-2">
+                              {slotAppointments.map(apt => (
+                                <div 
+                                  key={apt.id} 
+                                  className="bg-blue-100 border-l-4 border-blue-600 p-2 mb-1 text-xs rounded"
+                                >
+                                  <div className="font-medium">
+                                    {new Date(apt.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                  <div className="truncate">{apt.title}</div>
+                                  {getPatientName(apt.patients) && (
+                                    <div className="text-gray-600 truncate">{getPatientName(apt.patients)}</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className={`
+                              h-16 flex items-center justify-center rounded
+                              ${isPast ? 'text-gray-400' : 'text-gray-600 hover:text-blue-600 hover:font-medium'}
+                            `}>
+                              {isPast ? '—' : '+ Crea'}
+                            </div>
+                          )}
                         </td>
                       );
                     })}
@@ -145,4 +251,3 @@ export default function CalendarPicker({ isOpen, onClose, onSelectDateTime }: Ca
     </div>
   );
 }
-  

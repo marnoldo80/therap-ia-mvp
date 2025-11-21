@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('patients')
-      .update({ user_id })
+      .update({ patient_user_id: user_id })
       .eq('id', patient.id)
       .select()
       .single();
