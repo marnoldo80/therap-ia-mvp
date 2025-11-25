@@ -348,37 +348,7 @@ export default function WebsiteBuilderPage() {
             }
           ]
         },
-        commands: {
-          defaults: [{
-            id: 'show-layers',
-            getRowEl(editor: any) { return editor.getContainer().closest('.editor-row'); },
-            getLayersEl(row: any) { return row.querySelector('.layers-container') },
-            run(editor: any, sender: any) {
-              const row = this.getRowEl(editor);
-              const layers = this.getLayersEl(row);
-              layers.style.display = '';
-            },
-            stop(editor: any, sender: any) {
-              const row = this.getRowEl(editor);
-              const layers = this.getLayersEl(row);
-              layers.style.display = 'none';
-            },
-          }, {
-            id: 'show-styles',
-            getRowEl(editor: any) { return editor.getContainer().closest('.editor-row'); },
-            getStyleEl(row: any) { return row.querySelector('.styles-container') },
-            run(editor: any, sender: any) {
-              const row = this.getRowEl(editor);
-              const style = this.getStyleEl(row);
-              style.style.display = '';
-            },
-            stop(editor: any, sender: any) {
-              const row = this.getRowEl(editor);
-              const style = this.getStyleEl(row);
-              style.style.display = 'none';
-            },
-          }]
-        },
+     },
       });
 
       // Carica template
