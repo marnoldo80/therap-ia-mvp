@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
@@ -66,14 +66,10 @@ const TEMPLATES: WebsiteTemplate[] = [
 export default function WebsiteBuilderPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<'templates' | 'builder' | 'settings'>('templates');
   const [selectedTemplate, setSelectedTemplate] = useState<WebsiteTemplate | null>(null);
   const [savedWebsites, setSavedWebsites] = useState<SavedWebsite[]>([]);
-  const [grapesEditor, setGrapesEditor] = useState<any>(null);
-  const [isGrapesLoading, setIsGrapesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const editorRef = useRef<HTMLDivElement>(null);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   useEffect(() => {
     loadSavedWebsites();
@@ -87,15 +83,18 @@ export default function WebsiteBuilderPage() {
         return;
       }
 
-      const { data: websites, error } = await supabase
-        .from('therapist_websites')
-        .select('*')
-        .eq('therapist_user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      setSavedWebsites(websites || []);
+      // Per ora simuliamo dei siti salvati
+      setSavedWebsites([
+        {
+          id: '1',
+          name: 'Il mio primo sito',
+          template_id: 'clinical-classic',
+          html_content: '',
+          css_content: '',
+          created_at: new Date().toISOString(),
+          status: 'draft'
+        }
+      ]);
 
     } catch (e: any) {
       setError(e.message);
@@ -104,482 +103,275 @@ export default function WebsiteBuilderPage() {
     }
   }
 
-  async function initGrapesEditor(template: WebsiteTemplate) {
-    setIsGrapesLoading(true);
-    setError(null);
-
-    try {
-      // Import dinamico di GrapesJS (solo client-side)
-      const grapesjs = (await import('grapesjs')).default;
-      const websitePreset = (await import('grapesjs-preset-webpage')).default;
-      const basicBlocks = (await import('grapesjs-blocks-basic')).default;
-      const forms = (await import('grapesjs-plugin-forms')).default;
-
-      if (!editorRef.current) return;
-
-      // Template HTML di base per psicologi
-      const templateHTML = getTemplateHTML(template);
-      const templateCSS = getTemplateCSS(template);
-
-      const editor = grapesjs.init({
-        container: editorRef.current,
-        width: '100%',
-        height: '600px',
-        plugins: [websitePreset, basicBlocks, forms],
-        pluginsOpts: {
-          'grapesjs-preset-webpage': {
-            modalImportTitle: 'Importa Template',
-            modalImportLabel: '<div style="margin-bottom: 10px; font-size: 13px;">Incolla il tuo codice HTML/CSS</div>',
-            modalImportContent: function(editor: any) {
-              return editor.getHtml() + '<style>' + editor.getCss() + '</style>';
-            },
-            filestackOpts: null,
-            aviaryOpts: false,
-            customStyleManager: [{
-              name: 'General',
-              open: false,
-              buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom'],
-              properties: [{
-                name: 'Alignment',
-                property: 'float',
-                type: 'radio',
-                defaults: 'none',
-                list: [
-                  { value: 'none', className: 'fa fa-times'},
-                  { value: 'left', className: 'fa fa-align-left'},
-                  { value: 'right', className: 'fa fa-align-right'}
-                ],
-              },{
-                property: 'position',
-                type: 'select',
-              }]
-            }]
-          }
-        },
-        canvas: {
-          styles: [
-            'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
-          ]
-        },
-        storageManager: {
-          type: 'local',
-          autosave: true,
-          autoload: true,
-          stepsBeforeSave: 3,
-        },
-        assetManager: {
-          embedAsBase64: false,
-          assets: [
-            'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800',
-            'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=800',
-            'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800'
-          ]
-        },
-        styleManager: {
-          appendTo: '.styles-container',
-          sectors: [{
-            name: 'Typography',
-            open: false,
-            buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height'],
-            properties: [{
-              name: 'Font',
-              property: 'font-family'
-            }, {
-              name: 'Weight',
-              property: 'font-weight'
-            }, {
-              name: 'Size',
-              property: 'font-size'
-            }, {
-              name: 'Line Height', 
-              property: 'line-height'
-            }, {
-              name: 'Letter Spacing',
-              property: 'letter-spacing'
-            }, {
-              name: 'Color',
-              property: 'color'
-            }]
-          }, {
-            name: 'Decorations',
-            open: false,
-            buildProps: ['background-color', 'border-radius', 'border', 'box-shadow', 'background'],
-            properties: [{
-              name: 'Background',
-              property: 'background-color'
-            }, {
-              name: 'Border Radius',
-              property: 'border-radius'
-            }, {
-              name: 'Border',
-              property: 'border'
-            }, {
-              name: 'Box Shadow',
-              property: 'box-shadow'
-            }]
-          }, {
-            name: 'Extra',
-            open: false,
-            buildProps: ['transition', 'perspective', 'transform'],
-            properties: [{
-              name: 'Transition',
-              property: 'transition'
-            }, {
-              name: 'Transform',
-              property: 'transform'
-            }]
-          }]
-        },
-        layerManager: {
-          appendTo: '.layers-container'
-        },
-        traitManager: {
-          appendTo: '.traits-container',
-        },
-        selectorManager: {
-          appendTo: '.styles-container'
-        },
-        panels: {
-          defaults: [{
-            id: 'layers',
-            el: '.panel__right',
-            resizable: {
-              maxDim: 350,
-              minDim: 200,
-              tc: false,
-              cl: true,
-              cr: false,
-              bc: false,
-              keyWidth: 'flex-basis',
-            },
-          }, {
-            id: 'panel-switcher',
-            el: '.panel__switcher',
-            buttons: [{
-              id: 'show-layers',
-              active: true,
-              label: 'Layers',
-              command: 'show-layers',
-              togglable: false,
-            }, {
-              id: 'show-style',
-              active: true,
-              label: 'Styles',
-              command: 'show-styles',
-              togglable: false,
-            }],
-          }]
-        },
-        blockManager: {
-          appendTo: '.blocks-container',
-          blocks: [
-            {
-              id: 'section',
-              label: '<div><div class="gjs-block-label">Sezione</div></div>',
-              category: 'Basic',
-              content: '<section style="padding: 40px 20px; background-color: #f8f9fa;"><div style="max-width: 1200px; margin: 0 auto;"><h2>Nuova Sezione</h2><p>Inserisci qui il tuo contenuto.</p></div></section>',
-            },
-            {
-              id: 'hero-therapist',
-              label: '<div><div class="gjs-block-label">Hero Terapista</div></div>',
-              category: 'Therapy',
-              content: `
-                <section style="padding: 80px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
-                  <div style="max-width: 800px; margin: 0 auto;">
-                    <h1 style="font-size: 3rem; margin-bottom: 20px; font-weight: 700;">Dr. [Nome Cognome]</h1>
-                    <p style="font-size: 1.2rem; margin-bottom: 30px; opacity: 0.9;">Psicologo/a specializzato/a in [Specializzazione]</p>
-                    <a href="#contatti" style="background: white; color: #667eea; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: 600;">Prenota Consulenza</a>
-                  </div>
-                </section>
-              `
-            },
-            {
-              id: 'services-grid',
-              label: '<div><div class="gjs-block-label">Servizi</div></div>',
-              category: 'Therapy',
-              content: `
-                <section style="padding: 60px 20px;">
-                  <div style="max-width: 1200px; margin: 0 auto;">
-                    <h2 style="text-align: center; margin-bottom: 50px;">I Miei Servizi</h2>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-                      <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                        <h3>Terapia Individuale</h3>
-                        <p>Supporto personalizzato per il tuo percorso di crescita personale.</p>
-                      </div>
-                      <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                        <h3>Terapia di Coppia</h3>
-                        <p>Accompagnamento per rafforzare la relazione e la comunicazione.</p>
-                      </div>
-                      <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                        <h3>Consulenza Online</h3>
-                        <p>Sessioni video sicure e professionali dal comfort di casa.</p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              `
-            },
-            {
-              id: 'contact-form',
-              label: '<div><div class="gjs-block-label">Form Contatti</div></div>',
-              category: 'Therapy',
-              content: `
-                <section style="padding: 60px 20px; background-color: #f8f9fa;">
-                  <div style="max-width: 600px; margin: 0 auto;">
-                    <h2 style="text-align: center; margin-bottom: 30px;">Contattami</h2>
-                    <form style="background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                      <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nome</label>
-                        <input type="text" name="nome" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
-                      </div>
-                      <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Email</label>
-                        <input type="email" name="email" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
-                      </div>
-                      <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Messaggio</label>
-                        <textarea name="messaggio" rows="5" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
-                      </div>
-                      <button type="submit" style="width: 100%; background: #667eea; color: white; padding: 15px; border: none; border-radius: 5px; font-weight: 600; cursor: pointer;">Invia Messaggio</button>
-                    </form>
-                  </div>
-                </section>
-              `
-            }
-          ]
-        },
-     },
-      });
-
-      // Carica template
-      editor.setComponents(templateHTML);
-      editor.setStyle(templateCSS);
-
-      // Nascondi pannelli di default
-      editor.Panels.removePanel('commands');
-      editor.Panels.removePanel('options');
-
-      setGrapesEditor(editor);
-      setStep('builder');
-
-    } catch (e: any) {
-      setError('Errore nel caricamento del builder: ' + e.message);
-    } finally {
-      setIsGrapesLoading(false);
-    }
+  function handleTemplateSelect(template: WebsiteTemplate) {
+    setSelectedTemplate(template);
+    setShowComingSoon(true);
   }
 
-  function getTemplateHTML(template: WebsiteTemplate): string {
+  function generateTemplateHTML(template: WebsiteTemplate): string {
     const templates = {
       'clinical-classic': `
-        <section style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 80px 20px; text-align: center;">
-          <div style="max-width: 800px; margin: 0 auto;">
-            <h1 style="font-size: 3rem; margin-bottom: 20px;">Dr. [Il Tuo Nome]</h1>
-            <p style="font-size: 1.2rem; opacity: 0.9;">Psicologo Clinico - Aiuto specializzato per il tuo benessere</p>
-          </div>
-        </section>
-        
-        <section style="padding: 60px 20px;">
-          <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
-            <h2 style="margin-bottom: 50px;">I Miei Servizi</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;">
-              <div style="padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                <h3>Terapia Individuale</h3>
-                <p>Percorsi personalizzati per la crescita personale</p>
-              </div>
-              <div style="padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                <h3>Valutazione Clinica</h3>
-                <p>Assessment professionali e diagnosi specialistiche</p>
-              </div>
-              <div style="padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                <h3>Consulenza</h3>
-                <p>Supporto esperto per situazioni specifiche</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      `,
-
-      'modern-therapist': `
-        <section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 20px; text-align: center;">
-          <div style="max-width: 800px; margin: 0 auto;">
-            <h1 style="font-size: 3.5rem; margin-bottom: 20px; font-weight: 300;">Un nuovo inizio</h1>
-            <p style="font-size: 1.3rem; margin-bottom: 30px; opacity: 0.9;">Accompagno le persone nel loro percorso di crescita e benessere</p>
-            <a href="#contatti" style="background: rgba(255,255,255,0.2); color: white; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: 500; border: 2px solid white;">Inizia il tuo percorso</a>
-          </div>
-        </section>
-        
-        <section style="padding: 80px 20px; background: #f8f9fa;">
-          <div style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;">
-              <div>
-                <h2 style="font-size: 2.5rem; margin-bottom: 30px; color: #2c3e50;">Chi sono</h2>
-                <p style="font-size: 1.1rem; line-height: 1.6; color: #555;">Sono [Nome], psicologo/a con esperienza nell'accompagnare persone verso il benessere emotivo. Credo nel potenziale di ognuno di trovare equilibrio e serenità.</p>
-              </div>
-              <div style="text-align: center;">
-                <div style="width: 200px; height: 200px; border-radius: 50%; background: #ddd; margin: 0 auto;"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-      `,
-
-      'minimal-wellness': `
-        <section style="padding: 100px 20px; text-align: center; background: white;">
-          <div style="max-width: 600px; margin: 0 auto;">
-            <h1 style="font-size: 4rem; margin-bottom: 30px; color: #2c3e50; font-weight: 300;">Benessere</h1>
-            <p style="font-size: 1.2rem; color: #7f8c8d; line-height: 1.6;">Spazio dedicato alla tua crescita personale e al tuo equilibrio interiore</p>
-          </div>
-        </section>
-        
-        <section style="padding: 60px 20px; background: #f8f9fa;">
-          <div style="max-width: 800px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px;">
-            <div style="text-align: center;">
-              <div style="width: 80px; height: 80px; border-radius: 50%; background: #3498db; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">🧠</div>
-              <h3 style="margin-bottom: 15px;">Mente</h3>
-              <p style="color: #7f8c8d;">Tecniche per la gestione di stress e ansia</p>
-            </div>
-            <div style="text-align: center;">
-              <div style="width: 80px; height: 80px; border-radius: 50%; background: #2ecc71; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">💚</div>
-              <h3 style="margin-bottom: 15px;">Emozioni</h3>
-              <p style="color: #7f8c8d;">Ascolto e comprensione del mondo emotivo</p>
-            </div>
-            <div style="text-align: center;">
-              <div style="width: 80px; height: 80px; border-radius: 50%; background: #e74c3c; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">🌱</div>
-              <h3 style="margin-bottom: 15px;">Crescita</h3>
-              <p style="color: #7f8c8d;">Percorsi di sviluppo personale</p>
-            </div>
-          </div>
-        </section>
-      `,
-
-      'professional-suite': `
-        <header style="background: white; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
-            <h1 style="color: #2c3e50; font-size: 1.8rem; font-weight: 600;">Studio [Nome]</h1>
-            <nav style="display: flex; gap: 30px;">
-              <a href="#servizi" style="color: #2c3e50; text-decoration: none;">Servizi</a>
-              <a href="#team" style="color: #2c3e50; text-decoration: none;">Team</a>
-              <a href="#contatti" style="color: #2c3e50; text-decoration: none;">Contatti</a>
-            </nav>
-          </div>
-        </header>
-        
-        <section style="padding: 80px 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-          <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;">
-            <div>
-              <h2 style="font-size: 3rem; margin-bottom: 30px; font-weight: 700;">Studio Multidisciplinare</h2>
-              <p style="font-size: 1.2rem; margin-bottom: 30px; opacity: 0.9;">Un team di professionisti al servizio del tuo benessere psicologico</p>
-              <a href="#contatti" style="background: white; color: #f5576c; padding: 15px 30px; border-radius: 5px; text-decoration: none; font-weight: 600;">Prenota Appuntamento</a>
-            </div>
-            <div style="text-align: center;">
-              <div style="width: 300px; height: 200px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto;"></div>
-            </div>
-          </div>
-        </section>
-      `
-    };
-
-    return templates[template.id as keyof typeof templates] || templates['clinical-classic'];
-  }
-
-  function getTemplateCSS(template: WebsiteTemplate): string {
-    return `
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      
-      body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        line-height: 1.6;
-        color: #333;
-      }
-      
-      h1, h2, h3, h4, h5, h6 {
-        line-height: 1.2;
-        margin-bottom: 1rem;
-      }
-      
-      p {
-        margin-bottom: 1rem;
-      }
-      
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 20px;
-      }
-      
-      @media (max-width: 768px) {
-        h1 { font-size: 2rem !important; }
-        h2 { font-size: 1.5rem !important; }
-        section { padding: 40px 20px !important; }
-        .grid { grid-template-columns: 1fr !important; }
-      }
-    `;
-  }
-
-  async function saveWebsite() {
-    if (!grapesEditor) return;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Utente non autenticato');
-
-      const html = grapesEditor.getHtml();
-      const css = grapesEditor.getCss();
-
-      const websiteData = {
-        therapist_user_id: user.id,
-        name: `Sito ${new Date().toLocaleDateString()}`,
-        template_id: selectedTemplate?.id || 'custom',
-        html_content: html,
-        css_content: css,
-        status: 'draft'
-      };
-
-      const { error } = await supabase.from('therapist_websites').insert(websiteData);
-      if (error) throw error;
-
-      alert('✅ Sito salvato con successo!');
-      await loadSavedWebsites();
-
-    } catch (e: any) {
-      setError('Errore nel salvataggio: ' + e.message);
-    }
-  }
-
-  function exportWebsite() {
-    if (!grapesEditor) return;
-
-    const html = grapesEditor.getHtml();
-    const css = grapesEditor.getCss();
-    
-    const fullHTML = `
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Il Tuo Sito Web - Psicologo</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Dr. [Il Tuo Nome] - Psicologo Clinico</title>
     <style>
-        ${css}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        
+        .hero { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 80px 20px; text-align: center; }
+        .hero h1 { font-size: 3rem; margin-bottom: 20px; }
+        .hero p { font-size: 1.2rem; opacity: 0.9; }
+        
+        .services { padding: 60px 20px; }
+        .services h2 { text-align: center; margin-bottom: 50px; font-size: 2.5rem; }
+        .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .service-card { padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center; }
+        .service-card h3 { margin-bottom: 15px; color: #2c3e50; }
+        
+        .contact { background: #f8f9fa; padding: 60px 20px; }
+        .contact h2 { text-align: center; margin-bottom: 30px; }
+        .contact-form { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; }
+        .btn { background: #2c3e50; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn:hover { background: #34495e; }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .services { padding: 40px 20px; }
+        }
     </style>
 </head>
 <body>
-    ${html}
+    <section class="hero">
+        <div class="container">
+            <h1>Dr. [Il Tuo Nome]</h1>
+            <p>Psicologo Clinico - Aiuto specializzato per il tuo benessere</p>
+        </div>
+    </section>
+    
+    <section class="services">
+        <div class="container">
+            <h2>I Miei Servizi</h2>
+            <div class="service-grid">
+                <div class="service-card">
+                    <h3>Terapia Individuale</h3>
+                    <p>Percorsi personalizzati per la crescita personale e il benessere psicologico</p>
+                </div>
+                <div class="service-card">
+                    <h3>Valutazione Clinica</h3>
+                    <p>Assessment professionali e diagnosi specialistiche evidence-based</p>
+                </div>
+                <div class="service-card">
+                    <h3>Consulenza Specialistica</h3>
+                    <p>Supporto esperto per situazioni specifiche e problematiche acute</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="contact">
+        <div class="container">
+            <h2>Contattami</h2>
+            <form class="contact-form">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Messaggio</label>
+                    <textarea name="messaggio" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn">Invia Messaggio</button>
+            </form>
+        </div>
+    </section>
 </body>
-</html>
-    `.trim();
+</html>`,
 
-    const blob = new Blob([fullHTML], { type: 'text/html' });
+      'modern-therapist': `
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Un Nuovo Inizio - Terapia e Benessere</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
+        
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 20px; text-align: center; }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 20px; font-weight: 300; }
+        .hero p { font-size: 1.3rem; margin-bottom: 30px; opacity: 0.9; }
+        .btn { background: rgba(255,255,255,0.2); color: white; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: 500; border: 2px solid white; display: inline-block; }
+        
+        .about { padding: 80px 20px; background: #f8f9fa; }
+        .about-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+        .about h2 { font-size: 2.5rem; margin-bottom: 30px; color: #2c3e50; }
+        .about p { font-size: 1.1rem; line-height: 1.6; color: #555; }
+        .profile-img { width: 200px; height: 200px; border-radius: 50%; background: #ddd; margin: 0 auto; }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .about-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <h1>Un nuovo inizio</h1>
+        <p>Accompagno le persone nel loro percorso di crescita e benessere</p>
+        <a href="#contatti" class="btn">Inizia il tuo percorso</a>
+    </section>
+    
+    <section class="about">
+        <div class="about-grid">
+            <div>
+                <h2>Chi sono</h2>
+                <p>Sono [Nome], psicologo/a con esperienza nell'accompagnare persone verso il benessere emotivo. Credo nel potenziale di ognuno di trovare equilibrio e serenità nella propria vita.</p>
+            </div>
+            <div style="text-align: center;">
+                <div class="profile-img"></div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>`,
+
+      'minimal-wellness': `
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benessere - Spazio per la tua crescita</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #2c3e50; }
+        
+        .hero { padding: 100px 20px; text-align: center; background: white; }
+        .hero h1 { font-size: 4rem; margin-bottom: 30px; color: #2c3e50; font-weight: 300; }
+        .hero p { font-size: 1.2rem; color: #7f8c8d; line-height: 1.6; max-width: 600px; margin: 0 auto; }
+        
+        .services { padding: 60px 20px; background: #f8f9fa; }
+        .service-grid { max-width: 800px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; }
+        .service-item { text-align: center; }
+        .service-icon { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; }
+        .service-item h3 { margin-bottom: 15px; }
+        .service-item p { color: #7f8c8d; }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <h1>Benessere</h1>
+        <p>Spazio dedicato alla tua crescita personale e al tuo equilibrio interiore</p>
+    </section>
+    
+    <section class="services">
+        <div class="service-grid">
+            <div class="service-item">
+                <div class="service-icon" style="background: #3498db;">🧠</div>
+                <h3>Mente</h3>
+                <p>Tecniche per la gestione di stress e ansia</p>
+            </div>
+            <div class="service-item">
+                <div class="service-icon" style="background: #2ecc71;">💚</div>
+                <h3>Emozioni</h3>
+                <p>Ascolto e comprensione del mondo emotivo</p>
+            </div>
+            <div class="service-item">
+                <div class="service-icon" style="background: #e74c3c;">🌱</div>
+                <h3>Crescita</h3>
+                <p>Percorsi di sviluppo personale</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>`,
+
+      'professional-suite': `
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio [Nome] - Servizi Multidisciplinari</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
+        
+        .header { background: white; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .nav { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .logo { color: #2c3e50; font-size: 1.8rem; font-weight: 600; }
+        .nav-links { display: flex; gap: 30px; list-style: none; }
+        .nav-links a { color: #2c3e50; text-decoration: none; }
+        
+        .hero { padding: 80px 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .hero-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+        .hero h1 { font-size: 3rem; margin-bottom: 30px; font-weight: 700; }
+        .hero p { font-size: 1.2rem; margin-bottom: 30px; opacity: 0.9; }
+        .hero-img { width: 300px; height: 200px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto; }
+        .btn { background: white; color: #f5576c; padding: 15px 30px; border-radius: 5px; text-decoration: none; font-weight: 600; display: inline-block; }
+        
+        @media (max-width: 768px) {
+            .hero-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+            .nav { flex-direction: column; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">Studio [Nome]</div>
+            <ul class="nav-links">
+                <li><a href="#servizi">Servizi</a></li>
+                <li><a href="#team">Team</a></li>
+                <li><a href="#contatti">Contatti</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <section class="hero">
+        <div class="hero-grid">
+            <div>
+                <h1>Studio Multidisciplinare</h1>
+                <p>Un team di professionisti al servizio del tuo benessere psicologico</p>
+                <a href="#contatti" class="btn">Prenota Appuntamento</a>
+            </div>
+            <div>
+                <div class="hero-img"></div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>`
+    };
+
+    return templates[template.id as keyof typeof templates] || templates['clinical-classic'];
+  }
+
+  function downloadTemplate() {
+    if (!selectedTemplate) return;
+
+    const html = generateTemplateHTML(selectedTemplate);
+    const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'mio-sito-web.html';
+    a.download = `${selectedTemplate.name.toLowerCase().replace(/\s+/g, '-')}.html`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -633,201 +425,122 @@ export default function WebsiteBuilderPage() {
           </div>
         )}
 
-        {/* Step 1: Template Selection */}
-        {step === 'templates' && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-white mb-4">
-                🎨 Scegli il tuo template
-              </h2>
-              <p className="text-lg" style={{ color: '#a8b2d6' }}>
-                Template professionali ottimizzati per psicologi e terapeuti
-              </p>
-            </div>
+        {/* Template Selection */}
+        <div className="space-y-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              🎨 Scegli il tuo template
+            </h2>
+            <p className="text-lg" style={{ color: '#a8b2d6' }}>
+              Template professionali ottimizzati per psicologi e terapeuti
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {TEMPLATES.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => setSelectedTemplate(template)}
-                  className={`cursor-pointer rounded-lg p-6 border-2 transition-all hover:scale-105 ${
-                    selectedTemplate?.id === template.id
-                      ? 'border-emerald-500 bg-emerald-500/20'
-                      : 'border-gray-600 bg-white/5 hover:border-gray-500'
-                  }`}
-                >
-                  <div className="text-center mb-6">
-                    <div className="text-6xl mb-4">{template.preview}</div>
-                    <h3 className="text-xl font-bold text-white mb-2">{template.name}</h3>
-                    <p className="text-gray-300 text-sm">{template.description}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-white">Features:</h4>
-                    {template.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm text-gray-400">
-                        <span className="text-emerald-400">✓</span>
-                        <span>{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center">
-              <button
-                onClick={() => selectedTemplate && initGrapesEditor(selectedTemplate)}
-                disabled={!selectedTemplate || isGrapesLoading}
-                className="bg-emerald-600 text-white px-8 py-4 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {TEMPLATES.map((template) => (
+              <div
+                key={template.id}
+                onClick={() => handleTemplateSelect(template)}
+                className={`cursor-pointer rounded-lg p-6 border-2 transition-all hover:scale-105 ${
+                  selectedTemplate?.id === template.id
+                    ? 'border-emerald-500 bg-emerald-500/20'
+                    : 'border-gray-600 bg-white/5 hover:border-gray-500'
+                }`}
               >
-                {isGrapesLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Caricamento Editor...
-                  </>
-                ) : (
-                  <>🚀 Inizia a Creare</>
-                )}
-              </button>
-            </div>
-
-            {/* Saved Websites */}
-            {savedWebsites.length > 0 && (
-              <div className="rounded-lg p-6" style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }}>
-                <h3 className="text-lg font-bold text-white mb-4">💾 I tuoi siti salvati</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {savedWebsites.map((website) => (
-                    <div key={website.id} className="p-4 rounded bg-white/10 border border-white/20">
-                      <h4 className="font-medium text-white">{website.name}</h4>
-                      <p className="text-sm text-gray-400">
-                        {new Date(website.created_at).toLocaleDateString()}
-                      </p>
-                      <div className="mt-2 flex gap-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          website.status === 'published' 
-                            ? 'bg-green-600 text-white' 
-                            : 'bg-yellow-600 text-white'
-                        }`}>
-                          {website.status === 'published' ? 'Pubblicato' : 'Bozza'}
-                        </span>
-                      </div>
+                <div className="text-center mb-6">
+                  <div className="text-6xl mb-4">{template.preview}</div>
+                  <h3 className="text-xl font-bold text-white mb-2">{template.name}</h3>
+                  <p className="text-gray-300 text-sm">{template.description}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium text-white">Features:</h4>
+                  {template.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm text-gray-400">
+                      <span className="text-emerald-400">✓</span>
+                      <span>{feature}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
+            ))}
           </div>
-        )}
 
-        {/* Step 2: GrapesJS Editor */}
-        {step === 'builder' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">
-                🎨 Editor Sito Web - {selectedTemplate?.name}
-              </h2>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep('templates')}
-                  className="bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700"
-                >
-                  ← Template
-                </button>
-                <button
-                  onClick={saveWebsite}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
-                >
-                  💾 Salva
-                </button>
-                <button
-                  onClick={exportWebsite}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700"
-                >
-                  📥 Export HTML
-                </button>
-              </div>
-            </div>
-
-            {/* GrapesJS Container */}
-            <div className="bg-white rounded-lg" style={{ minHeight: '600px' }}>
-              <div className="editor-row" style={{ display: 'flex', height: '600px' }}>
-                
-                {/* Left Panel - Blocks */}
-                <div className="panel__left" style={{ 
-                  width: '300px', 
-                  background: '#f8f9fa', 
-                  borderRight: '1px solid #dee2e6',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
-                  <div style={{ padding: '15px', borderBottom: '1px solid #dee2e6' }}>
-                    <h4 style={{ margin: 0, color: '#495057' }}>🧱 Blocchi</h4>
+          {/* Coming Soon Modal */}
+          {showComingSoon && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🚧</div>
+                  <h3 className="text-2xl font-bold mb-4">Website Builder in Sviluppo</h3>
+                  <p className="text-gray-600 mb-6">
+                    Il builder drag-and-drop sarà disponibile presto. Per ora puoi scaricare il template HTML base.
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={() => setShowComingSoon(false)}
+                      className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Chiudi
+                    </button>
+                    <button
+                      onClick={downloadTemplate}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                    >
+                      📥 Scarica Template HTML
+                    </button>
                   </div>
-                  <div className="blocks-container" style={{ 
-                    flex: 1, 
-                    overflow: 'auto', 
-                    padding: '10px' 
-                  }}></div>
                 </div>
-
-                {/* Center - Canvas */}
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <div ref={editorRef} style={{ height: '100%', width: '100%' }}></div>
-                </div>
-
-                {/* Right Panel */}
-                <div className="panel__right" style={{ 
-                  width: '300px', 
-                  background: '#f8f9fa', 
-                  borderLeft: '1px solid #dee2e6',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
-                  {/* Panel Switcher */}
-                  <div className="panel__switcher" style={{ 
-                    padding: '10px', 
-                    borderBottom: '1px solid #dee2e6',
-                    display: 'flex',
-                    justifyContent: 'center'
-                  }}></div>
-                  
-                  {/* Layers */}
-                  <div className="layers-container" style={{ 
-                    flex: 1, 
-                    overflow: 'auto', 
-                    padding: '10px' 
-                  }}></div>
-                  
-                  {/* Styles */}
-                  <div className="styles-container" style={{ 
-                    flex: 1, 
-                    overflow: 'auto', 
-                    padding: '10px',
-                    display: 'none'
-                  }}></div>
-                  
-                  {/* Traits */}
-                  <div className="traits-container" style={{ 
-                    padding: '10px',
-                    borderTop: '1px solid #dee2e6'
-                  }}></div>
-                </div>
-
               </div>
             </div>
+          )}
 
-            <div className="text-center space-y-4">
-              <p className="text-gray-400">
-                💡 Trascina i blocchi nel canvas per costruire il tuo sito. Usa il pannello di destra per modificare stili e proprietà.
-              </p>
+          {/* Saved Websites */}
+          {savedWebsites.length > 0 && (
+            <div className="rounded-lg p-6" style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <h3 className="text-lg font-bold text-white mb-4">💾 I tuoi siti salvati</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {savedWebsites.map((website) => (
+                  <div key={website.id} className="p-4 rounded bg-white/10 border border-white/20">
+                    <h4 className="font-medium text-white">{website.name}</h4>
+                    <p className="text-sm text-gray-400">
+                      {new Date(website.created_at).toLocaleDateString()}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        website.status === 'published' 
+                          ? 'bg-green-600 text-white' 
+                          : 'bg-yellow-600 text-white'
+                      }`}>
+                        {website.status === 'published' ? 'Pubblicato' : 'Bozza'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Info Section */}
+          <div className="text-center rounded-lg p-6" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <h3 className="text-xl font-bold text-white mb-4">🚀 Prossimamente</h3>
+            <p className="text-gray-300 mb-4">
+              Il builder completo con drag-and-drop, personalizzazione avanzata e hosting integrato sarà disponibile a breve.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm">Editor Drag & Drop</span>
+              <span className="px-3 py-1 bg-green-600 text-white rounded-full text-sm">Hosting Incluso</span>
+              <span className="px-3 py-1 bg-purple-600 text-white rounded-full text-sm">Domini Personalizzati</span>
+              <span className="px-3 py-1 bg-orange-600 text-white rounded-full text-sm">Form Integrati</span>
             </div>
           </div>
-        )}
-
+        </div>
       </div>
     </div>
   );
