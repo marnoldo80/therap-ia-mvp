@@ -14,7 +14,6 @@ type Stats = {
   draftPosts: number;
   readyPosts: number;
   thisWeekPosts: number;
-  templatesCount: number;
   platformBreakdown: { instagram: number; facebook: number; linkedin: number };
 };
 
@@ -26,7 +25,6 @@ export default function PersonalBrandingHub() {
     draftPosts: 0,
     readyPosts: 0,
     thisWeekPosts: 0,
-    templatesCount: 0,
     platformBreakdown: { instagram: 0, facebook: 0, linkedin: 0 }
   });
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +41,6 @@ export default function PersonalBrandingHub() {
         return;
       }
 
-      // Carica statistiche posts
       const { data: posts, error: postsError } = await supabase
         .from('social_posts')
         .select('platform, status, created_at')
@@ -51,7 +48,6 @@ export default function PersonalBrandingHub() {
 
       if (postsError) throw postsError;
 
-      // Calcola statistiche
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -59,8 +55,7 @@ export default function PersonalBrandingHub() {
         totalPosts: posts?.length || 0,
         draftPosts: posts?.filter(p => p.status === 'draft').length || 0,
         readyPosts: posts?.filter(p => p.status === 'ready').length || 0,
-        thisWeekPosts: posts?.filter(p => new Date(p.created_at) >= oneWeekAgo).length || 0,
-        templatesCount: 0,
+        thisWeekPosts: posts?.filter(p => p.created_at && new Date(p.created_at) >= oneWeekAgo).length || 0,
         platformBreakdown: {
           instagram: posts?.filter(p => p.platform === 'instagram').length || 0,
           facebook: posts?.filter(p => p.platform === 'facebook').length || 0,
@@ -79,13 +74,15 @@ export default function PersonalBrandingHub() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6" style={{ color: 'white' }}>
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-white/20 rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-48 bg-white/10 rounded-lg"></div>
-            ))}
+      <div className="min-h-screen" style={{ backgroundColor: '#1a1f3a' }}>
+        <div className="max-w-6xl mx-auto p-6">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-white/20 rounded w-1/3"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-48 bg-white/10 rounded-lg"></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -93,213 +90,276 @@ export default function PersonalBrandingHub() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      
-      {/* Header */}
-      <div className="rounded-xl p-8 text-white shadow-lg" style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <div className="mb-4">
-          <h1 className="text-3xl font-bold">Personal Branding Hub</h1>
-          <p className="text-lg opacity-80">Costruisci la tua presenza digitale professionale</p>
+    <div className="min-h-screen" style={{ backgroundColor: '#1a1f3a' }}>
+      {/* Navigation Header */}
+      <div className="border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img 
+                src="/logo-transparent-png.png" 
+                alt="cIAo-doc" 
+                style={{ height: '40px', width: 'auto' }}
+              />
+              <Link 
+                href="/app/therapist" 
+                className="text-white hover:text-blue-400 transition-colors"
+                style={{ textDecoration: 'none' }}
+              >
+                ← Dashboard
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded p-4" style={{
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          color: '#ef4444'
-        }}>
-          <p><strong>Errore:</strong> {error}</p>
-        </div>
-      )}
-
-      {/* 4 Sezioni Principali */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
         
-        {/* 1. SOCIAL MEDIA */}
-        <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
-          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+        {/* Header */}
+        <div className="rounded-xl p-8 text-white shadow-lg" style={{
+          background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.1)'
-        }}
-        onClick={() => router.push('/app/therapist/personal-branding/social')}>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
-              background: 'rgba(255,255,255,0.2)'
-            }}>
-              📱
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Social Media</h2>
-              <p className="text-blue-100">Post professionali per Instagram, Facebook, LinkedIn</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{stats.totalPosts}</div>
-              <div className="text-sm text-blue-100">Post Creati</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{stats.thisWeekPosts}</div>
-              <div className="text-sm text-blue-100">Questa Settimana</div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-blue-100">
-              <span>📸 Instagram</span>
-              <span>{stats.platformBreakdown.instagram}</span>
-            </div>
-            <div className="flex justify-between text-sm text-blue-100">
-              <span>👥 Facebook</span>
-              <span>{stats.platformBreakdown.facebook}</span>
-            </div>
-            <div className="flex justify-between text-sm text-blue-100">
-              <span>💼 LinkedIn</span>
-              <span>{stats.platformBreakdown.linkedin}</span>
-            </div>
-          </div>
-
-          <div className="mt-6 text-right">
-            <span className="text-white font-medium">Accedi →</span>
+        }}>
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold">Personal Branding Hub</h1>
+            <p className="text-lg opacity-80">Costruisci la tua presenza digitale professionale</p>
           </div>
         </div>
 
-        {/* 2. WEBSITE BUILDER */}
-        <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
-          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}
-        onClick={() => router.push('/app/therapist/personal-branding/website')}>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
-              background: 'rgba(255,255,255,0.2)'
-            }}>
-              🌐
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Website</h2>
-              <p className="text-emerald-100">Crea il tuo sito web professionale</p>
-            </div>
+        {error && (
+          <div className="rounded p-4" style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#ef4444'
+          }}>
+            <p><strong>Errore:</strong> {error}</p>
           </div>
+        )}
+
+        {/* 4 Sezioni Principali */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-3 text-emerald-100">
-              <span className="text-lg">✅</span>
-              <span>Template per psicologi</span>
+          {/* SOCIAL - Funzionante */}
+          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}
+          onClick={() => router.push('/app/therapist/personal-branding/social')}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
+                background: 'rgba(255,255,255,0.2)'
+              }}>
+                📱
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Social Media</h2>
+                <p className="text-blue-100">Instagram, Facebook, LinkedIn</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-emerald-100">
-              <span className="text-lg">✅</span>
-              <span>Form contatti integrato</span>
+            
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">{stats.totalPosts}</div>
+                <div className="text-sm text-blue-100">Post creati</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">{stats.readyPosts}</div>
+                <div className="text-sm text-blue-100">Pronti</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">{stats.thisWeekPosts}</div>
+                <div className="text-sm text-blue-100">Questa settimana</div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-emerald-100">
-              <span className="text-lg">✅</span>
-              <span>SEO ottimizzato</span>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-blue-100">
+                <span className="text-lg">📸</span>
+                <span>Instagram: {stats.platformBreakdown.instagram} post</span>
+              </div>
+              <div className="flex items-center gap-3 text-blue-100">
+                <span className="text-lg">👥</span>
+                <span>Facebook: {stats.platformBreakdown.facebook} post</span>
+              </div>
+              <div className="flex items-center gap-3 text-blue-100">
+                <span className="text-lg">💼</span>
+                <span>LinkedIn: {stats.platformBreakdown.linkedin} post</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-emerald-100">
-              <span className="text-lg">✅</span>
-              <span>Responsive design</span>
+
+            <div className="rounded-lg p-4 mt-6 text-center" style={{
+              background: 'rgba(255,255,255,0.1)'
+            }}>
+              <div className="text-white font-medium">✅ Attivo</div>
+              <div className="text-sm text-blue-100">Crea i tuoi post social</div>
             </div>
           </div>
 
-          <div className="rounded-lg p-4 text-center" style={{
-            background: 'rgba(255,255,255,0.1)'
+          {/* WEBSITE - Prossimamente */}
+          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer opacity-75" style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+            border: '1px solid rgba(255,255,255,0.1)'
           }}>
-            <div className="text-white font-medium">Prossimamente</div>
-            <div className="text-sm text-emerald-100">Disponibile a breve</div>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
+                background: 'rgba(255,255,255,0.2)'
+              }}>
+                🌐
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Sito Web</h2>
+                <p className="text-emerald-100">Landing page professionale</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-emerald-100">
+                <span className="text-lg">🏠</span>
+                <span>Landing page personalizzata</span>
+              </div>
+              <div className="flex items-center gap-3 text-emerald-100">
+                <span className="text-lg">📅</span>
+                <span>Prenotazioni online</span>
+              </div>
+              <div className="flex items-center gap-3 text-emerald-100">
+                <span className="text-lg">📱</span>
+                <span>Design responsive</span>
+              </div>
+              <div className="flex items-center gap-3 text-emerald-100">
+                <span className="text-lg">🔗</span>
+                <span>Dominio personalizzato</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-4 text-center" style={{
+              background: 'rgba(255,255,255,0.1)'
+            }}>
+              <div className="text-white font-medium">Prossimamente</div>
+              <div className="text-sm text-emerald-100">In sviluppo</div>
+            </div>
+          </div>
+
+          {/* BLOG - Prossimamente */}
+          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer opacity-75" style={{
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
+                background: 'rgba(255,255,255,0.2)'
+              }}>
+                📝
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Blog & Articoli</h2>
+                <p className="text-purple-100">Content marketing SEO</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-purple-100">
+                <span className="text-lg">📰</span>
+                <span>Articoli professionali</span>
+              </div>
+              <div className="flex items-center gap-3 text-purple-100">
+                <span className="text-lg">🔍</span>
+                <span>Ottimizzazione SEO</span>
+              </div>
+              <div className="flex items-center gap-3 text-purple-100">
+                <span className="text-lg">📊</span>
+                <span>Analytics traffico</span>
+              </div>
+              <div className="flex items-center gap-3 text-purple-100">
+                <span className="text-lg">📤</span>
+                <span>Newsletter integrata</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-4 text-center" style={{
+              background: 'rgba(255,255,255,0.1)'
+            }}>
+              <div className="text-white font-medium">Prossimamente</div>
+              <div className="text-sm text-purple-100">In pianificazione</div>
+            </div>
+          </div>
+
+          {/* LOGO CREATOR */}
+          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer opacity-75" style={{
+            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
+                background: 'rgba(255,255,255,0.2)'
+              }}>
+                🎨
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Logo & Brand</h2>
+                <p className="text-red-100">Identità visiva professionale</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-red-100">
+                <span className="text-lg">🧠</span>
+                <span>Logo personalizzato</span>
+              </div>
+              <div className="flex items-center gap-3 text-red-100">
+                <span className="text-lg">🎨</span>
+                <span>Palette colori</span>
+              </div>
+              <div className="flex items-center gap-3 text-red-100">
+                <span className="text-lg">📄</span>
+                <span>Biglietti da visita</span>
+              </div>
+              <div className="flex items-center gap-3 text-red-100">
+                <span className="text-lg">📥</span>
+                <span>Export multi-formato</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-4 text-center" style={{
+              background: 'rgba(255,255,255,0.1)'
+            }}>
+              <div className="text-white font-medium">Prossimamente</div>
+              <div className="text-sm text-red-100">Disponibile a breve</div>
+            </div>
           </div>
         </div>
 
-        {/* 3. BLOG MANAGER */}
-        <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
-          background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+        {/* Azioni Rapide */}
+        <div className="rounded-lg p-6" style={{
+          background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.1)'
-        }}
-        onClick={() => router.push('/app/therapist/personal-branding/blog')}>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
-              background: 'rgba(255,255,255,0.2)'
-            }}>
-              📝
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Blog</h2>
-              <p className="text-purple-100">Articoli e contenuti educativi</p>
-            </div>
-          </div>
-          
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-3 text-purple-100">
-              <span className="text-lg">🧠</span>
-              <span>Psicologia Generale</span>
-            </div>
-            <div className="flex items-center gap-3 text-purple-100">
-              <span className="text-lg">😰</span>
-              <span>Ansia e Stress</span>
-            </div>
-            <div className="flex items-center gap-3 text-purple-100">
-              <span className="text-lg">👨‍👩‍👧‍👦</span>
-              <span>Terapia Familiare</span>
-            </div>
-            <div className="flex items-center gap-3 text-purple-100">
-              <span className="text-lg">💼</span>
-              <span>Psicologia del Lavoro</span>
-            </div>
-          </div>
+        }}>
+          <h3 className="text-xl font-semibold text-white mb-4">🚀 Azioni Rapide</h3>
+          <div className="flex flex-wrap gap-4">
+            <Link 
+              href="/app/therapist/personal-branding/social"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 text-white hover:bg-blue-600"
+              style={{ 
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                textDecoration: 'none'
+              }}
+            >
+              <span className="text-lg">📱</span>
+              <span>Crea Post Social</span>
+            </Link>
 
-          <div className="rounded-lg p-4 text-center" style={{
-            background: 'rgba(255,255,255,0.1)'
-          }}>
-            <div className="text-white font-medium">Prossimamente</div>
-            <div className="text-sm text-purple-100">Disponibile a breve</div>
-          </div>
-        </div>
-
-        {/* 4. LOGO CREATOR */}
-        <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
-          background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}
-        onClick={() => router.push('/app/therapist/personal-branding/logo')}>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
-              background: 'rgba(255,255,255,0.2)'
-            }}>
-              🎨
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Logo & Brand</h2>
-              <p className="text-red-100">Identità visiva professionale</p>
-            </div>
-          </div>
-          
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-3 text-red-100">
-              <span className="text-lg">🧠</span>
-              <span>Logo personalizzato</span>
-            </div>
-            <div className="flex items-center gap-3 text-red-100">
-              <span className="text-lg">🎨</span>
-              <span>Palette colori</span>
-            </div>
-            <div className="flex items-center gap-3 text-red-100">
-              <span className="text-lg">📄</span>
-              <span>Biglietti da visita</span>
-            </div>
-            <div className="flex items-center gap-3 text-red-100">
-              <span className="text-lg">📥</span>
-              <span>Export multi-formato</span>
-            </div>
-          </div>
-
-          <div className="rounded-lg p-4 text-center" style={{
-            background: 'rgba(255,255,255,0.1)'
-          }}>
-            <div className="text-white font-medium">Prossimamente</div>
-            <div className="text-sm text-red-100">Disponibile a breve</div>
+            <Link 
+              href="/app/therapist/personal-branding/create"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 text-white hover:bg-pink-600"
+              style={{ 
+                backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                border: '1px solid rgba(236, 72, 153, 0.3)',
+                textDecoration: 'none'
+              }}
+            >
+              <span className="text-lg">✨</span>
+              <span>Creator Instagram</span>
+            </Link>
           </div>
         </div>
       </div>
