@@ -195,11 +195,12 @@ export default function PersonalBrandingHub() {
             </div>
           </div>
 
-          {/* WEBSITE - Prossimamente */}
-          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer opacity-75" style={{
+          {/* WEBSITE - Ora attivo */}
+          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
             background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
             border: '1px solid rgba(255,255,255,0.1)'
-          }}>
+          }}
+          onClick={() => router.push('/app/therapist/personal-branding/website')}>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
                 background: 'rgba(255,255,255,0.2)'
@@ -215,27 +216,27 @@ export default function PersonalBrandingHub() {
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-emerald-100">
                 <span className="text-lg">🏠</span>
-                <span>Landing page personalizzata</span>
+                <span>Template professionali</span>
               </div>
               <div className="flex items-center gap-3 text-emerald-100">
-                <span className="text-lg">📅</span>
-                <span>Prenotazioni online</span>
+                <span className="text-lg">✏️</span>
+                <span>Editor drag & drop</span>
               </div>
               <div className="flex items-center gap-3 text-emerald-100">
                 <span className="text-lg">📱</span>
                 <span>Design responsive</span>
               </div>
               <div className="flex items-center gap-3 text-emerald-100">
-                <span className="text-lg">🔗</span>
-                <span>Dominio personalizzato</span>
+                <span className="text-lg">📥</span>
+                <span>Download HTML/CSS</span>
               </div>
             </div>
 
             <div className="rounded-lg p-4 text-center" style={{
               background: 'rgba(255,255,255,0.1)'
             }}>
-              <div className="text-white font-medium">Prossimamente</div>
-              <div className="text-sm text-emerald-100">In sviluppo</div>
+              <div className="text-white font-medium">✅ Attivo</div>
+              <div className="text-sm text-emerald-100">Crea il tuo sito web</div>
             </div>
           </div>
 
@@ -328,40 +329,6 @@ export default function PersonalBrandingHub() {
           </div>
         </div>
 
-        {/* Azioni Rapide */}
-        <div className="rounded-lg p-6" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <h3 className="text-xl font-semibold text-white mb-4">🚀 Azioni Rapide</h3>
-          <div className="flex flex-wrap gap-4">
-            <Link 
-              href="/app/therapist/personal-branding/social"
-              className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 text-white hover:bg-blue-600"
-              style={{ 
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                textDecoration: 'none'
-              }}
-            >
-              <span className="text-lg">📱</span>
-              <span>Crea Post Social</span>
-            </Link>
-
-            <Link 
-              href="/app/therapist/personal-branding/create"
-              className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 text-white hover:bg-pink-600"
-              style={{ 
-                backgroundColor: 'rgba(236, 72, 153, 0.2)',
-                border: '1px solid rgba(236, 72, 153, 0.3)',
-                textDecoration: 'none'
-              }}
-            >
-              <span className="text-lg">✨</span>
-              <span>Creator Instagram</span>
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
