@@ -192,7 +192,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       ok: true, 
       message: "✅ Invito inviato! Il paziente ha ricevuto le credenziali via email.",
-      emailId: emailResult[0]?.messageId || 'sent'
+      emailId: 'sent'
     });
     
   } catch (error: any) {
