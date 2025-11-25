@@ -127,7 +127,7 @@ export default function WebsiteBuilderPage() {
         height: '600px',
         plugins: [websitePreset, basicBlocks, forms],
         pluginsOpts: {
-          [websitePreset]: {
+          'grapesjs-preset-webpage': {
             modalImportTitle: 'Importa Template',
             modalImportLabel: '<div style="margin-bottom: 10px; font-size: 13px;">Incolla il tuo codice HTML/CSS</div>',
             modalImportContent: function(editor: any) {
