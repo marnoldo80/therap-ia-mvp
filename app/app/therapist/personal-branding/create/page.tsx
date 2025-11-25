@@ -38,8 +38,7 @@ interface VisualConcept {
   style: string;
   colors: string[];
   elements: string[];
-  imageUrl?: string;
-  imagePrompt?: string;
+  preview?: string;
 }
 
 interface SelectedImage {
@@ -109,11 +108,11 @@ function ContentCreatorInner() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Pre-seleziona piattaforma da URL e usa SEMPRE il flusso Instagram
+    // Pre-seleziona piattaforma da URL e determina flusso
     const platform = searchParams?.get('platform');
     if (platform && ['instagram', 'facebook', 'linkedin'].includes(platform)) {
       setSelectedPlatform(platform as Platform);
-      setCurrentFlow('instagram-visual'); // STESSO FLUSSO PER TUTTE
+      setCurrentFlow(platform === 'instagram' ? 'instagram-visual' : 'standard');
     }
   }, [searchParams]);
 
@@ -166,79 +165,30 @@ function ContentCreatorInner() {
     setError(null);
 
     try {
-      let apiEndpoint;
-      if (selectedPlatform === 'facebook') {
-        // Use Facebook API
-        const response = await fetch('/api/facebook/generate-texts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: topic })
-        });
+      const response = await fetch('/api/social/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: selectedPlatform,
+          category: selectedCategory,
+          topic: topic,
+          customPrompt: customPrompt
+        })
+      });
 
-        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        // Convert Facebook format to standard format
-        const variants = data.variants || [];
-        if (variants.length > 0) {
-          const selectedVariant = variants[0]; // Take first variant
-          setGeneratedContent({
-            title: selectedVariant.title,
-            content: selectedVariant.content,
-            hashtags: selectedVariant.hashtags
-          });
-          setEditedContent(selectedVariant.content);
-          setEditedHashtags(selectedVariant.hashtags || []);
-        }
-        
-      } else if (selectedPlatform === 'linkedin') {
-        // Use LinkedIn API
-        const response = await fetch('/api/linkedin/generate-texts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: topic })
-        });
-
-        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        // Convert LinkedIn format to standard format
-        const variants = data.variants || [];
-        if (variants.length > 0) {
-          const selectedVariant = variants[0]; // Take first variant
-          setGeneratedContent({
-            title: selectedVariant.title,
-            content: selectedVariant.content,
-            hashtags: selectedVariant.hashtags
-          });
-          setEditedContent(selectedVariant.content);
-          setEditedHashtags(selectedVariant.hashtags || []);
-        }
-
-      } else {
-        // Original Instagram flow
-        const response = await fetch('/api/social/generate-content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            platform: selectedPlatform,
-            category: selectedCategory,
-            topic: topic,
-            customPrompt: customPrompt
-          })
-        });
-
-        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        setGeneratedContent(data.content);
-        setEditedContent(data.content.content);
-        setEditedHashtags(data.content.hashtags || []);
+      if (!response.ok) {
+        throw new Error(`Errore HTTP: ${response.status}`);
       }
 
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setGeneratedContent(data.content);
+      setEditedContent(data.content.content);
+      setEditedHashtags(data.content.hashtags || []);
       setStep(3);
 
     } catch (e: any) {
@@ -250,7 +200,7 @@ function ContentCreatorInner() {
 
   // ==================== INSTAGRAM FLOW FUNCTIONS ====================
 
-  // Step 1: Generate text variants from prompt - UNIVERSAL FOR ALL PLATFORMS
+  // Step 1: Generate text variants from prompt
   async function generateTextVariants() {
     if (!igPrompt.trim()) {
       setError('Inserisci una descrizione per il tuo post');
@@ -261,22 +211,7 @@ function ContentCreatorInner() {
     setError(null);
 
     try {
-      let apiEndpoint;
-      switch (selectedPlatform) {
-        case 'instagram':
-          apiEndpoint = '/api/instagram/generate-texts';
-          break;
-        case 'facebook':
-          apiEndpoint = '/api/facebook/generate-texts';
-          break;
-        case 'linkedin':
-          apiEndpoint = '/api/linkedin/generate-texts';
-          break;
-        default:
-          throw new Error('Piattaforma non supportata');
-      }
-
-      const response = await fetch(apiEndpoint, {
+      const response = await fetch('/api/instagram/generate-texts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: igPrompt })
@@ -302,7 +237,7 @@ function ContentCreatorInner() {
     }
   }
 
-  // Step 2: Generate visual concepts for ALL PLATFORMS (stesso flusso Instagram)
+  // Step 2: Generate visual concepts
   async function generateVisualConcepts() {
     if (!selectedText) return;
 
@@ -329,140 +264,13 @@ function ContentCreatorInner() {
         throw new Error(data.error);
       }
 
-      const concepts = data.concepts || [];
-      
-      // Add real images to concepts using existing APIs
-      const conceptsWithImages = await Promise.all(
-        concepts.map(async (concept: VisualConcept, index: number) => {
-          try {
-            const imageQuery = generateImageQuery(concept, selectedText, igPrompt);
-            const imageUrl = await fetchConceptImage(imageQuery);
-            
-            return {
-              ...concept,
-              imageUrl: imageUrl,
-              imagePrompt: imageQuery
-            };
-          } catch (imageError) {
-            console.warn(`Immagine non trovata per concept ${concept.name}:`, imageError);
-            return concept;
-          }
-        })
-      );
-
-      setVisualConcepts(conceptsWithImages);
+      setVisualConcepts(data.concepts || []);
       setIgStep('visual-selection');
 
     } catch (e: any) {
       setError(e.message || 'Errore nella generazione dei visual');
     } finally {
       setIsGenerating(false);
-    }
-  }
-
-  // Helper function to generate appropriate image search query
-  function generateImageQuery(concept: VisualConcept, textContent: TextVariant, originalPrompt: string): string {
-    const styleKeywords = {
-      'minimale': 'minimal clean geometric abstract white space',
-      'naturale': 'nature organic texture plants leaves natural light',
-      'moderno': 'modern gradient fluid contemporary design', 
-      'elegante': 'elegant sophisticated luxury minimal dark'
-    };
-
-    // Extract specific keywords from the original prompt
-    const specificKeywords = extractSpecificKeywords(originalPrompt + ' ' + textContent.content);
-    const styleWords = styleKeywords[concept.style as keyof typeof styleKeywords] || 'abstract';
-    
-    // Add randomness to avoid same images
-    const randomizers = ['professional', 'lifestyle', 'workspace', 'peaceful', 'calm'];
-    const randomWord = randomizers[Math.floor(Math.random() * randomizers.length)];
-    
-    return `${specificKeywords} ${styleWords} ${randomWord}`;
-  }
-
-  // Extract relevant keywords from content
-  function extractKeywords(text: string): string {
-    const keywordMap = {
-      'stress': 'stress relief meditation calm',
-      'ansia': 'anxiety peace tranquil serene',
-      'coppia': 'couple relationship together love',
-      'famiglia': 'family home together bonding',
-      'lavoro': 'workplace office business professional',
-      'vita': 'life balance wellness happy',
-      'burnout': 'exhaustion rest recovery peaceful',
-      'depressione': 'light hope recovery growth',
-      'terapia': 'therapy healing growth support',
-      'rilassamento': 'relaxation spa zen peaceful',
-      'mindfulness': 'meditation nature zen calm'
-    };
-
-    const text_lower = text.toLowerCase();
-    
-    // Find the most specific match
-    for (const [key, value] of Object.entries(keywordMap)) {
-      if (text_lower.includes(key)) {
-        return value;
-      }
-    }
-    
-    // Fallback to generic wellness terms
-    return 'wellness peace calm professional';
-  }
-
-  // Extract specific keywords from content
-  function extractSpecificKeywords(text: string): string {
-    const keywordMap = {
-      'stress': 'stress relief meditation calm',
-      'ansia': 'anxiety peace tranquil serene',
-      'coppia': 'couple relationship together love',
-      'famiglia': 'family home together bonding',
-      'lavoro': 'workplace office business professional',
-      'vita': 'life balance wellness happy',
-      'burnout': 'exhaustion rest recovery peaceful',
-      'depressione': 'light hope recovery growth',
-      'terapia': 'therapy healing growth support',
-      'rilassamento': 'relaxation spa zen peaceful',
-      'mindfulness': 'meditation nature zen calm'
-    };
-
-    const text_lower = text.toLowerCase();
-    
-    // Find the most specific match
-    for (const [key, value] of Object.entries(keywordMap)) {
-      if (text_lower.includes(key)) {
-        return value;
-      }
-    }
-    
-    // Fallback to generic wellness terms
-    return 'wellness peace calm professional';
-  }
-
-  // Fetch image from APIs (Unsplash first, then Pexels fallback)
-  async function fetchConceptImage(query: string): Promise<string | null> {
-    try {
-      // Try Unsplash first
-      const unsplashResponse = await fetch(`/api/images/unsplash?query=${encodeURIComponent(query)}&per_page=1`);
-      if (unsplashResponse.ok) {
-        const unsplashData = await unsplashResponse.json();
-        if (unsplashData.results && unsplashData.results.length > 0) {
-          return unsplashData.results[0].urls.small;
-        }
-      }
-
-      // Fallback to Pexels
-      const pexelsResponse = await fetch(`/api/images/pexels?query=${encodeURIComponent(query)}&per_page=1`);
-      if (pexelsResponse.ok) {
-        const pexelsData = await pexelsResponse.json();
-        if (pexelsData.photos && pexelsData.photos.length > 0) {
-          return pexelsData.photos[0].src.medium;
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.warn('Error fetching concept image:', error);
-      return null;
     }
   }
 
@@ -491,7 +299,7 @@ function ContentCreatorInner() {
           content: selectedText.content,
           hashtags: selectedText.hashtags,
           category: selectedText.style,
-          agent_type: selectedPlatform,
+          image_data: selectedImage,
           status: status
         };
       } else if (generatedContent) {
@@ -502,7 +310,7 @@ function ContentCreatorInner() {
           content: editedContent,
           hashtags: editedHashtags,
           category: selectedCategory,
-          agent_type: selectedPlatform,
+          image_data: selectedImage,
           status: status
         };
       } else {
@@ -562,10 +370,13 @@ function ContentCreatorInner() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">
-                  🎨 {platformConfig.name} Creator
+                  {currentFlow === 'instagram-visual' ? '🎨 Instagram Creator' : '🤖 Content Creator'}
                 </h1>
                 <p style={{ color: '#a8b2d6' }}>
-                  Crea post {platformConfig.name} professionali e stilizzati
+                  {currentFlow === 'instagram-visual' 
+                    ? 'Crea post Instagram professionali e stilizzati'
+                    : 'Agente specializzato per creazione contenuti social'
+                  }
                 </p>
               </div>
             </div>
@@ -582,10 +393,10 @@ function ContentCreatorInner() {
           </div>
         )}
 
-        {/* ==================== UNIFIED FLOW FOR ALL PLATFORMS ==================== */}
+        {/* ==================== INSTAGRAM VISUAL FLOW ==================== */}
         {currentFlow === 'instagram-visual' && (
           <>
-            {/* Progress Steps */}
+            {/* Instagram Progress Steps */}
             <div className="flex items-center justify-center mb-8">
               <div className="flex items-center gap-4">
                 {[
@@ -620,7 +431,7 @@ function ContentCreatorInner() {
               </div>
             </div>
 
-            {/* Step 1: Prompt Input */}
+            {/* Step 1: Instagram Prompt Input */}
             {igStep === 'prompt' && (
               <div className="space-y-6">
                 <div className="rounded-lg p-8" style={{
@@ -629,7 +440,7 @@ function ContentCreatorInner() {
                 }}>
                   <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-white mb-4">
-                      🎨 Descrivi il tuo post {platformConfig.name}
+                      🎨 Descrivi il tuo post Instagram
                     </h2>
                     <p className="text-lg" style={{ color: '#a8b2d6' }}>
                       Spiega l'idea, il messaggio o il contenuto che vuoi comunicare
@@ -703,7 +514,7 @@ function ContentCreatorInner() {
               </div>
             )}
 
-            {/* Step 2: Text Selection */}
+            {/* Step 2: Instagram Text Selection */}
             {igStep === 'text-selection' && (
               <div className="space-y-6">
                 <div className="text-center">
@@ -780,7 +591,7 @@ function ContentCreatorInner() {
               </div>
             )}
 
-            {/* Step 3: Visual Selection */}
+            {/* Step 3: Instagram Visual Selection */}
             {igStep === 'visual-selection' && selectedText && (
               <div className="space-y-6">
                 <div className="text-center">
@@ -798,41 +609,23 @@ function ContentCreatorInner() {
                   border: '1px solid rgba(255,255,255,0.1)'
                 }}>
                   <h4 className="font-medium text-white mb-2">📝 Testo selezionato:</h4>
-                  <p className="text-sm text-gray-300">"{selectedText.content}"</p>
+                  <p className="text-sm text-gray-300">"{selectedText.content.substring(0, 100)}..."</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {visualConcepts.map((concept) => (
                     <div
                       key={concept.id}
                       onClick={() => setSelectedVisual(concept)}
-                      className={`cursor-pointer rounded-lg border-2 transition-all hover:scale-105 overflow-hidden ${
+                      className={`cursor-pointer rounded-lg border-2 transition-all hover:scale-105 ${
                         selectedVisual?.id === concept.id
                           ? 'border-pink-500 bg-pink-500/20'
                           : 'border-gray-600 bg-white/5 hover:border-gray-500'
                       }`}
                     >
-                      {/* Visual Preview with Real Image */}
-                      <div className="aspect-square bg-gradient-to-br from-gray-600 to-gray-800 relative overflow-hidden">
-                        {concept.imageUrl ? (
-                          <img 
-                            src={concept.imageUrl} 
-                            alt={concept.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-4xl">
-                            🎨
-                          </div>
-                        )}
-                        
-                        {/* Overlay with concept info */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="text-center text-white p-4">
-                            <h4 className="font-bold mb-2">{concept.name}</h4>
-                            <p className="text-xs">{concept.description}</p>
-                          </div>
-                        </div>
+                      {/* Visual Preview */}
+                      <div className="aspect-square rounded-t-lg bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-4xl">
+                        🎨
                       </div>
                       
                       <div className="p-4">
@@ -846,7 +639,7 @@ function ContentCreatorInner() {
                               {concept.colors.map((color, index) => (
                                 <div
                                   key={index}
-                                  className="w-4 h-4 rounded-full border border-gray-600"
+                                  className="w-4 h-4 rounded-full"
                                   style={{ backgroundColor: color }}
                                 ></div>
                               ))}
@@ -854,8 +647,8 @@ function ContentCreatorInner() {
                           </div>
                           
                           <div>
-                            <span className="text-xs font-medium text-gray-500">Stile:</span>
-                            <p className="text-xs text-gray-400 mt-1 capitalize">{concept.style}</p>
+                            <span className="text-xs font-medium text-gray-500">Elementi:</span>
+                            <p className="text-xs text-gray-400 mt-1">{concept.elements.join(', ')}</p>
                           </div>
                         </div>
                       </div>
@@ -882,7 +675,7 @@ function ContentCreatorInner() {
               </div>
             )}
 
-            {/* Step 4: Assembly */}
+            {/* Step 4: Instagram Assembly */}
             {igStep === 'assembly' && selectedText && selectedVisual && (
               <div className="space-y-6">
                 <div className="text-center">
@@ -890,97 +683,366 @@ function ContentCreatorInner() {
                     🔧 Assembla il tuo post
                   </h2>
                   <p style={{ color: '#a8b2d6' }}>
-                    Anteprima finale del tuo post {platformConfig.name}
+                    Combina testo e visual, aggiungi elementi stilizzati
                   </p>
                 </div>
 
-                {/* Final Preview */}
+                {/* Assembly workspace - placeholder for now */}
                 <div className="bg-white/5 rounded-lg p-8">
-                  <div className="max-w-md mx-auto">
-                    {/* Post Preview */}
-                    <div className="bg-white rounded-lg overflow-hidden shadow-lg">
-                      {/* Header */}
-                      <div className="p-4 border-b flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-                        <div>
-                          <p className="font-semibold text-sm">Il tuo profilo</p>
-                          <p className="text-xs text-gray-500">Psicologo/a</p>
-                        </div>
+                  <h3 className="text-lg font-semibold text-white mb-4">🚧 Assembly Workspace</h3>
+                  
+                  {/* Selected content preview */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h4 className="font-medium text-white mb-2">📝 Testo selezionato:</h4>
+                      <p className="text-sm text-gray-300">{selectedText.content}</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {selectedText.hashtags.map((tag, index) => (
+                          <span key={index} className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-400">
+                            #{tag}
+                          </span>
+                        ))}
                       </div>
-                      
-                      {/* Image */}
-                      <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-400 relative">
-                        {selectedVisual.imageUrl ? (
-                          <img 
-                            src={selectedVisual.imageUrl} 
-                            alt="Post visual"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-4xl text-gray-600">
-                            🎨
-                          </div>
-                        )}
-                        
-                        {/* Text overlay */}
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-6">
-                          <div className="text-center text-white">
-                            <h3 className="font-bold text-lg mb-2">{selectedText.title}</h3>
-                            <p className="text-sm">{selectedText.content}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Footer */}
-                      <div className="p-4">
-                        <div className="flex items-center gap-4 mb-2">
-                          <span>❤️</span>
-                          <span>💬</span>
-                          <span>📤</span>
-                        </div>
-                        <p className="text-sm">
-                          <span className="font-semibold">Il tuo profilo</span> {selectedText.content}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {selectedText.hashtags.map((tag, index) => (
-                            <span key={index} className="text-blue-600 text-sm">#{tag}</span>
-                          ))}
-                        </div>
+                    </div>
+                    
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h4 className="font-medium text-white mb-2">🎨 Visual selezionato:</h4>
+                      <p className="text-sm text-gray-300">{selectedVisual.name}</p>
+                      <p className="text-xs text-gray-400 mt-1">{selectedVisual.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={() => setIgStep('visual-selection')}
+                      className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
+                    >
+                      ← Modifica Visual
+                    </button>
+                    
+                    <button
+                      onClick={() => savePost('draft')}
+                      disabled={isSaving}
+                      className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-yellow-600 disabled:opacity-50"
+                    >
+                      {isSaving ? 'Salvando...' : '💾 Salva Bozza'}
+                    </button>
+                    
+                    <button
+                      onClick={() => savePost('ready')}
+                      disabled={isSaving}
+                      className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {isSaving ? 'Salvando...' : '✅ Salva Pronto'}
+                    </button>
+                    
+                    <button
+                      onClick={resetInstagramCreator}
+                      className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700"
+                    >
+                      🔄 Ricomincia
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ==================== STANDARD FLOW (Facebook/LinkedIn) ==================== */}
+        {currentFlow === 'standard' && (
+          <>
+            {/* Standard Progress Steps */}
+            <div className="flex items-center justify-center mb-8">
+              <div className="flex items-center gap-4">
+                {[1, 2, 3].map((stepNum) => (
+                  <div key={stepNum} className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      step >= stepNum ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {stepNum}
+                    </div>
+                    {stepNum < 3 && (
+                      <div className={`w-12 h-1 ${step > stepNum ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Step 1: Platform & Category */}
+            {step === 1 && (
+              <div className="space-y-8">
+                
+                {/* Platform Selection */}
+                <div className="rounded-lg p-6" style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <h2 className="text-xl font-semibold mb-4 text-white">📱 Piattaforma: {platformConfig.name}</h2>
+                  <div className="bg-white/5 rounded-lg p-4">
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">{platformConfig.icon}</span>
+                      <div>
+                        <h3 className="font-semibold text-white">{platformConfig.name}</h3>
+                        <p className="text-sm" style={{ color: '#a8b2d6' }}>{platformConfig.description}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-4 justify-center">
+                {/* Category Selection */}
+                <div className="rounded-lg p-6" style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <h2 className="text-xl font-semibold mb-4 text-white">🎯 Tipo di Contenuto</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(Object.entries(CATEGORIES) as [ContentCategory, typeof CATEGORIES[ContentCategory]][]).map(([category, config]) => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`p-6 border rounded-lg text-left transition-all ${
+                          selectedCategory === category
+                            ? 'border-blue-500 bg-blue-500/20 shadow-md'
+                            : 'border-gray-500 hover:border-gray-400 hover:bg-white/5'
+                        }`}
+                        style={{ 
+                          borderColor: selectedCategory === category ? '#3b82f6' : 'rgba(255,255,255,0.2)',
+                          backgroundColor: selectedCategory === category ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)'
+                        }}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-2xl">{config.icon}</span>
+                          <h3 className="font-semibold text-white">{config.title}</h3>
+                        </div>
+                        <p className="text-sm mb-3" style={{ color: '#a8b2d6' }}>{config.description}</p>
+                        <div className="text-xs" style={{ color: '#64748b' }}>
+                          <p className="font-medium mb-1">Esempi:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {config.examples.map((example, i) => (
+                              <li key={i}>{example}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
                   <button
-                    onClick={() => setIgStep('visual-selection')}
-                    className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
-                  >
-                    ← Modifica Visual
-                  </button>
-                  
-                  <button
-                    onClick={() => savePost('draft')}
-                    disabled={isSaving}
-                    className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-yellow-600 disabled:opacity-50"
-                  >
-                    {isSaving ? 'Salvando...' : '💾 Salva Bozza'}
-                  </button>
-                  
-                  <button
-                    onClick={() => savePost('ready')}
-                    disabled={isSaving}
-                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {isSaving ? 'Salvando...' : '✅ Salva Pronto'}
-                  </button>
-                  
-                  <button
-                    onClick={resetInstagramCreator}
+                    onClick={() => setStep(2)}
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700"
                   >
-                    🔄 Ricomincia
+                    Avanti →
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Topic & Generation */}
+            {step === 2 && (
+              <div className="space-y-6">
+                
+                {/* Selected Configuration Summary */}
+                <div className={`bg-gradient-to-r ${platformConfig.color} rounded-lg p-6 text-white`}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-3xl">{platformConfig.icon}</span>
+                    <div>
+                      <h2 className="text-xl font-semibold">{platformConfig.name} - {CATEGORIES[selectedCategory].title}</h2>
+                      <p className="opacity-90">{CATEGORIES[selectedCategory].description}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Topic Input */}
+                <div className="rounded-lg p-6" style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <h3 className="text-lg font-semibold mb-4 text-white">✏️ Inserisci il Topic</h3>
+                  <textarea
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="Es: Tecniche di rilassamento per l'ansia, Come riconoscere i sintomi della depressione..."
+                    className="w-full border rounded-lg p-4 min-h-[100px] focus:ring-2 focus:ring-blue-500 bg-white/10 text-white placeholder-gray-400"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                  />
+                </div>
+
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
+                  >
+                    ← Indietro
+                  </button>
+                  <button
+                    onClick={generateContent}
+                    disabled={!topic.trim() || isGenerating}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Generando...
+                      </>
+                    ) : (
+                      <>🚀 Genera Contenuto</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Review & Edit */}
+            {step === 3 && generatedContent && (
+              <div className="space-y-6">
+                
+                {/* Preview Header */}
+                <div className={`bg-gradient-to-r ${platformConfig.color} rounded-lg p-6 text-white`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">✨ Contenuto Generato</h2>
+                      <p className="opacity-90">Modifica il testo e scegli l'immagine di sfondo</p>
+                    </div>
+                    <button
+                      onClick={() => setShowImagePicker(!showImagePicker)}
+                      className="bg-white/20 px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+                    >
+                      {showImagePicker ? '📝 Solo Testo' : '🖼️ Scegli Immagine'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className={`grid gap-6 ${showImagePicker ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
+                  
+                  {/* Edit Content */}
+                  <div className="rounded-lg p-6" style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    <h3 className="font-semibold mb-4 text-white">📝 Modifica Contenuto</h3>
+                    
+                    {generatedContent.title && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2 text-white">Titolo</label>
+                        <input
+                          type="text"
+                          value={generatedContent.title}
+                          readOnly
+                          className="w-full border rounded-lg p-3 text-sm bg-white/10 text-white"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-white">
+                        Contenuto ({editedContent.length}/{platformConfig.maxLength})
+                      </label>
+                      <textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="w-full border rounded-lg p-3 min-h-[300px] focus:ring-2 focus:ring-blue-500 text-sm bg-white/10 text-white placeholder-gray-400"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-white">Hashtags</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {editedHashtags.map((hashtag, index) => (
+                          <span key={index} className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-sm">
+                            #{hashtag}
+                            <button
+                              onClick={() => setEditedHashtags(prev => prev.filter((_, i) => i !== index))}
+                              className="ml-2 text-blue-300 hover:text-blue-100"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Aggiungi hashtag (senza #)"
+                        className="w-full border rounded-lg p-2 text-sm bg-white/10 text-white placeholder-gray-400"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            const value = (e.target as HTMLInputElement).value.trim();
+                            if (value && !editedHashtags.includes(value)) {
+                              setEditedHashtags(prev => [...prev, value]);
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Image Picker */}
+                  {showImagePicker && (
+                    <div className="rounded-lg p-6" style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <h3 className="font-semibold mb-4 text-white">🖼️ Scegli Immagine di Sfondo</h3>
+                      <ImagePicker
+                        onImageSelected={handleImageSelected}
+                        currentImage={selectedImage?.data}
+                      />
+                      
+                      {/* Preview dell'immagine selezionata */}
+                      {selectedImage && (
+                        <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                          <h4 className="text-sm font-medium text-white mb-2">Immagine Selezionata:</h4>
+                          <div className="text-xs" style={{ color: '#a8b2d6' }}>
+                            <span className="inline-block px-2 py-1 rounded" style={{ backgroundColor: 'rgba(59,130,246,0.2)', color: '#60a5fa' }}>
+                              {selectedImage.type === 'stock' ? '📸 Stock Photo' :
+                               selectedImage.type === 'upload' ? '📁 Upload Personale' :
+                               selectedImage.type === 'gradient' ? '🎨 Sfondo Neutro' :
+                               '⚪ Colore Unito'}
+                            </span>
+                            {selectedImage.prompt && (
+                              <p className="mt-2">Prompt: {selectedImage.prompt}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => setStep(2)}
+                    className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
+                  >
+                    ← Rigenera
+                  </button>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => savePost('draft')}
+                      disabled={isSaving}
+                      className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-yellow-600 disabled:opacity-50"
+                    >
+                      {isSaving ? 'Salvando...' : '💾 Salva Bozza'}
+                    </button>
+                    
+                    <button
+                      onClick={() => savePost('ready')}
+                      disabled={isSaving}
+                      className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {isSaving ? 'Salvando...' : '✅ Salva Pronto'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -995,10 +1057,10 @@ function ContentCreatorInner() {
 export default function ContentCreator() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1a1f3a' }}>
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-white/20 rounded w-64"></div>
-          <div className="h-64 bg-white/10 rounded w-96"></div>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="animate-pulse space-y-6" style={{ backgroundColor: '#1a1f3a' }}>
+          <div className="h-8 bg-white/20 rounded w-1/3"></div>
+          <div className="h-64 bg-white/10 rounded"></div>
         </div>
       </div>
     }>
