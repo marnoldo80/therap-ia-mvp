@@ -244,7 +244,8 @@ export default function PersonalBrandingHub() {
           <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
             background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
             border: '1px solid rgba(255,255,255,0.1)'
-          }}>
+          }}
+          onClick={() => router.push('/app/therapist/personal-branding/blog')}>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
                 background: 'rgba(255,255,255,0.2)'
@@ -275,12 +276,12 @@ export default function PersonalBrandingHub() {
                 <span>Newsletter integrata</span>
               </div>
             </div>
-
+          
             <div className="rounded-lg p-4 text-center" style={{
               background: 'rgba(255,255,255,0.1)'
             }}>
               <div className="text-white font-medium">✅ Attivo</div>
-              <div className="text-sm text-red-100">Crea il tuo blog</div>
+              <div className="text-sm text-purple-100">Crea i tuoi articoli</div>
             </div>
           </div>
 
