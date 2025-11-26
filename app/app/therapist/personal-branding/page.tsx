@@ -241,7 +241,7 @@ export default function PersonalBrandingHub() {
           </div>
 
           {/* BLOG - Ora attivo */}
-          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer opacity-75" style={{
+          <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
             background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
             border: '1px solid rgba(255,255,255,0.1)'
           }}>
