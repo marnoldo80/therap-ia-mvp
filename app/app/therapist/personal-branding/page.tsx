@@ -288,7 +288,8 @@ export default function PersonalBrandingHub() {
           <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer" style={{
             background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
             border: '1px solid rgba(255,255,255,0.1)'
-          }}>
+          }}
+          onClick={() => router.push('/app/therapist/personal-branding/logo')}>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{
                 background: 'rgba(255,255,255,0.2)'
