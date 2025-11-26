@@ -280,7 +280,7 @@ export default function PersonalBrandingHub() {
               background: 'rgba(255,255,255,0.1)'
             }}>
               <div className="text-white font-medium">✅ Attivo</div>
-              <div className="text-sm text-red-100">Crea il tuo logo</div>
+              <div className="text-sm text-red-100">Crea il tuo blog</div>
             </div>
           </div>
 
@@ -325,7 +325,7 @@ export default function PersonalBrandingHub() {
               background: 'rgba(255,255,255,0.1)'
             }}>
               <div className="text-white font-medium">Prossimamente</div>
-              <div className="text-sm text-red-100">Disponibile a breve</div>
+              <div className="text-sm text-red-100">Crea il tuo logo</div>
             </div>
           </div>
         </div>
