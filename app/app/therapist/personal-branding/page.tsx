@@ -240,7 +240,7 @@ export default function PersonalBrandingHub() {
             </div>
           </div>
 
-          {/* BLOG - Prossimamente */}
+          {/* BLOG - Ora attivo */}
           <div className="rounded-lg p-8 transition-all duration-200 hover:scale-105 cursor-pointer opacity-75" style={{
             background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
             border: '1px solid rgba(255,255,255,0.1)'
@@ -324,7 +324,7 @@ export default function PersonalBrandingHub() {
             <div className="rounded-lg p-4 text-center" style={{
               background: 'rgba(255,255,255,0.1)'
             }}>
-              <div className="text-white font-medium">Prossimamente</div>
+              <div className="text-white font-medium">✅ Attivo</div>
               <div className="text-sm text-red-100">Crea il tuo logo</div>
             </div>
           </div>
