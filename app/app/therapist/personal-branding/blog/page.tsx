@@ -79,21 +79,7 @@ export default function BlogHubPage() {
       }
 
       // Per ora articoli mock - implementare tabella blog_articles
-      setArticles([
-        {
-          id: '1',
-          title: 'Gestire l\'ansia da prestazione nel lavoro',
-          category: 'educational',
-          content: '',
-          excerpt: 'Strategie pratiche per affrontare l\'ansia da prestazione in ambito lavorativo...',
-          seo_title: 'Come gestire l\'ansia da prestazione lavorativa - Psicologo',
-          meta_description: 'Scopri tecniche efficaci per gestire l\'ansia da prestazione sul lavoro con l\'aiuto di uno psicologo esperto.',
-          keywords: ['ansia', 'lavoro', 'prestazione', 'stress'],
-          status: 'draft',
-          created_at: new Date().toISOString(),
-          word_count: 1250
-        }
-      ]);
+     setArticles([])
 
     } catch (e: any) {
       setError(e.message);
