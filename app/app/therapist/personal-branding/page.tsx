@@ -279,8 +279,8 @@ export default function PersonalBrandingHub() {
             <div className="rounded-lg p-4 text-center" style={{
               background: 'rgba(255,255,255,0.1)'
             }}>
-              <div className="text-white font-medium">Prossimamente</div>
-              <div className="text-sm text-purple-100">In pianificazione</div>
+              <div className="text-white font-medium">✅ Attivo</div>
+              <div className="text-sm text-red-100">Crea il tuo logo</div>
             </div>
           </div>
 
