@@ -147,13 +147,6 @@ export default function Page() {
             >
               Modifica Profilo
             </Link>
-            <Link 
-              href="/app/therapist/personal-branding"
-              className="px-6 py-2 rounded-lg text-white font-medium transition-colors duration-200"
-              style={{ backgroundColor: '#dc2626' }}
-            >
-              Personal Branding
-            </Link>
           </div>
         </div>
 
