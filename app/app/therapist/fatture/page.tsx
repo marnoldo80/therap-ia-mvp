@@ -60,59 +60,22 @@ export default function FattureDashboard() {
         return;
       }
 
-      // Per ora dati mock - da implementare tabelle fatture
-      const mockInvoices: Invoice[] = [
-        {
-          id: '1',
-          invoice_number: 'FAT-2025-001',
-          patient_name: 'Mario Rossi',
-          total_amount: 955.70,
-          enpap_amount: 18.70,
-          bollo_amount: 2.00,
-          status: 'sent',
-          due_date: '2025-01-15',
-          created_at: '2024-12-15T10:00:00Z',
-          period_start: '2024-11-01',
-          period_end: '2024-11-30',
-          sessions_count: 11
-        },
-        {
-          id: '2', 
-          invoice_number: 'FAT-2025-002',
-          patient_name: 'Laura Bianchi',
-          total_amount: 696.40,
-          enpap_amount: 13.60,
-          bollo_amount: 2.00,
-          status: 'paid',
-          due_date: '2025-01-20',
-          created_at: '2024-12-20T14:30:00Z',
-          period_start: '2024-11-01',
-          period_end: '2024-11-30', 
-          sessions_count: 8
-        },
-        {
-          id: '3',
-          invoice_number: 'FAT-2025-003', 
-          patient_name: 'Giuseppe Verdi',
-          total_amount: 346.40,
-          enpap_amount: 6.80,
-          bollo_amount: 2.00,
-          status: 'overdue',
-          due_date: '2024-12-30',
-          created_at: '2024-12-01T09:15:00Z',
-          period_start: '2024-10-01',
-          period_end: '2024-10-31',
-          sessions_count: 4
-        }
-      ];
+      // Carica fatture reali dal database
+      const response = await fetch('/api/invoices');
+      if (!response.ok) {
+        throw new Error('Errore caricamento fatture');
+      }
 
-      setInvoices(mockInvoices);
+      const data = await response.json();
+      const invoicesData = data.invoices || [];
+      
+      setInvoices(invoicesData);
 
-      // Calcola statistiche
+      // Calcola statistiche dai dati reali
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
 
-      const calculatedStats = mockInvoices.reduce((acc, inv) => {
+      const calculatedStats = invoicesData.reduce((acc: InvoiceStats, inv: Invoice) => {
         acc.totalInvoices++;
         acc.totalAmount += inv.total_amount;
 
