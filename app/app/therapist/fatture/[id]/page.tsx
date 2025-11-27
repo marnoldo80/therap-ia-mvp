@@ -268,12 +268,37 @@ export default function DettaglioFattura() {
           {/* Header Fattura */}
           <div className="flex justify-between items-start mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">FATTURA</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">FATTURA</h2>
               <p className="text-gray-600">Nr. {invoice.invoice_number}</p>
             </div>
             <div className="text-right">
               <p className="font-semibold">Data: {new Date(invoice.created_at).toLocaleDateString('it-IT')}</p>
               <p className="text-red-600 font-semibold">Scadenza: {new Date(invoice.due_date).toLocaleDateString('it-IT')}</p>
+            </div>
+          </div>
+
+          {/* Intestazione Terapeuta */}
+          <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-bold text-gray-900 mb-2">Emittente:</h3>
+                <div className="text-gray-700">
+                  <p className="font-semibold">Dott. [Nome Terapeuta]</p>
+                  <p>Psicologo e Psicoterapeuta</p>
+                  <p>[Indirizzo Studio]</p>
+                  <p>[Città, CAP]</p>
+                  <p>P.IVA: [Partita IVA]</p>
+                  <p>Iscr. Ordine Psicologi [Regione] n.[numero]</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 mb-2">Modalità Pagamento:</h3>
+                <div className="text-gray-700">
+                  <p>Bonifico Bancario</p>
+                  <p><strong>IBAN:</strong> [IBAN]</p>
+                  <p><strong>Intestatario:</strong> [Nome Terapeuta]</p>
+                </div>
+              </div>
             </div>
           </div>
 
