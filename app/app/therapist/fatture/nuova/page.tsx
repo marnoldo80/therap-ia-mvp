@@ -24,7 +24,7 @@ type Appointment = {
   id: string;
   title: string;
   starts_at: string;
-  session_type: 'individual' | 'couple' | 'family';
+  session_type?: 'individual' | 'couple' | 'family';
 };
 
 type InvoiceItem = {
