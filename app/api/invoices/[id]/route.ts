@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: 'ID fattura richiesto' }, { status: 400 });
     }
 
-    // Query dettaglio fattura con paziente e righe
+    // Query dettaglio fattura con paziente, righe E DATI TERAPEUTA
     const { data: invoice, error } = await supabase
       .from('invoices')
       .select(`
@@ -51,6 +51,17 @@ export async function GET(
       throw error;
     }
 
+    // CARICA DATI TERAPEUTA
+    const { data: therapist, error: therapistError } = await supabase
+      .from('therapists')
+      .select('full_name, address, city, postal_code, province, vat_number, registration_number, iban')
+      .eq('user_id', invoice.therapist_user_id)
+      .single();
+
+    if (therapistError) {
+      console.error('Errore caricamento terapeuta:', therapistError);
+    }
+
     // Trasforma nel formato atteso dal frontend
     const transformedInvoice = {
       id: invoice.id,
@@ -70,6 +81,17 @@ export async function GET(
       period_start: invoice.period_start,
       period_end: invoice.period_end,
       notes: invoice.notes || '',
+      // DATI TERAPEUTA
+      therapist: therapist ? {
+        full_name: therapist.full_name || '',
+        address: therapist.address || '',
+        city: therapist.city || '',
+        postal_code: therapist.postal_code || '',
+        province: therapist.province || '',
+        vat_number: therapist.vat_number || '',
+        registration_number: therapist.registration_number || '',
+        iban: therapist.iban || ''
+      } : null,
       items: (invoice.invoice_items || []).map((item: any) => ({
         id: item.id,
         date: item.session_date,
