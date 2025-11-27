@@ -61,7 +61,7 @@ export default function FattureDashboard() {
       }
 
       // Carica fatture reali dal database
-      const response = await fetch('/api/invoices');
+      const response = await fetch(`/api/invoices?therapist_user_id=${user.id}`);
       if (!response.ok) {
         throw new Error('Errore caricamento fatture');
       }
