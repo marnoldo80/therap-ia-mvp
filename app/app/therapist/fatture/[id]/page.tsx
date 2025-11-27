@@ -27,6 +27,16 @@ type InvoiceDetail = {
   period_start: string;
   period_end: string;
   notes: string;
+  therapist: {
+    full_name: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    province: string;
+    vat_number: string;
+    registration_number: string;
+    iban: string;
+  } | null;
   items: InvoiceItem[];
 };
 
@@ -283,20 +293,20 @@ export default function DettaglioFattura() {
               <div>
                 <h3 className="font-bold text-gray-900 mb-2">Emittente:</h3>
                 <div className="text-gray-700">
-                  <p className="font-semibold">Dott. [Nome Terapeuta]</p>
+                  <p className="font-semibold">{invoice.therapist?.full_name || 'Nome Terapeuta mancante'}</p>
                   <p>Psicologo e Psicoterapeuta</p>
-                  <p>[Indirizzo Studio]</p>
-                  <p>[Città, CAP]</p>
-                  <p>P.IVA: [Partita IVA]</p>
-                  <p>Iscr. Ordine Psicologi [Regione] n.[numero]</p>
+                  <p>{invoice.therapist?.address || 'Indirizzo mancante'}</p>
+                  <p>{invoice.therapist?.city || ''} {invoice.therapist?.postal_code || ''} ({invoice.therapist?.province || ''})</p>
+                  <p>P.IVA: {invoice.therapist?.vat_number || 'P.IVA mancante'}</p>
+                  <p>Iscr. Ordine Psicologi n.{invoice.therapist?.registration_number || 'N. mancante'}</p>
                 </div>
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 mb-2">Modalità Pagamento:</h3>
                 <div className="text-gray-700">
                   <p>Bonifico Bancario</p>
-                  <p><strong>IBAN:</strong> [IBAN]</p>
-                  <p><strong>Intestatario:</strong> [Nome Terapeuta]</p>
+                  <p><strong>IBAN:</strong> {invoice.therapist?.iban || 'IBAN mancante'}</p>
+                  <p><strong>Intestatario:</strong> {invoice.therapist?.full_name || 'Nome mancante'}</p>
                 </div>
               </div>
             </div>
