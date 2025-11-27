@@ -187,10 +187,17 @@ export default function NuovaFattura() {
     setError(null);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Sessione scaduta');
+        return;
+      }
+
       const response = await fetch('/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          therapist_user_id: user.id,
           patient_id: selectedPatient.id,
           period_start: periodStart,
           period_end: periodEnd,
