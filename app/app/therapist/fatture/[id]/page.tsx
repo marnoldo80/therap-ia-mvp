@@ -17,9 +17,10 @@ type InvoiceDetail = {
   patient_fiscal_code: string;
   patient_address: string;
   total_amount: number;
-  vat_amount: number;
+  enpap_amount: number;
+  bollo_amount: number;
   subtotal: number;
-  vat_rate: number;
+  enpap_rate: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   due_date: string;
   created_at: string;
@@ -63,48 +64,41 @@ export default function DettaglioFattura() {
         patient_email: 'mario.rossi@email.com',
         patient_fiscal_code: 'RSSMRA80A01H501Z',
         patient_address: 'Via Roma 123, 00100 Roma (RM)',
-        total_amount: 440,
-        vat_amount: 40,
-        subtotal: 400,
-        vat_rate: 22,
+        total_amount: 955.70,
+        enpap_amount: 18.70,
+        bollo_amount: 2.00,
+        subtotal: 935.00,
+        enpap_rate: 2,
         status: 'sent',
         due_date: '2025-01-15',
         created_at: '2024-12-15T10:00:00Z',
         period_start: '2024-11-01',
         period_end: '2024-11-30',
-        notes: 'Sedute di psicoterapia individuale per il mese di novembre 2024',
+        notes: 'Psicoterapia individuale per il mese di novembre 2024',
         items: [
           {
             id: '1',
             date: '2024-11-05',
-            description: 'Seduta individuale',
+            description: 'Psicoterapia individuale',
             session_type: 'individual',
-            rate: 100,
-            amount: 100
+            rate: 85,
+            amount: 85
           },
           {
             id: '2',
             date: '2024-11-12',
-            description: 'Seduta individuale',
+            description: 'Psicoterapia individuale',
             session_type: 'individual',
-            rate: 100,
-            amount: 100
+            rate: 85,
+            amount: 85
           },
           {
             id: '3',
             date: '2024-11-19',
-            description: 'Seduta individuale',
+            description: 'Psicoterapia individuale',
             session_type: 'individual',
-            rate: 100,
-            amount: 100
-          },
-          {
-            id: '4',
-            date: '2024-11-26',
-            description: 'Seduta individuale',
-            session_type: 'individual',
-            rate: 100,
-            amount: 100
+            rate: 85,
+            amount: 85
           }
         ]
       };
@@ -359,18 +353,25 @@ export default function DettaglioFattura() {
 
           {/* Totali */}
           <div className="flex justify-end mb-8">
-            <div className="w-64">
+            <div className="w-80">
               <div className="flex justify-between py-2">
-                <span>Subtotale:</span>
+                <span>Totale Imponibile:</span>
                 <span>€{invoice.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span>IVA {invoice.vat_rate}%:</span>
-                <span>€{invoice.vat_amount.toFixed(2)}</span>
+                <span>ENPAP su €{invoice.subtotal.toFixed(2)}:</span>
+                <span>€{invoice.enpap_amount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Bollo:</span>
+                <span>€{invoice.bollo_amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between py-2 border-t border-gray-300 font-bold text-lg">
-                <span>TOTALE:</span>
+                <span>TOTALE A VERSARE:</span>
                 <span>€{invoice.total_amount.toFixed(2)}</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-2">
+                esente da IVA art.10 n° 18 d.p.r. 633/72 e succ. mod.
               </div>
             </div>
           </div>
@@ -384,8 +385,14 @@ export default function DettaglioFattura() {
           )}
 
           {/* Footer */}
-          <div className="text-center text-gray-500 text-sm pt-8 border-t border-gray-200">
-            <p>Grazie per aver scelto i nostri servizi</p>
+          <div className="text-center text-gray-500 text-sm pt-8 border-t border-gray-200 space-y-2">
+            <div className="border-dashed border-2 border-gray-300 p-3 inline-block">
+              <p className="font-medium">Imposta di bollo assolta in</p>
+              <p className="font-medium">modo virtuale - Aut. Agenzia</p>
+              <p className="font-medium">Entrate UT Este - N. prot.</p>
+              <p className="font-medium">23299 19/02/21</p>
+            </div>
+            <p className="mt-4">Grazie per aver scelto i nostri servizi</p>
           </div>
         </div>
 
