@@ -187,11 +187,28 @@ export default function NuovaFattura() {
     setError(null);
 
     try {
-      // Qui andrà l'API per creare la fattura
-      // Per ora simuliamo il salvataggio
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: selectedPatient.id,
+          period_start: periodStart,
+          period_end: periodEnd,
+          notes: notes,
+          enpap_rate: enpapRate,
+          bollo_amount: bolloAmount,
+          items: invoiceItems
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore creazione fattura');
+      }
+
+      const data = await response.json();
       
-      alert('✅ Fattura creata con successo!');
+      alert(`✅ Fattura ${data.invoice_number} creata con successo!`);
       router.push('/app/therapist/fatture');
 
     } catch (e: any) {
