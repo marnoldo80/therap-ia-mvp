@@ -56,54 +56,13 @@ export default function DettaglioFattura() {
 
   async function loadInvoice() {
     try {
-      // Per ora dati mock - da sostituire con vera chiamata al database
-      const mockInvoice: InvoiceDetail = {
-        id: id,
-        invoice_number: 'FAT-2025-001',
-        patient_name: 'Mario Rossi',
-        patient_email: 'mario.rossi@email.com',
-        patient_fiscal_code: 'RSSMRA80A01H501Z',
-        patient_address: 'Via Roma 123, 00100 Roma (RM)',
-        total_amount: 955.70,
-        enpap_amount: 18.70,
-        bollo_amount: 2.00,
-        subtotal: 935.00,
-        enpap_rate: 2,
-        status: 'sent',
-        due_date: '2025-01-15',
-        created_at: '2024-12-15T10:00:00Z',
-        period_start: '2024-11-01',
-        period_end: '2024-11-30',
-        notes: 'Psicoterapia individuale per il mese di novembre 2024',
-        items: [
-          {
-            id: '1',
-            date: '2024-11-05',
-            description: 'Psicoterapia individuale',
-            session_type: 'individual',
-            rate: 85,
-            amount: 85
-          },
-          {
-            id: '2',
-            date: '2024-11-12',
-            description: 'Psicoterapia individuale',
-            session_type: 'individual',
-            rate: 85,
-            amount: 85
-          },
-          {
-            id: '3',
-            date: '2024-11-19',
-            description: 'Psicoterapia individuale',
-            session_type: 'individual',
-            rate: 85,
-            amount: 85
-          }
-        ]
-      };
+      const response = await fetch(`/api/invoices/${id}`);
+      if (!response.ok) {
+        throw new Error('Errore caricamento fattura');
+      }
 
-      setInvoice(mockInvoice);
+      const data = await response.json();
+      setInvoice(data.invoice);
 
     } catch (e: any) {
       setError(e.message);
@@ -116,9 +75,23 @@ export default function DettaglioFattura() {
     if (!invoice) return;
 
     try {
-      // Qui andrà l'API per aggiornare lo status
+      const response = await fetch(`/api/invoices/${invoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore aggiornamento');
+      }
+
+      const data = await response.json();
+      
+      // Aggiorna stato locale
       setInvoice({ ...invoice, status: newStatus });
-      alert(`✅ Stato fattura aggiornato a: ${getStatusText(newStatus)}`);
+      alert(`✅ ${data.message}`);
+      
     } catch (e: any) {
       alert('Errore: ' + e.message);
     }
