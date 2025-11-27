@@ -24,6 +24,7 @@ export default function Page() {
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [province, setProvince] = useState("");
+  const [iban, setIban] = useState(""); // NUOVO CAMPO
 
   useEffect(() => {
     (async () => {
@@ -37,7 +38,7 @@ export default function Page() {
 
       const { data: rows, error } = await supabase
         .from("therapists")
-        .select("full_name, address, vat_number, registration_number, therapeutic_orientation, insurance_policy, tax_code, city, postal_code, province")
+        .select("full_name, address, vat_number, registration_number, therapeutic_orientation, insurance_policy, tax_code, city, postal_code, province, iban")
         .eq("user_id", user.id)
         .single();
 
@@ -59,6 +60,7 @@ export default function Page() {
         setCity(rows.city || "");
         setPostalCode(rows.postal_code || "");
         setProvince(rows.province || "");
+        setIban(rows.iban || ""); // NUOVO CAMPO
       }
 
       setLoading(false);
@@ -87,6 +89,7 @@ export default function Page() {
           city: city,
           postal_code: postalCode,
           province: province,
+          iban: iban, // NUOVO CAMPO
           onboarding_completed: true,
         })
         .eq("user_id", user.id);
@@ -278,6 +281,26 @@ export default function Page() {
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
             placeholder="Es: 12345678901"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>
+            IBAN per pagamenti
+          </label>
+          <input
+            type="text"
+            value={iban}
+            onChange={(e) => setIban(e.target.value.toUpperCase())}
+            className="w-full px-3 py-2 rounded-lg outline-none transition-colors duration-300"
+            style={{
+              backgroundColor: '#0b0f1c',
+              border: '2px solid #26304b',
+              color: 'white'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+            onBlur={(e) => e.target.style.borderColor = '#26304b'}
+            placeholder="Es: IT37D0306234210000002068835"
           />
         </div>
 
