@@ -14,7 +14,8 @@ type Invoice = {
   invoice_number: string;
   patient_name: string;
   total_amount: number;
-  vat_amount: number;
+  enpap_amount: number;
+  bollo_amount: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   due_date: string;
   created_at: string;
@@ -65,40 +66,43 @@ export default function FattureDashboard() {
           id: '1',
           invoice_number: 'FAT-2025-001',
           patient_name: 'Mario Rossi',
-          total_amount: 440,
-          vat_amount: 40,
+          total_amount: 955.70,
+          enpap_amount: 18.70,
+          bollo_amount: 2.00,
           status: 'sent',
           due_date: '2025-01-15',
           created_at: '2024-12-15T10:00:00Z',
           period_start: '2024-11-01',
           period_end: '2024-11-30',
-          sessions_count: 4
+          sessions_count: 11
         },
         {
           id: '2', 
           invoice_number: 'FAT-2025-002',
           patient_name: 'Laura Bianchi',
-          total_amount: 330,
-          vat_amount: 30,
+          total_amount: 696.40,
+          enpap_amount: 13.60,
+          bollo_amount: 2.00,
           status: 'paid',
           due_date: '2025-01-20',
           created_at: '2024-12-20T14:30:00Z',
           period_start: '2024-11-01',
           period_end: '2024-11-30', 
-          sessions_count: 3
+          sessions_count: 8
         },
         {
           id: '3',
           invoice_number: 'FAT-2025-003', 
           patient_name: 'Giuseppe Verdi',
-          total_amount: 220,
-          vat_amount: 20,
+          total_amount: 346.40,
+          enpap_amount: 6.80,
+          bollo_amount: 2.00,
           status: 'overdue',
           due_date: '2024-12-30',
           created_at: '2024-12-01T09:15:00Z',
           period_start: '2024-10-01',
           period_end: '2024-10-31',
-          sessions_count: 2
+          sessions_count: 4
         }
       ];
 
@@ -357,7 +361,7 @@ export default function FattureDashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-semibold text-white">€{invoice.total_amount.toFixed(2)}</div>
-                      <div className="text-xs text-gray-400">IVA: €{invoice.vat_amount.toFixed(2)}</div>
+                      <div className="text-xs text-gray-400">ENPAP: €{invoice.enpap_amount.toFixed(2)} | Bollo: €{invoice.bollo_amount.toFixed(2)}</div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
