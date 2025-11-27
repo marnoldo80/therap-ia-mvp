@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
@@ -9,101 +9,138 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type InvoiceDetail = {
+type Invoice = {
   id: string;
   invoice_number: string;
   patient_name: string;
-  patient_email: string;
-  patient_fiscal_code: string;
-  patient_address: string;
   total_amount: number;
   enpap_amount: number;
   bollo_amount: number;
-  subtotal: number;
-  enpap_rate: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   due_date: string;
   created_at: string;
   period_start: string;
   period_end: string;
-  notes: string;
-  items: InvoiceItem[];
+  sessions_count: number;
 };
 
-type InvoiceItem = {
-  id: string;
-  date: string;
-  description: string;
-  session_type: 'individual' | 'couple' | 'family';
-  rate: number;
-  amount: number;
+type InvoiceStats = {
+  totalInvoices: number;
+  totalAmount: number;
+  thisMonthAmount: number;
+  pendingAmount: number;
+  paidAmount: number;
+  overdueCount: number;
 };
 
-export default function DettaglioFattura() {
-  const params = useParams();
+export default function FattureDashboard() {
   const router = useRouter();
-  const id = params?.id as string;
-  
   const [loading, setLoading] = useState(true);
-  const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [stats, setStats] = useState<InvoiceStats>({
+    totalInvoices: 0,
+    totalAmount: 0,
+    thisMonthAmount: 0,
+    pendingAmount: 0,
+    paidAmount: 0,
+    overdueCount: 0
+  });
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'draft' | 'sent' | 'paid' | 'overdue'>('all');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) {
-      loadInvoice();
-    }
-  }, [id]);
+    loadInvoices();
+  }, []);
 
-  async function loadInvoice() {
+  async function loadInvoices() {
     try {
-      // Per ora dati mock - da sostituire con vera chiamata al database
-      const mockInvoice: InvoiceDetail = {
-        id: id,
-        invoice_number: 'FAT-2025-001',
-        patient_name: 'Mario Rossi',
-        patient_email: 'mario.rossi@email.com',
-        patient_fiscal_code: 'RSSMRA80A01H501Z',
-        patient_address: 'Via Roma 123, 00100 Roma (RM)',
-        total_amount: 955.70,
-        enpap_amount: 18.70,
-        bollo_amount: 2.00,
-        subtotal: 935.00,
-        enpap_rate: 2,
-        status: 'sent',
-        due_date: '2025-01-15',
-        created_at: '2024-12-15T10:00:00Z',
-        period_start: '2024-11-01',
-        period_end: '2024-11-30',
-        notes: 'Psicoterapia individuale per il mese di novembre 2024',
-        items: [
-          {
-            id: '1',
-            date: '2024-11-05',
-            description: 'Psicoterapia individuale',
-            session_type: 'individual',
-            rate: 85,
-            amount: 85
-          },
-          {
-            id: '2',
-            date: '2024-11-12',
-            description: 'Psicoterapia individuale',
-            session_type: 'individual',
-            rate: 85,
-            amount: 85
-          },
-          {
-            id: '3',
-            date: '2024-11-19',
-            description: 'Psicoterapia individuale',
-            session_type: 'individual',
-            rate: 85,
-            amount: 85
-          }
-        ]
-      };
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
-      setInvoice(mockInvoice);
+      // Per ora dati mock - da implementare tabelle fatture
+      const mockInvoices: Invoice[] = [
+        {
+          id: '1',
+          invoice_number: 'FAT-2025-001',
+          patient_name: 'Mario Rossi',
+          total_amount: 955.70,
+          enpap_amount: 18.70,
+          bollo_amount: 2.00,
+          status: 'sent',
+          due_date: '2025-01-15',
+          created_at: '2024-12-15T10:00:00Z',
+          period_start: '2024-11-01',
+          period_end: '2024-11-30',
+          sessions_count: 11
+        },
+        {
+          id: '2', 
+          invoice_number: 'FAT-2025-002',
+          patient_name: 'Laura Bianchi',
+          total_amount: 696.40,
+          enpap_amount: 13.60,
+          bollo_amount: 2.00,
+          status: 'paid',
+          due_date: '2025-01-20',
+          created_at: '2024-12-20T14:30:00Z',
+          period_start: '2024-11-01',
+          period_end: '2024-11-30', 
+          sessions_count: 8
+        },
+        {
+          id: '3',
+          invoice_number: 'FAT-2025-003', 
+          patient_name: 'Giuseppe Verdi',
+          total_amount: 346.40,
+          enpap_amount: 6.80,
+          bollo_amount: 2.00,
+          status: 'overdue',
+          due_date: '2024-12-30',
+          created_at: '2024-12-01T09:15:00Z',
+          period_start: '2024-10-01',
+          period_end: '2024-10-31',
+          sessions_count: 4
+        }
+      ];
+
+      setInvoices(mockInvoices);
+
+      // Calcola statistiche
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const calculatedStats = mockInvoices.reduce((acc, inv) => {
+        acc.totalInvoices++;
+        acc.totalAmount += inv.total_amount;
+
+        const invDate = new Date(inv.created_at);
+        if (invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear) {
+          acc.thisMonthAmount += inv.total_amount;
+        }
+
+        if (inv.status === 'sent') {
+          acc.pendingAmount += inv.total_amount;
+        } else if (inv.status === 'paid') {
+          acc.paidAmount += inv.total_amount;
+        } else if (inv.status === 'overdue') {
+          acc.overdueCount++;
+          acc.pendingAmount += inv.total_amount;
+        }
+
+        return acc;
+      }, {
+        totalInvoices: 0,
+        totalAmount: 0,
+        thisMonthAmount: 0,
+        pendingAmount: 0,
+        paidAmount: 0,
+        overdueCount: 0
+      });
+
+      setStats(calculatedStats);
 
     } catch (e: any) {
       setError(e.message);
@@ -112,32 +149,9 @@ export default function DettaglioFattura() {
     }
   }
 
-  async function updateInvoiceStatus(newStatus: 'draft' | 'sent' | 'paid' | 'overdue') {
-    if (!invoice) return;
-
-    try {
-      // Qui andrà l'API per aggiornare lo status
-      setInvoice({ ...invoice, status: newStatus });
-      alert(`✅ Stato fattura aggiornato a: ${getStatusText(newStatus)}`);
-    } catch (e: any) {
-      alert('Errore: ' + e.message);
-    }
-  }
-
-  function downloadPDF() {
-    // Implementare generazione PDF
-    alert('📄 Funzione PDF in sviluppo');
-  }
-
-  function sendInvoice() {
-    if (!invoice?.patient_email) {
-      alert('⚠️ Email paziente mancante');
-      return;
-    }
-    // Implementare invio email
-    alert(`📧 Fattura inviata a ${invoice.patient_email}`);
-    updateInvoiceStatus('sent');
-  }
+  const filteredInvoices = selectedFilter === 'all' 
+    ? invoices 
+    : invoices.filter(inv => inv.status === selectedFilter);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -159,40 +173,18 @@ export default function DettaglioFattura() {
     }
   };
 
-  const getSessionTypeText = (type: string) => {
-    switch (type) {
-      case 'individual': return 'Individuale';
-      case 'couple': return 'Coppia';
-      case 'family': return 'Famiglia';
-      default: return type;
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#1a1f3a' }}>
-        <div className="max-w-4xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-6">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-white/20 rounded w-1/3"></div>
-            <div className="h-96 bg-white/10 rounded"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-24 bg-white/10 rounded-lg"></div>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!invoice) {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: '#1a1f3a' }}>
-        <div className="max-w-4xl mx-auto p-6 text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Fattura non trovata</h1>
-          <Link
-            href="/app/therapist/fatture"
-            className="bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700"
-            style={{ textDecoration: 'none' }}
-          >
-            ← Torna alle Fatture
-          </Link>
         </div>
       </div>
     );
@@ -200,33 +192,25 @@ export default function DettaglioFattura() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#1a1f3a' }}>
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
         
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/app/therapist/fatture" 
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-              style={{ 
-                color: 'white', 
-                textDecoration: 'none',
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            >
-              ← Fatture
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-white">{invoice.invoice_number}</h1>
-              <p style={{ color: '#a8b2d6' }}>Dettaglio fattura</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(invoice.status)}`}>
-              {getStatusText(invoice.status)}
-            </span>
+        <div className="flex items-center gap-4 mb-8">
+          <Link 
+            href="/app/therapist" 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            style={{ 
+              color: 'white', 
+              textDecoration: 'none',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)'
+            }}
+          >
+            ← Dashboard
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-white">💰 Gestione Fatture</h1>
+            <p style={{ color: '#a8b2d6' }}>Monitora e gestisci le tue fatture</p>
           </div>
         </div>
 
@@ -240,189 +224,211 @@ export default function DettaglioFattura() {
           </div>
         )}
 
-        {/* Actions Bar */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={downloadPDF}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
-          >
-            📄 Scarica PDF
-          </button>
-          
-          {invoice.status === 'draft' && (
-            <button
-              onClick={sendInvoice}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700"
-            >
-              📧 Invia a Paziente
-            </button>
-          )}
-          
-          {invoice.status === 'sent' && (
-            <>
-              <button
-                onClick={() => updateInvoiceStatus('paid')}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700"
-              >
-                ✅ Segna come Pagata
-              </button>
-              <button
-                onClick={sendInvoice}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700"
-              >
-                📧 Reinvia Email
-              </button>
-            </>
-          )}
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-2xl">📊</div>
+              <div>
+                <div className="text-2xl font-bold text-white">{stats.totalInvoices}</div>
+                <div className="text-sm text-gray-400">Fatture totali</div>
+              </div>
+            </div>
+          </div>
 
-          {invoice.status === 'overdue' && (
-            <button
-              onClick={() => updateInvoiceStatus('paid')}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700"
-            >
-              ✅ Segna come Pagata
-            </button>
-          )}
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-2xl">💶</div>
+              <div>
+                <div className="text-2xl font-bold text-white">€{stats.totalAmount.toFixed(0)}</div>
+                <div className="text-sm text-gray-400">Fatturato totale</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-2xl">📅</div>
+              <div>
+                <div className="text-2xl font-bold text-white">€{stats.thisMonthAmount.toFixed(0)}</div>
+                <div className="text-sm text-gray-400">Questo mese</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-2xl">⏳</div>
+              <div>
+                <div className="text-2xl font-bold text-white">€{stats.pendingAmount.toFixed(0)}</div>
+                <div className="text-sm text-gray-400">In sospeso</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Invoice Preview */}
-        <div className="rounded-lg p-8" style={{
-          background: 'white',
-          color: 'black',
-          border: '1px solid rgba(0,0,0,0.1)'
+        {/* Actions Bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'all'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Tutte ({invoices.length})
+            </button>
+            <button
+              onClick={() => setSelectedFilter('sent')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'sent'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              📤 Inviate ({invoices.filter(i => i.status === 'sent').length})
+            </button>
+            <button
+              onClick={() => setSelectedFilter('paid')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'paid'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              ✅ Pagate ({invoices.filter(i => i.status === 'paid').length})
+            </button>
+            {stats.overdueCount > 0 && (
+              <button
+                onClick={() => setSelectedFilter('overdue')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedFilter === 'overdue'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-red-700 text-white hover:bg-red-600'
+                }`}
+              >
+                ⚠️ Scadute ({stats.overdueCount})
+              </button>
+            )}
+          </div>
+
+          <Link
+            href="/app/therapist/fatture/nuova"
+            className="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-700 hover:to-orange-800 transition-all"
+            style={{ textDecoration: 'none' }}
+          >
+            + Nuova Fattura
+          </Link>
+        </div>
+
+        {/* Fatture Table */}
+        <div className="rounded-lg overflow-hidden" style={{
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.1)'
         }}>
-          
-          {/* Header Fattura */}
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">FATTURA</h2>
-              <p className="text-gray-600">Nr. {invoice.invoice_number}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-semibold">Data: {new Date(invoice.created_at).toLocaleDateString('it-IT')}</p>
-              <p className="text-red-600 font-semibold">Scadenza: {new Date(invoice.due_date).toLocaleDateString('it-IT')}</p>
-            </div>
-          </div>
-
-          {/* Dati Cliente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div>
-              <h3 className="font-bold text-gray-900 mb-2">Fatturato a:</h3>
-              <div className="text-gray-700">
-                <p className="font-semibold">{invoice.patient_name}</p>
-                <p>CF: {invoice.patient_fiscal_code}</p>
-                <p>{invoice.patient_address}</p>
-                <p>{invoice.patient_email}</p>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 mb-2">Periodo:</h3>
-              <div className="text-gray-700">
-                <p>Dal {new Date(invoice.period_start).toLocaleDateString('it-IT')}</p>
-                <p>Al {new Date(invoice.period_end).toLocaleDateString('it-IT')}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Dettaglio Servizi */}
-          <div className="mb-8">
-            <h3 className="font-bold text-gray-900 mb-4">Dettaglio Servizi</h3>
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-4 py-2 text-left">Data</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Descrizione</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Tipo</th>
-                  <th className="border border-gray-300 px-4 py-2 text-right">Importo</th>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-white/5">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Numero</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Paziente</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Periodo</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Sessioni</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Importo</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Stato</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Scadenza</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Azioni</th>
                 </tr>
               </thead>
-              <tbody>
-                {invoice.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="border border-gray-300 px-4 py-2">
-                      {new Date(item.date).toLocaleDateString('it-IT')}
+              <tbody className="divide-y divide-white/10">
+                {filteredInvoices.map(invoice => (
+                  <tr key={invoice.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-mono text-sm text-white">{invoice.invoice_number}</div>
                     </td>
-                    <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                    <td className="border border-gray-300 px-4 py-2">{getSessionTypeText(item.session_type)}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-right">€{item.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-white">{invoice.patient_name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-300">
+                        {new Date(invoice.period_start).toLocaleDateString('it-IT')} - {new Date(invoice.period_end).toLocaleDateString('it-IT')}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-white">{invoice.sessions_count}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-white">€{invoice.total_amount.toFixed(2)}</div>
+                      <div className="text-xs text-gray-400">ENPAP: €{invoice.enpap_amount.toFixed(2)} | Bollo: €{invoice.bollo_amount.toFixed(2)}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                        {getStatusText(invoice.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-300">{new Date(invoice.due_date).toLocaleDateString('it-IT')}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/app/therapist/fatture/${invoice.id}`}
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                          style={{ textDecoration: 'none' }}
+                        >
+                          👁️ Vedi
+                        </Link>
+                        <button className="text-green-400 hover:text-green-300 text-sm">
+                          📥 PDF
+                        </button>
+                        {invoice.status === 'sent' && (
+                          <button className="text-purple-400 hover:text-purple-300 text-sm">
+                            📧 Invia
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {/* Totali */}
-          <div className="flex justify-end mb-8">
-            <div className="w-80">
-              <div className="flex justify-between py-2">
-                <span>Totale Imponibile:</span>
-                <span>€{invoice.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span>ENPAP su €{invoice.subtotal.toFixed(2)}:</span>
-                <span>€{invoice.enpap_amount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span>Bollo:</span>
-                <span>€{invoice.bollo_amount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-t border-gray-300 font-bold text-lg">
-                <span>TOTALE A VERSARE:</span>
-                <span>€{invoice.total_amount.toFixed(2)}</span>
-              </div>
-              <div className="text-xs text-gray-600 mt-2">
-                esente da IVA art.10 n° 18 d.p.r. 633/72 e succ. mod.
-              </div>
-            </div>
-          </div>
-
-          {/* Note */}
-          {invoice.notes && (
-            <div className="mb-4">
-              <h3 className="font-bold text-gray-900 mb-2">Note:</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{invoice.notes}</p>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="text-center text-gray-500 text-sm pt-8 border-t border-gray-200 space-y-2">
-            <div className="border-dashed border-2 border-gray-300 p-3 inline-block">
-              <p className="font-medium">Imposta di bollo assolta in</p>
-              <p className="font-medium">modo virtuale - Aut. Agenzia</p>
-              <p className="font-medium">Entrate UT Este - N. prot.</p>
-              <p className="font-medium">23299 19/02/21</p>
-            </div>
-            <p className="mt-4">Grazie per aver scelto i nostri servizi</p>
-          </div>
         </div>
 
-        {/* Status History */}
-        <div className="rounded-lg p-6" style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <h2 className="text-xl font-bold text-white mb-4">📈 Cronologia</h2>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-              <span className="text-gray-300">
-                {new Date(invoice.created_at).toLocaleDateString('it-IT')} - Fattura creata
-              </span>
-            </div>
-            {invoice.status !== 'draft' && (
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <span className="text-gray-300">Fattura inviata al paziente</span>
-              </div>
-            )}
-            {invoice.status === 'paid' && (
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-gray-300">Pagamento ricevuto</span>
-              </div>
+        {/* Empty State */}
+        {filteredInvoices.length === 0 && (
+          <div className="text-center py-12 rounded-lg" style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <div className="text-6xl mb-4">💰</div>
+            <h3 className="text-2xl font-bold text-white mb-4">Nessuna fattura trovata</h3>
+            <p className="text-gray-300 mb-6">
+              {selectedFilter === 'all' 
+                ? 'Inizia creando la tua prima fattura' 
+                : `Nessuna fattura con stato "${selectedFilter}"`}
+            </p>
+            {selectedFilter === 'all' ? (
+              <Link
+                href="/app/therapist/fatture/nuova"
+                className="bg-orange-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-orange-700 inline-block"
+                style={{ textDecoration: 'none' }}
+              >
+                📄 Crea Prima Fattura
+              </Link>
+            ) : (
+              <button
+                onClick={() => setSelectedFilter('all')}
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700"
+              >
+                Vedi Tutte le Fatture
+              </button>
             )}
           </div>
-        </div>
+        )}
+
       </div>
     </div>
   );
