@@ -48,7 +48,8 @@ export default function NuovaFattura() {
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [notes, setNotes] = useState('');
-  const [vatRate, setVatRate] = useState(22);
+  const [enpapRate, setEnpapRate] = useState(2); // ENPAP 2% invece di IVA
+  const [bolloAmount, setBolloAmount] = useState(2); // Bollo fisso €2
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -137,8 +138,8 @@ export default function NuovaFattura() {
   }, [selectedPatient, periodStart, periodEnd]);
 
   const subtotal = invoiceItems.reduce((sum, item) => sum + item.amount, 0);
-  const vatAmount = (subtotal * vatRate) / 100;
-  const total = subtotal + vatAmount;
+  const enpapAmount = (subtotal * enpapRate) / 100; // ENPAP 2%
+  const total = subtotal + enpapAmount + bolloAmount; // Imponibile + ENPAP + Bollo
 
   function addManualItem() {
     const newItem: InvoiceItem = {
@@ -394,16 +395,23 @@ export default function NuovaFattura() {
                   <div className="bg-white/5 rounded-lg p-4 max-w-sm ml-auto">
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Subtotale:</span>
+                        <span className="text-gray-400">Imponibile:</span>
                         <span className="text-white">€{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-400">IVA ({vatRate}%):</span>
-                        <span className="text-white">€{vatAmount.toFixed(2)}</span>
+                        <span className="text-gray-400">ENPAP ({enpapRate}%):</span>
+                        <span className="text-white">€{enpapAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Bollo:</span>
+                        <span className="text-white">€{bolloAmount.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between border-t border-white/10 pt-2 font-semibold">
                         <span className="text-white">Totale:</span>
                         <span className="text-white">€{total.toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-2">
+                        Esente IVA art.10 n°18 DPR 633/72
                       </div>
                     </div>
                   </div>
@@ -436,17 +444,26 @@ export default function NuovaFattura() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">Aliquota IVA (%)</label>
+                  <label className="block text-sm font-medium text-white mb-2">Contributo ENPAP (%)</label>
                   <select
-                    value={vatRate}
-                    onChange={(e) => setVatRate(parseInt(e.target.value))}
+                    value={enpapRate}
+                    onChange={(e) => setEnpapRate(parseInt(e.target.value))}
                     className="px-4 py-2 rounded-lg border border-gray-600 bg-gray-800 text-white focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value={0}>Esenzione IVA</option>
-                    <option value={4}>4%</option>
-                    <option value={10}>10%</option>
-                    <option value={22}>22%</option>
+                    <option value={0}>Esenzione ENPAP</option>
+                    <option value={2}>2% (Standard)</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Imposta di Bollo</label>
+                  <input
+                    type="number"
+                    value={bolloAmount}
+                    onChange={(e) => setBolloAmount(parseFloat(e.target.value) || 0)}
+                    className="px-4 py-2 rounded-lg border border-gray-600 bg-gray-800 text-white focus:ring-2 focus:ring-orange-500"
+                    min="0"
+                    step="0.01"
+                  />
                 </div>
               </div>
             </div>
