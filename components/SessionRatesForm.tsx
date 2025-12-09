@@ -24,13 +24,13 @@ export default function SessionRatesForm({ patientId, initialData, onSave }: Ses
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [durationIndividual, setDurationIndividual] = useState(initialData.session_duration_individual || 45);
-  const [durationCouple, setDurationCouple] = useState(initialData.session_duration_couple || 60);
-  const [durationFamily, setDurationFamily] = useState(initialData.session_duration_family || 75);
+  const [durationIndividual, setDurationIndividual] = useState(initialData.session_duration_individual || 0);
+  const [durationCouple, setDurationCouple] = useState(initialData.session_duration_couple || 0);
+  const [durationFamily, setDurationFamily] = useState(initialData.session_duration_family || 0);
   
-  const [rateIndividual, setRateIndividual] = useState(initialData.rate_individual || 90);
-  const [rateCouple, setRateCouple] = useState(initialData.rate_couple || 130);
-  const [rateFamily, setRateFamily] = useState(initialData.rate_family || 150);
+  const [rateIndividual, setRateIndividual] = useState(initialData.rate_individual || 0);
+  const [rateCouple, setRateCouple] = useState(initialData.rate_couple || 0);
+  const [rateFamily, setRateFamily] = useState(initialData.rate_family || 0);
 
   async function handleSave() {
     setIsSaving(true);
