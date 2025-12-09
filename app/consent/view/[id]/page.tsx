@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
@@ -10,11 +10,22 @@ const supabase = createClient(
 
 export default function ViewConsentPage() {
   const params = useParams();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [consent, setConsent] = useState<any>(null);
   const [patient, setPatient] = useState<any>(null);
   const [therapist, setTherapist] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Firma paziente states
+  const [isPatientUser, setIsPatientUser] = useState(false);
+  const [canPatientSign, setCanPatientSign] = useState(false);
+  const [signingMode, setSigningMode] = useState<'none' | 'type' | 'draw'>('none');
+  const [typedSignature, setTypedSignature] = useState('');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [signaturePath, setSignaturePath] = useState<Array<{x: number, y: number}>>([]);
+  const [signing, setSigning] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -33,6 +44,10 @@ export default function ViewConsentPage() {
       setError(null);
       
       try {
+        // Verifica utente attuale
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+
         // Query consenso
         const { data: consentData, error: consentError } = await supabase
           .from('consent_documents')
@@ -72,6 +87,13 @@ export default function ViewConsentPage() {
         }
         setTherapist(therapistData);
 
+        // Verifica se l'utente corrente è il paziente
+        if (user && patientData.patient_user_id === user.id) {
+          setIsPatientUser(true);
+          // Il paziente può firmare solo se il terapeuta ha già firmato e il paziente non ha ancora firmato
+          setCanPatientSign(consentData.status === 'therapist_signed' && !consentData.patient_signature);
+        }
+
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -81,6 +103,118 @@ export default function ViewConsentPage() {
     
     loadData();
   }, [params]);
+
+  // Funzioni per il disegno della firma
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setSignaturePath([{x, y}]);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setSignaturePath(prev => [...prev, {x, y}]);
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    
+    if (signaturePath.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(signaturePath[signaturePath.length - 1].x, signaturePath[signaturePath.length - 1].y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSignaturePath([]);
+    setTypedSignature('');
+  };
+
+  const savePatientSignature = async () => {
+    if (!consent?.id) return;
+    
+    setSigning(true);
+    try {
+      let signatureData = '';
+      let signatureType = '';
+
+      if (signingMode === 'type') {
+        if (!typedSignature.trim()) {
+          alert('Inserisci la tua firma digitata');
+          setSigning(false);
+          return;
+        }
+        signatureData = typedSignature.trim();
+        signatureType = 'type';
+      } else if (signingMode === 'draw') {
+        const canvas = canvasRef.current;
+        if (!canvas || signaturePath.length === 0) {
+          alert('Disegna la tua firma');
+          setSigning(false);
+          return;
+        }
+        signatureData = canvas.toDataURL();
+        signatureType = 'draw';
+      } else {
+        alert('Seleziona un metodo di firma');
+        setSigning(false);
+        return;
+      }
+
+      // Aggiorna il consenso con la firma del paziente
+      const { error } = await supabase
+        .from('consent_documents')
+        .update({
+          patient_signature: signatureData,
+          patient_signature_type: signatureType,
+          patient_signed_at: new Date().toISOString(),
+          status: 'completed'
+        })
+        .eq('id', consent.id);
+
+      if (error) throw error;
+
+      alert('✅ Consenso firmato con successo!');
+      
+      // Ricarica i dati per mostrare il consenso firmato
+      window.location.reload();
+      
+    } catch (e: any) {
+      alert('Errore durante la firma: ' + e.message);
+    } finally {
+      setSigning(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -109,8 +243,15 @@ export default function ViewConsentPage() {
       <div className="text-center py-4 bg-blue-50 rounded-lg mb-6">
         <h1 className="text-2xl font-bold text-blue-800">Consenso Informato - Visualizzazione</h1>
         <p className="text-blue-600 mt-2">
-          Documento firmato {consent.status === 'completed' ? 'completo' : 'in attesa paziente'}
+          Documento {consent.status === 'completed' ? 'firmato completo' : consent.status === 'therapist_signed' ? 'in attesa della tua firma' : 'in preparazione'}
         </p>
+        {isPatientUser && canPatientSign && (
+          <div className="mt-3 p-3 bg-orange-100 border border-orange-300 rounded">
+            <p className="text-orange-800 font-medium">
+              🔔 Il tuo terapeuta ha firmato il consenso. Ora è il momento di firmarlo anche tu per completare il processo.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* SEZIONE 1: CONSENSO INFORMATO - IDENTICA ALLE PAGINE FIRMA */}
@@ -236,7 +377,7 @@ export default function ViewConsentPage() {
         </div>
       </div>
 
-      {/* SEZIONE FIRME - IDENTICA ALLE PAGINE FIRMA */}
+      {/* SEZIONE FIRME CON FIRMA PAZIENTE INTERATTIVA */}
       <div className="bg-white border rounded-lg p-8">
         <div className="grid grid-cols-2 gap-8">
           <div>
@@ -265,30 +406,127 @@ export default function ViewConsentPage() {
 
           <div>
             <h4 className="font-semibold mb-3">Firma del Paziente:</h4>
-            <div className={`p-4 border rounded ${consent.patient_signature ? 'bg-green-50' : 'bg-gray-50'}`}>
-              {consent.patient_signature ? (
-                <>
-                  {consent.patient_signature_type === 'type' ? (
-                    <div className="text-xl font-serif italic text-center">
-                      {consent.patient_signature}
+            
+            {/* Paziente già ha firmato */}
+            {consent.patient_signature ? (
+              <div className="p-4 border rounded bg-green-50">
+                {consent.patient_signature_type === 'type' ? (
+                  <div className="text-xl font-serif italic text-center">
+                    {consent.patient_signature}
+                  </div>
+                ) : (
+                  <img 
+                    src={consent.patient_signature} 
+                    alt="Firma paziente" 
+                    className="max-h-20 mx-auto"
+                  />
+                )}
+                <p className="text-xs text-center text-gray-500 mt-2">
+                  Firmato il {consent.patient_signed_at && new Date(consent.patient_signed_at).toLocaleDateString('it-IT')}
+                </p>
+              </div>
+            ) : (
+              /* Paziente deve ancora firmare */
+              <div className="space-y-4">
+                {!isPatientUser ? (
+                  <div className="text-center text-gray-500 py-6 border rounded bg-gray-50">
+                    <p>In attesa della firma del paziente</p>
+                  </div>
+                ) : !canPatientSign ? (
+                  <div className="text-center text-gray-500 py-6 border rounded bg-gray-50">
+                    <p>Il terapeuta deve firmare prima che tu possa firmare</p>
+                  </div>
+                ) : (
+                  /* Interface di firma per il paziente */
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-700 mb-3">Scegli come firmare:</p>
+                      <div className="flex gap-4 justify-center">
+                        <button
+                          onClick={() => setSigningMode('type')}
+                          className={`px-4 py-2 rounded border ${
+                            signingMode === 'type' 
+                              ? 'bg-emerald-600 text-white border-emerald-600' 
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          ✏️ Digita Nome
+                        </button>
+                        <button
+                          onClick={() => setSigningMode('draw')}
+                          className={`px-4 py-2 rounded border ${
+                            signingMode === 'draw' 
+                              ? 'bg-emerald-600 text-white border-emerald-600' 
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          ✍️ Disegna Firma
+                        </button>
+                      </div>
                     </div>
-                  ) : (
-                    <img 
-                      src={consent.patient_signature} 
-                      alt="Firma paziente" 
-                      className="max-h-20 mx-auto"
-                    />
-                  )}
-                  <p className="text-xs text-center text-gray-500 mt-2">
-                    Firmato il {consent.patient_signed_at && new Date(consent.patient_signed_at).toLocaleDateString('it-IT')}
-                  </p>
-                </>
-              ) : (
-                <div className="text-center text-gray-500 py-6">
-                  <p>In attesa della firma del paziente</p>
-                </div>
-              )}
-            </div>
+
+                    {signingMode === 'type' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Digita il tuo nome completo:
+                        </label>
+                        <input
+                          type="text"
+                          value={typedSignature}
+                          onChange={(e) => setTypedSignature(e.target.value)}
+                          placeholder="Il tuo nome completo"
+                          className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-500"
+                        />
+                        {typedSignature && (
+                          <div className="mt-3 p-3 border rounded bg-gray-50 text-center">
+                            <p className="text-sm text-gray-600 mb-2">Anteprima firma:</p>
+                            <div className="text-2xl font-serif italic">{typedSignature}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {signingMode === 'draw' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Disegna la tua firma nel riquadro:
+                        </label>
+                        <div className="border rounded bg-white">
+                          <canvas
+                            ref={canvasRef}
+                            width={400}
+                            height={120}
+                            className="w-full cursor-crosshair"
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                          />
+                        </div>
+                        <button
+                          onClick={clearSignature}
+                          className="mt-2 text-sm text-gray-600 hover:text-gray-800"
+                        >
+                          🗑️ Cancella firma
+                        </button>
+                      </div>
+                    )}
+
+                    {signingMode !== 'none' && (
+                      <div className="pt-4 border-t">
+                        <button
+                          onClick={savePatientSignature}
+                          disabled={signing}
+                          className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
+                        >
+                          {signing ? 'Salvataggio in corso...' : '✅ Firma e Completa Consenso'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
