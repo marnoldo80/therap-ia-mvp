@@ -56,6 +56,19 @@ type ExerciseCompletion = {
   completed_at: string | null;
 };
 
+type ConsentDocument = {
+  id: string;
+  therapist_signature: string;
+  therapist_signature_type: string;
+  patient_signature: string | null;
+  patient_signature_type: string | null;
+  tessera_sanitaria_consent: boolean;
+  status: string;
+  created_at: string;
+  therapist_signed_at: string;
+  patient_signed_at: string | null;
+};
+
 export default function Page() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -68,6 +81,7 @@ export default function Page() {
   const [nextSessionThoughts, setNextSessionThoughts] = useState('');
   const [diaryEntry, setDiaryEntry] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'diary' | 'progress'>('overview');
+  const [consentDocuments, setConsentDocuments] = useState<ConsentDocument[]>([]);
   
   const [editingPersonalData, setEditingPersonalData] = useState(false);
   const [editedName, setEditedName] = useState('');
@@ -174,6 +188,14 @@ export default function Page() {
         .eq('patient_id', p.id)
         .order('exercise_index', { ascending: true });
       setExercisesCompletion(exData || []);
+
+      // Carica consensi da firmare
+      const { data: consentsData } = await supabase
+        .from('consent_documents')
+        .select('*')
+        .eq('patient_id', p.id)
+        .order('created_at', { ascending: false });
+      setConsentDocuments(consentsData || []);
 
       setLoading(false);
     } catch (e: any) {
@@ -352,6 +374,7 @@ export default function Page() {
   const lastNote = patientNotes[0];
   const generalObjectives = objectivesCompletion.filter(o => o.objective_type === 'generale');
   const specificObjectives = objectivesCompletion.filter(o => o.objective_type === 'specifico');
+  const pendingConsents = consentDocuments.filter(c => c.status !== 'completed');
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -363,6 +386,11 @@ export default function Page() {
           )}
           {nextAppointment && (
             <div>📅 Prossima seduta: {new Date(nextAppointment.starts_at).toLocaleDateString('it-IT')} alle {new Date(nextAppointment.starts_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+          )}
+          {pendingConsents.length > 0 && (
+            <div className="bg-orange-500 px-2 py-1 rounded text-xs font-medium">
+              📄 {pendingConsents.length} consenso{pendingConsents.length > 1 ? 'i' : ''} da firmare
+            </div>
           )}
         </div>
       </div>
@@ -382,6 +410,50 @@ export default function Page() {
       {activeTab === 'overview' && (
         <div className="grid lg:grid-cols-2 gap-6">
           
+          {/* Sezione Consensi da Firmare - PRIORITARIA */}
+          {pendingConsents.length > 0 && (
+            <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 shadow-sm lg:col-span-2">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-orange-800">
+                <span>📄</span> Consensi da firmare ({pendingConsents.length})
+              </h2>
+              <div className="space-y-4">
+                {pendingConsents.map(consent => (
+                  <div key={consent.id} className="border border-orange-300 rounded-lg p-4 bg-white">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">📋 Consenso Informato</h4>
+                        <p className="text-sm text-gray-600">
+                          Creato il {new Date(consent.created_at).toLocaleDateString('it-IT')}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a
+                          href={`/consent/view/${consent.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm px-4 py-2 rounded font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors duration-200"
+                        >
+                          👁️ Visualizza e Firma
+                        </a>
+                      </div>
+                    </div>
+                    <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                      consent.status === 'completed' 
+                        ? 'bg-green-100 text-green-800' 
+                        : consent.status === 'therapist_signed'
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {consent.status === 'completed' ? '✅ Firmato' : 
+                       consent.status === 'therapist_signed' ? '⏳ In attesa della tua firma' : 
+                       '📝 Bozza'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white border rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -390,8 +462,7 @@ export default function Page() {
               <div className="flex gap-2">
                 <button 
                   onClick={() => setShowPasswordModal(true)}
-                  className="text-sm font-medium px-3 py-1 rounded transition-colors duration-200"
-                  style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+                  className="text-sm font-medium px-3 py-1 rounded transition-colors duration-200 text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300"
                 >
                   🔐 Cambia Password
                 </button>
