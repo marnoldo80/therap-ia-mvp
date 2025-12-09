@@ -8,37 +8,54 @@ export default function LoginPage() {
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Accesso - cIAo-doc</title>
         <style dangerouslySetInnerHTML={{ __html: `
-          :root{
-            --bg:#0b0f1c; --panel:#141a2c; --ink:#f1f5ff; --muted:#a8b2d6;
-            --ring:#26304b; --accent:#7aa2ff; --accent-weak:#1c2440;
-            --purple-start:#9d4edd; --purple-end:#c77dff;
-          }
           *{box-sizing:border-box}
           body{
-            margin:0; background:var(--bg); color:var(--ink);
+            margin:0; padding:0;
             font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-            line-height:1.55; min-height:100vh;
             background:linear-gradient(180deg,#10162a 0%,#0b0f1c 100%);
+            min-height:100vh;
           }
           .container{
-            min-height:100vh; display:flex; align-items:center; justify-content:center; 
-            padding:20px; width:100%;
+            min-height:100vh; 
+            display:flex; 
+            align-items:center; 
+            justify-content:center;
+            padding:20px;
           }
-        .login-wrapper{
-          max-width:900px; width:100%; margin:0 auto;
-          text-align: center;
+          .login-wrapper{
+            max-width:800px; 
+            width:100%; 
+            text-align:center;
+          }
+          .header{
+            text-align:center; 
+            margin-bottom:48px;
+          }
+          .logo{height:140px; width:auto; margin-bottom:16px}
+          .subtitle{
+            margin:16px 0 0 0; 
+            color:#a8b2d6; 
+            font-size:20px; 
+            font-weight:500;
+          }
           .cards-grid{
-            display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); 
-            gap:24px; justify-content: center;
+            display:flex; 
+            gap:24px; 
+            justify-content:center; 
+            flex-wrap:wrap;
           }
           .card{
-            background:var(--panel); border:2px solid var(--ring);
-            border-radius:20px; padding:32px; text-align:center;
+            width:350px;
+            background:#141a2c; 
+            border:2px solid #26304b;
+            border-radius:20px; 
+            padding:32px; 
+            text-align:center;
             box-shadow:0 12px 32px rgba(0,0,0,.3);
             transition:all 0.3s ease;
           }
           .card:hover{
-            border-color:var(--accent); transform:translateY(-4px);
+            border-color:#7aa2ff; transform:translateY(-4px);
             box-shadow:0 16px 40px rgba(122,162,255,.2);
           }
           .card.green:hover{
@@ -50,14 +67,14 @@ export default function LoginPage() {
             display:flex; align-items:center; justify-content:center;
             margin:0 auto 24px;
           }
-          .icon-blue{background:linear-gradient(135deg,var(--accent),#5b9cff)}
+          .icon-blue{background:linear-gradient(135deg,#7aa2ff,#5b9cff)}
           .icon-green{background:linear-gradient(135deg,#10b981,#34d399)}
           .icon{width:40px; height:40px; color:white}
           .card h2{
-            margin:0 0 12px; font-size:24px; font-weight:700; color:var(--ink);
+            margin:0 0 12px; font-size:24px; font-weight:700; color:#f1f5ff;
           }
           .card p{
-            margin:0 0 24px; color:var(--muted); font-size:16px; line-height:1.5;
+            margin:0 0 24px; color:#a8b2d6; font-size:16px; line-height:1.5;
           }
           .buttons{display:flex; flex-direction:column; gap:12px}
           .btn{
@@ -66,7 +83,7 @@ export default function LoginPage() {
             text-align:center; transition:all 0.3s ease; border:2px solid transparent;
           }
           .btn-primary{
-            background:var(--accent); color:#0b1022; 
+            background:#7aa2ff; color:#0b1022; 
             box-shadow:0 8px 20px rgba(122,162,255,.25);
           }
           .btn-primary:hover{
@@ -74,10 +91,10 @@ export default function LoginPage() {
             box-shadow:0 12px 28px rgba(122,162,255,.35);
           }
           .btn-secondary{
-            background:transparent; color:var(--accent); border-color:var(--accent);
+            background:transparent; color:#7aa2ff; border-color:#7aa2ff;
           }
           .btn-secondary:hover{
-            background:var(--accent); color:#0b1022;
+            background:#7aa2ff; color:#0b1022;
             transform:translateY(-2px);
           }
           .btn-green{
@@ -89,7 +106,7 @@ export default function LoginPage() {
             box-shadow:0 12px 28px rgba(16,185,129,.35);
           }
           .note{
-            margin-top:12px; font-size:14px; color:var(--muted); opacity:0.8;
+            margin-top:12px; font-size:14px; color:#a8b2d6; opacity:0.8;
           }
         `}} />
       </head>
