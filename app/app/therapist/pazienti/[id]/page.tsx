@@ -707,12 +707,12 @@ export default function PatientPage() {
             <SessionRatesForm
               patientId={id}
               initialData={{
-                session_duration_individual: patient.session_duration_individual || 45,
-                session_duration_couple: patient.session_duration_couple || 60,
-                session_duration_family: patient.session_duration_family || 75,
-                rate_individual: patient.rate_individual || 90,
-                rate_couple: patient.rate_couple || 130,
-                rate_family: patient.rate_family || 150
+                session_duration_individual: patient.session_duration_individual || 0,
+                session_duration_couple: patient.session_duration_couple || 0,
+                session_duration_family: patient.session_duration_family || 0,
+                rate_individual: patient.rate_individual || 0,
+                rate_couple: patient.rate_couple || 0,
+                rate_family: patient.rate_family || 0
               }}
               onSave={loadData}
             />
