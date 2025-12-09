@@ -21,11 +21,14 @@ export default function LoginPage() {
             align-items:center; 
             justify-content:center;
             padding:20px;
+            width:100%;
           }
           .login-wrapper{
-            max-width:800px; 
-            width:100%; 
-            text-align:center;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            width:100%;
+            max-width:900px;
           }
           .header{
             text-align:center; 
@@ -41,8 +44,7 @@ export default function LoginPage() {
           .cards-grid{
             display:flex; 
             gap:24px; 
-            justify-content:center; 
-            flex-wrap:wrap;
+            justify-content:center;
           }
           .card{
             width:350px;
