@@ -24,7 +24,7 @@ export default function Page() {
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [province, setProvince] = useState("");
-  const [iban, setIban] = useState(""); // NUOVO CAMPO
+  const [iban, setIban] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -60,7 +60,7 @@ export default function Page() {
         setCity(rows.city || "");
         setPostalCode(rows.postal_code || "");
         setProvince(rows.province || "");
-        setIban(rows.iban || ""); // NUOVO CAMPO
+        setIban(rows.iban || "");
       }
 
       setLoading(false);
@@ -89,7 +89,7 @@ export default function Page() {
           city: city,
           postal_code: postalCode,
           province: province,
-          iban: iban, // NUOVO CAMPO
+          iban: iban,
           onboarding_completed: true,
         })
         .eq("user_id", user.id);
@@ -114,7 +114,6 @@ export default function Page() {
 
   return (
     <main className="max-w-2xl mx-auto p-6">
-      {/* Back to Dashboard Button */}
       <div className="mb-6">
         <Link 
           href="/app/therapist"
@@ -152,7 +151,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: Dott.ssa Alessandra Berto"
           />
         </div>
 
@@ -173,7 +171,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: BRTLSS80A01H501Z"
             maxLength={16}
           />
         </div>
@@ -195,7 +192,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: Via Angeli 33/c"
           />
         </div>
 
@@ -217,7 +213,6 @@ export default function Page() {
               }}
               onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
               onBlur={(e) => e.target.style.borderColor = '#26304b'}
-              placeholder="Es: Rovigo"
             />
           </div>
           <div>
@@ -237,7 +232,6 @@ export default function Page() {
               }}
               onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
               onBlur={(e) => e.target.style.borderColor = '#26304b'}
-              placeholder="Es: 45100"
             />
           </div>
           <div>
@@ -257,7 +251,6 @@ export default function Page() {
               }}
               onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
               onBlur={(e) => e.target.style.borderColor = '#26304b'}
-              placeholder="Es: RO"
               maxLength={2}
             />
           </div>
@@ -280,7 +273,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: 12345678901"
           />
         </div>
 
@@ -300,7 +292,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: IT37D0306234210000002068835"
           />
         </div>
 
@@ -321,7 +312,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: 5363"
           />
         </div>
 
@@ -342,7 +332,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: Costruttivista, Cognitivo-Comportamentale, ecc."
           />
         </div>
 
@@ -363,7 +352,6 @@ export default function Page() {
             }}
             onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
             onBlur={(e) => e.target.style.borderColor = '#26304b'}
-            placeholder="Es: CAMPI, n. polizza 425840"
           />
         </div>
 
