@@ -113,7 +113,7 @@ function LoginPazienteContent() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={8}
+              minLength={6}
               className="w-full px-4 py-3 rounded-lg outline-none transition-all duration-300"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.05)',
