@@ -610,7 +610,7 @@ export default function PatientPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Nome e Cognome</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Nome e Cognome *</label>
                     <input 
                       className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
                       style={{
@@ -622,10 +622,11 @@ export default function PatientPage() {
                       onBlur={(e) => e.target.style.borderColor = '#26304b'}
                       value={editPatientData.display_name || ''} 
                       onChange={e => setEditPatientData({...editPatientData, display_name: e.target.value})}
+                      placeholder="Es. Mario Rossi"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Email</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Email *</label>
                     <input 
                       type="email"
                       className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
@@ -638,10 +639,93 @@ export default function PatientPage() {
                       onBlur={(e) => e.target.style.borderColor = '#26304b'}
                       value={editPatientData.email || ''} 
                       onChange={e => setEditPatientData({...editPatientData, email: e.target.value})}
+                      placeholder="email@esempio.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Telefono</label>
+                    <input 
+                      type="tel"
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      value={editPatientData.phone || ''} 
+                      onChange={e => setEditPatientData({...editPatientData, phone: e.target.value})}
+                      placeholder="Es. +39 333 123 4567"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Codice Fiscale</label>
+                    <input 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      value={editPatientData.fiscal_code || ''} 
+                      onChange={e => setEditPatientData({...editPatientData, fiscal_code: e.target.value.toUpperCase()})}
+                      placeholder="Es. RSSMRA80A01H501Z"
+                      maxLength={16}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Data di Nascita</label>
+                    <input 
+                      type="date"
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      value={editPatientData.birth_date || ''} 
+                      onChange={e => setEditPatientData({...editPatientData, birth_date: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Luogo di Nascita</label>
+                    <input 
+                      className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                      style={{
+                        backgroundColor: '#0b0f1c',
+                        border: '2px solid #26304b',
+                        color: 'white'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                      onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                      value={editPatientData.birth_place || ''} 
+                      onChange={e => setEditPatientData({...editPatientData, birth_place: e.target.value})}
+                      placeholder="Es. Milano (MI)"
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'white' }}>Indirizzo Completo</label>
+                  <input 
+                    className="w-full rounded px-3 py-2 text-sm outline-none transition-colors duration-300" 
+                    style={{
+                      backgroundColor: '#0b0f1c',
+                      border: '2px solid #26304b',
+                      color: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#7aa2ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#26304b'}
+                    value={editPatientData.address || ''} 
+                    onChange={e => setEditPatientData({...editPatientData, address: e.target.value})}
+                    placeholder="Es. Via Roma 123, 20100 Milano (MI)"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
                   <button 
                     onClick={savePatientData}
                     disabled={savingPatient}
@@ -655,7 +739,10 @@ export default function PatientPage() {
                     {savingPatient ? 'Salvando...' : '💾 Salva'}
                   </button>
                   <button 
-                    onClick={() => setEditPatientMode(false)}
+                    onClick={() => {
+                      setEditPatientMode(false);
+                      setEditPatientData(patient); // Reset ai valori originali
+                    }}
                     className="px-4 py-2 rounded font-medium transition-colors duration-200"
                     style={{ backgroundColor: '#6b7280', color: 'white' }}
                   >
