@@ -24,15 +24,21 @@ export default function LoginPage() {
             min-height:100vh; display:flex; align-items:center; justify-content:center; 
             padding:20px; width:100%;
           }
-          .login-wrapper{max-width:900px; width:100%; margin:0 auto}
-          .header{text-align:center; margin-bottom:48px; display:flex; flex-direction:column; align-items:center}
-          .logo{height:140px; width:auto; margin-bottom:16px}
-          .subtitle{
-            margin:0; color:var(--muted); font-size:20px; font-weight:500;
+          .login-wrapper{
+            max-width:900px; 
+            width:100%; 
+            margin:0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
           .cards-grid{
-            display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); 
+            display:grid; 
+            grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); 
             gap:24px;
+            justify-items: center;
+            width: 100%;
+            max-width: 800px;
           }
           .card{
             background:var(--panel); border:2px solid var(--ring);
