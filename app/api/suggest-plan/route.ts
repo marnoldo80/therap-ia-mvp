@@ -34,39 +34,64 @@ export async function POST(request: NextRequest) {
       .order('session_date', { ascending: false })
       .limit(5);
 
+    // ✅ CONTROLLO AGGIUNTO: Verifica se c'è abbastanza contesto clinico
+    const hasMinimalContext = 
+      (patient?.issues && patient.issues.trim().length > 0) || 
+      (patient?.goals && patient.goals.trim().length > 0) || 
+      (plan?.anamnesi && plan.anamnesi.trim().length > 0) || 
+      (plan?.valutazione_psicodiagnostica && plan.valutazione_psicodiagnostica.trim().length > 0) || 
+      (plan?.formulazione_caso && plan.formulazione_caso.trim().length > 0) ||
+      (sessionNotes && sessionNotes.length > 0 && sessionNotes.some(note => 
+        (note.notes && note.notes.trim().length > 0) || 
+        (note.ai_summary && note.ai_summary.trim().length > 0)
+      ));
+
+    if (!hasMinimalContext) {
+      return NextResponse.json({ 
+        error: 'Dati clinici insufficienti per generare suggerimenti appropriati. Compila almeno uno dei seguenti campi prima di richiedere suggerimenti IA:\n\n• Problematiche iniziali del paziente\n• Obiettivi terapeutici dichiarati\n• Anamnesi\n• Valutazione psicodiagnostica\n• Note di almeno una seduta' 
+      }, { status: 400 });
+    }
+
     // Costruisci contesto per IA
     let context = `PAZIENTE: ${patient?.display_name || 'Non specificato'}\n\n`;
     
-    if (patient?.issues) {
+    if (patient?.issues && patient.issues.trim().length > 0) {
       context += `PROBLEMATICHE INIZIALI:\n${patient.issues}\n\n`;
     }
     
-    if (patient?.goals) {
+    if (patient?.goals && patient.goals.trim().length > 0) {
       context += `OBIETTIVI DICHIARATI:\n${patient.goals}\n\n`;
     }
 
-    if (plan?.anamnesi) {
+    if (plan?.anamnesi && plan.anamnesi.trim().length > 0) {
       context += `ANAMNESI:\n${plan.anamnesi}\n\n`;
     }
 
-    if (plan?.valutazione_psicodiagnostica) {
+    if (plan?.valutazione_psicodiagnostica && plan.valutazione_psicodiagnostica.trim().length > 0) {
       context += `VALUTAZIONE PSICODIAGNOSTICA:\n${plan.valutazione_psicodiagnostica}\n\n`;
     }
 
-    if (plan?.formulazione_caso) {
+    if (plan?.formulazione_caso && plan.formulazione_caso.trim().length > 0) {
       context += `FORMULAZIONE DEL CASO:\n${plan.formulazione_caso}\n\n`;
     }
 
     if (sessionNotes && sessionNotes.length > 0) {
-      context += `SEDUTE PRECEDENTI (ultime ${sessionNotes.length}):\n`;
-      sessionNotes.forEach((note, i) => {
-        context += `\nSeduta ${i + 1} (${new Date(note.session_date).toLocaleDateString('it-IT')}):\n`;
-        if (note.ai_summary) {
-          context += note.ai_summary + '\n';
-        } else if (note.notes) {
-          context += note.notes.substring(0, 500) + '...\n';
-        }
-      });
+      const validNotes = sessionNotes.filter(note => 
+        (note.notes && note.notes.trim().length > 0) || 
+        (note.ai_summary && note.ai_summary.trim().length > 0)
+      );
+      
+      if (validNotes.length > 0) {
+        context += `SEDUTE PRECEDENTI (ultime ${validNotes.length}):\n`;
+        validNotes.forEach((note, i) => {
+          context += `\nSeduta ${i + 1} (${new Date(note.session_date).toLocaleDateString('it-IT')}):\n`;
+          if (note.ai_summary && note.ai_summary.trim().length > 0) {
+            context += note.ai_summary + '\n';
+          } else if (note.notes && note.notes.trim().length > 0) {
+            context += note.notes.substring(0, 500) + '...\n';
+          }
+        });
+      }
     }
 
     // Chiama Groq per suggerimenti
