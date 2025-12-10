@@ -130,8 +130,8 @@ export default function HomePage() {
             <div className="cta-section">
               <h3>Accedi alla Demo</h3>
               <p>
-                Prova ad accedere alla piattaforma, se vuoi puoi iscriverti per navigare nelle varie 
-                funzioni e valutare se sia la nostra proposta.
+                Prova ad accedere alla piattaforma, puoi iscriverti per navigare nelle varie 
+                funzioni. Attualmente vedrai solo un prototipo con l'obiettivo di darti un'idea di ciò che vorremmo sviluppare.
               </p>
               <a className="cta" href="/login">
                 Accedi Demo
